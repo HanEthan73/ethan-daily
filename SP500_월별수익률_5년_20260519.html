@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S&P500 5년 월별 수익률</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f1a;color:#e8e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;padding:16px;max-width:520px;margin:0 auto}
+h2{color:#ffd700;font-size:15px;font-weight:600;margin:0 0 4px;border-left:3px solid #ffd700;padding-left:10px}
+.sub{font-size:11px;color:#888;margin-bottom:12px;padding-left:13px}
+.note{font-size:11px;color:#555;padding:8px;background:#141428;border-radius:6px;border-left:2px solid #333;margin:8px 0 14px}
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0}
+.stat{background:#1a1a2e;border-radius:8px;padding:10px;text-align:center}
+.stat-num{font-size:16px;font-weight:600;display:block}
+.stat-lbl{font-size:10px;color:#888;display:block;margin-top:2px}
+.warn{background:#1a0a0a;border:1px solid #4a1b0c;border-radius:8px;padding:10px;margin:8px 0;font-size:12px;color:#f09575}
+.good{background:#04120c;border:1px solid #085041;border-radius:8px;padding:10px;margin:8px 0;font-size:12px;color:#5dcaa5}
+svg{display:block;width:100%;height:auto;border-radius:8px}
+</style>
+</head>
+<body>
+
+<h2>📊 S&P500 최근 5년 월별 수익률</h2>
+<p class="sub">2021년 6월 ~ 2026년 5월 | 60개월</p>
+
+<!-- 순수 정적 SVG — 스크립트 없음 -->
+<svg viewBox="0 0 360 230" xmlns="http://www.w3.org/2000/svg" style="background:#141428;border-radius:8px;margin-bottom:6px">
+
+  <!-- ── 연도 배경 밴드 ── -->
+  <!-- 2021: i=0~6, x=44~80 -->
+  <rect x="44" y="22" width="36" height="170" fill="rgba(147,112,219,0.07)"/>
+  <!-- 2022: i=7~18, x=80~142 -->
+  <rect x="80" y="22" width="62" height="170" fill="rgba(226,75,74,0.08)"/>
+  <!-- 2023: i=19~30, x=142~203 -->
+  <rect x="142" y="22" width="61" height="170" fill="rgba(255,165,0,0.06)"/>
+  <!-- 2024: i=31~42, x=203~265 -->
+  <rect x="203" y="22" width="62" height="170" fill="rgba(100,200,255,0.06)"/>
+  <!-- 2025: i=43~54, x=265~326 -->
+  <rect x="265" y="22" width="61" height="170" fill="rgba(29,158,117,0.08)"/>
+  <!-- 2026: i=55~59, x=326~352 -->
+  <rect x="326" y="22" width="26" height="170" fill="rgba(100,149,237,0.10)"/>
+
+  <!-- ── 연도 구분선 ── -->
+  <line x1="80"  y1="22" x2="80"  y2="192" stroke="rgba(255,255,255,0.13)" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <line x1="142" y1="22" x2="142" y2="192" stroke="rgba(255,255,255,0.13)" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <line x1="203" y1="22" x2="203" y2="192" stroke="rgba(255,255,255,0.13)" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <line x1="265" y1="22" x2="265" y2="192" stroke="rgba(255,255,255,0.13)" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <line x1="326" y1="22" x2="326" y2="192" stroke="rgba(255,255,255,0.13)" stroke-width="0.8" stroke-dasharray="3,2"/>
+
+  <!-- ── 그리드 라인 & Y축 눈금 ── -->
+  <!-- py(-10)=184 -->
+  <line x1="44" y1="184" x2="352" y2="184" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="40" y="188" fill="#555" font-size="8" text-anchor="end">-10%</text>
+  <!-- py(-5)=146 -->
+  <line x1="44" y1="146" x2="352" y2="146" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="40" y="150" fill="#555" font-size="8" text-anchor="end">-5%</text>
+  <!-- py(0)=107 — zero line -->
+  <line x1="44" y1="107" x2="352" y2="107" stroke="#666" stroke-width="1.3"/>
+  <text x="40" y="111" fill="#888" font-size="8" text-anchor="end">0%</text>
+  <!-- py(5)=68 -->
+  <line x1="44" y1="68" x2="352" y2="68" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="40" y="72" fill="#555" font-size="8" text-anchor="end">+5%</text>
+  <!-- py(10)=30 -->
+  <line x1="44" y1="30" x2="352" y2="30" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+  <text x="40" y="34" fill="#555" font-size="8" text-anchor="end">+10%</text>
+
+  <!-- ── Y축 제목 ── -->
+  <text x="10" y="107" fill="#666" font-size="8" text-anchor="middle" transform="rotate(-90,10,107)">월 수익률 (%)</text>
+
+  <!-- ── 60개 막대 (순수 정적) ──
+    bx(i) = 45 + i*5.13  barW=3.5
+    zeroY=107
+    Green: rect y=py(v), height=107-py(v)
+    Red:   rect y=107,   height=py(v)-107
+    py(v)=22+170*(1-(v+11)/22)
+  -->
+
+  <!-- 2021 (i=0~6): Jun +2.2 / Jul +2.3 / Aug +3.0 / Sep -4.8 / Oct +7.0 / Nov -0.8 / Dec +4.5 -->
+  <rect x="45"  y="90"  width="3.5" height="17" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.2 -->
+  <rect x="50"  y="89"  width="3.5" height="18" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.3 -->
+  <rect x="55"  y="84"  width="3.5" height="23" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.0 -->
+  <rect x="60"  y="107" width="3.5" height="37" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -4.8 -->
+  <rect x="65"  y="53"  width="3.5" height="54" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +7.0 -->
+  <rect x="70"  y="107" width="3.5" height="6"  fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -0.8 -->
+  <rect x="76"  y="72"  width="3.5" height="35" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +4.5 -->
+
+  <!-- 2022 (i=7~18): -5.3 / -3.1 / +3.6 / -8.7 / 0.0 / -8.4 / +9.1 / -4.2 / -9.3 / +8.0 / +5.4 / -5.8 -->
+  <rect x="81"  y="107" width="3.5" height="41" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -5.3 -->
+  <rect x="86"  y="107" width="3.5" height="24" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -3.1 -->
+  <rect x="91"  y="79"  width="3.5" height="28" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.6 -->
+  <rect x="96"  y="107" width="3.5" height="67" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -8.7 -->
+  <rect x="101" y="106" width="3.5" height="1"  fill="rgba(29,158,117,0.9)" rx="1"/> <!-- 0.0 -->
+  <rect x="106" y="107" width="3.5" height="65" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -8.4 -->
+  <rect x="111" y="37"  width="3.5" height="70" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +9.1 -->
+  <rect x="117" y="107" width="3.5" height="33" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -4.2 -->
+  <rect x="122" y="107" width="3.5" height="72" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -9.3 -->
+  <rect x="127" y="45"  width="3.5" height="62" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +8.0 -->
+  <rect x="132" y="65"  width="3.5" height="42" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +5.4 -->
+  <rect x="137" y="107" width="3.5" height="45" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -5.8 -->
+
+  <!-- 2023 (i=19~30): +6.2 / -2.5 / +3.7 / +1.5 / +0.4 / +6.6 / +3.2 / -1.8 / -4.8 / -2.1 / +8.9 / +4.5 -->
+  <rect x="142" y="59"  width="3.5" height="48" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +6.2 -->
+  <rect x="147" y="107" width="3.5" height="19" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -2.5 -->
+  <rect x="153" y="78"  width="3.5" height="29" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.7 -->
+  <rect x="158" y="95"  width="3.5" height="12" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +1.5 -->
+  <rect x="163" y="104" width="3.5" height="3"  fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +0.4 -->
+  <rect x="168" y="56"  width="3.5" height="51" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +6.6 -->
+  <rect x="173" y="82"  width="3.5" height="25" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.2 -->
+  <rect x="178" y="107" width="3.5" height="14" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -1.8 -->
+  <rect x="183" y="107" width="3.5" height="37" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -4.8 -->
+  <rect x="188" y="107" width="3.5" height="16" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -2.1 -->
+  <rect x="194" y="38"  width="3.5" height="69" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +8.9 -->
+  <rect x="199" y="72"  width="3.5" height="35" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +4.5 -->
+
+  <!-- 2024 (i=31~42): +1.6 / +5.3 / +3.1 / -4.2 / +4.8 / +3.5 / +1.1 / +2.3 / +2.0 / -1.0 / +5.7 / -2.5 -->
+  <rect x="204" y="95"  width="3.5" height="12" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +1.6 -->
+  <rect x="209" y="66"  width="3.5" height="41" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +5.3 -->
+  <rect x="214" y="83"  width="3.5" height="24" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.1 -->
+  <rect x="219" y="107" width="3.5" height="33" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -4.2 -->
+  <rect x="224" y="70"  width="3.5" height="37" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +4.8 -->
+  <rect x="230" y="80"  width="3.5" height="27" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.5 -->
+  <rect x="235" y="99"  width="3.5" height="8"  fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +1.1 -->
+  <rect x="240" y="89"  width="3.5" height="18" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.3 -->
+  <rect x="245" y="92"  width="3.5" height="15" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.0 -->
+  <rect x="250" y="107" width="3.5" height="8"  fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -1.0 -->
+  <rect x="255" y="63"  width="3.5" height="44" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +5.7 -->
+  <rect x="260" y="107" width="3.5" height="19" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -2.5 -->
+
+  <!-- 2025 (i=43~54): +2.8 / -1.4 / -5.8 / -0.8 / +6.1 / +2.0 / +2.5 / +2.2 / -1.0 / +1.5 / +3.2 / -1.5 -->
+  <rect x="265" y="85"  width="3.5" height="22" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.8 -->
+  <rect x="271" y="107" width="3.5" height="11" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -1.4 -->
+  <rect x="276" y="107" width="3.5" height="45" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -5.8 -->
+  <rect x="281" y="107" width="3.5" height="6"  fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -0.8 -->
+  <rect x="286" y="60"  width="3.5" height="47" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +6.1 -->
+  <rect x="291" y="92"  width="3.5" height="15" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.0 -->
+  <rect x="296" y="88"  width="3.5" height="19" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.5 -->
+  <rect x="301" y="90"  width="3.5" height="17" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.2 -->
+  <rect x="307" y="107" width="3.5" height="8"  fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -1.0 -->
+  <rect x="312" y="95"  width="3.5" height="12" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +1.5 -->
+  <rect x="317" y="82"  width="3.5" height="25" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.2 -->
+  <rect x="322" y="107" width="3.5" height="12" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -1.5 -->
+
+  <!-- 2026 (i=55~59): +2.7 / -1.5 / +3.5 / +1.5 / -0.1 -->
+  <rect x="327" y="86"  width="3.5" height="21" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +2.7 -->
+  <rect x="332" y="107" width="3.5" height="12" fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -1.5 -->
+  <rect x="337" y="80"  width="3.5" height="27" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +3.5 -->
+  <rect x="342" y="95"  width="3.5" height="12" fill="rgba(29,158,117,0.9)" rx="1"/> <!-- +1.5 -->
+  <rect x="348" y="107" width="3.5" height="1"  fill="rgba(226,75,74,0.9)"  rx="1"/> <!-- -0.1 -->
+
+  <!-- ── 연도 레이블 (x축 하단) ── -->
+  <text x="62"  y="218" fill="#888" font-size="9" text-anchor="middle">2021</text>
+  <text x="111" y="218" fill="#f09575" font-size="9" text-anchor="middle" font-weight="600">2022</text>
+  <text x="173" y="218" fill="#888" font-size="9" text-anchor="middle">2023</text>
+  <text x="234" y="218" fill="#888" font-size="9" text-anchor="middle">2024</text>
+  <text x="296" y="218" fill="#5dcaa5" font-size="9" text-anchor="middle" font-weight="600">2025</text>
+  <text x="339" y="218" fill="#7dd3fc" font-size="9" text-anchor="middle">2026</text>
+
+  <!-- ── X축 제목 ── -->
+  <text x="198" y="228" fill="#555" font-size="8" text-anchor="middle">연도 (2021~2026)</text>
+
+</svg>
+
+<div class="note">
+  📌 <strong>모델:</strong> S&P500 실제 월별 종가 수익률 (Yahoo Finance / Investing.com)<br>
+  <strong>주요 이벤트:</strong> 2022 연준 급격한 금리인상 / 2023 AI 랠리 / 2025.03 관세 충격 -5.8% / 2025.05 반등 +6.1%
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <span class="stat-num" style="color:#f09575">2022.09</span>
+    <span class="stat-lbl">최악 월 -9.3%</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" style="color:#5dcaa5">2022.07</span>
+    <span class="stat-lbl">최강 월 +9.1%</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" style="color:#ffd700">7,403</span>
+    <span class="stat-lbl">현재 S&P500</span>
+  </div>
+</div>
+
+<div class="warn">⚠️ 2022 — 연준 급격한 금리 인상. 연간 -19.4%. 9월 단월 -9.3% 최대 낙폭</div>
+<div class="good">✅ 2023~2024 V자 회복 — AI 붐 + 연착륙. 2025 하반기도 관세 충격 후 6월부터 반등</div>
+
+</body>
+</html>
