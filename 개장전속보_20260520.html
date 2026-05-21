@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>개장 전 속보 | 2026-05-20</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: #0f0f1a;
+    color: #e8e8f0;
+    font-family: -apple-system, 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 14px;
+    min-height: 100vh;
+  }
+
+  /* ─── Header ─── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #2a2a40;
+    padding-bottom: 10px;
+  }
+  .header-left h1 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffd700;
+    letter-spacing: -0.3px;
+  }
+  .header-left .sub {
+    font-size: 11px;
+    color: #888;
+    margin-top: 1px;
+  }
+  .badge {
+    background: #ffd700;
+    color: #0f0f1a;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── Main Table ─── */
+  .market-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+  }
+  .market-table th {
+    background: #1a1a2e;
+    color: #aaa;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 10px;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #2a2a40;
+  }
+  .market-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #1e1e30;
+    vertical-align: middle;
+  }
+  .market-table tr:last-child td {
+    border-bottom: none;
+  }
+  .label {
+    color: #ccc;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .value {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: right;
+  }
+  .change {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+    min-width: 70px;
+  }
+  .up   { color: #ff4d4d; }   /* 한국장 기준: 상승=빨강 */
+  .down { color: #4d9eff; }   /* 하락=파랑 */
+  .flat { color: #aaa; }
+
+  /* ─── Section Cards ─── */
+  .card {
+    background: #13132a;
+    border: 1px solid #2a2a40;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: #ffd700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .news-item {
+    font-size: 13px;
+    color: #ddd;
+    line-height: 1.6;
+    padding: 4px 0;
+    border-bottom: 1px solid #1e1e30;
+  }
+  .news-item:last-child { border-bottom: none; }
+  .news-item .tag {
+    display: inline-block;
+    background: #1e1e40;
+    color: #ffd700;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-right: 5px;
+  }
+
+  /* ─── Gap Prediction ─── */
+  .gap-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    padding: 3px 0;
+    color: #ddd;
+  }
+  .gap-icon { font-size: 18px; }
+  .gap-label { color: #888; font-size: 11px; min-width: 52px; }
+
+  /* ─── Spotlight Stock ─── */
+  .stock-spotlight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .stock-name {
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffd700;
+  }
+  .stock-code {
+    font-size: 11px;
+    color: #888;
+    margin-top: 1px;
+  }
+  .stock-reason {
+    font-size: 12px;
+    color: #ccc;
+    line-height: 1.5;
+  }
+  .divider { width: 1px; height: 40px; background: #2a2a40; }
+
+  /* ─── Summary Bar ─── */
+  .summary-bar {
+    background: linear-gradient(90deg, #1a1a2e 0%, #15152b 100%);
+    border: 1px solid #ffd700;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 2px;
+    font-size: 13px;
+    color: #ffd700;
+    font-weight: 600;
+    line-height: 1.6;
+  }
+  .summary-bar .prefix {
+    color: #888;
+    font-weight: 400;
+    font-size: 10px;
+    display: block;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  /* ─── Footer ─── */
+  .footer {
+    text-align: center;
+    color: #444;
+    font-size: 10px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #1e1e30;
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 12px 10px; font-size: 13px; }
+    .stock-name { font-size: 16px; }
+    .market-table td { padding: 8px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Header ─── -->
+<div class="header">
+  <div class="header-left">
+    <h1>📊 개장 전 속보</h1>
+    <div class="sub">ETHAN 대표님 전용 &nbsp;·&nbsp; 2026.05.20 수요일 &nbsp;·&nbsp; 한국장 09:00 개장</div>
+  </div>
+  <div class="badge">6:50 AM</div>
+</div>
+
+<!-- ─── Market Table ─── -->
+<table class="market-table">
+  <thead>
+    <tr>
+      <th>지수 / 지표</th>
+      <th style="text-align:right">현재가</th>
+      <th style="text-align:right">등락</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="label">S&amp;P 500</td>
+      <td class="value">7,353.61</td>
+      <td class="change down">▼ 0.67%</td>
+    </tr>
+    <tr>
+      <td class="label">NASDAQ</td>
+      <td class="value">25,870.71</td>
+      <td class="change down">▼ 0.84%</td>
+    </tr>
+    <tr>
+      <td class="label">KOSPI (전일)</td>
+      <td class="value">7,516</td>
+      <td class="change up">▲ 0.31%</td>
+    </tr>
+    <tr>
+      <td class="label">KOSPI200 선물</td>
+      <td class="value">5,756.39</td>
+      <td class="change up">강매수 시그널</td>
+    </tr>
+    <tr>
+      <td class="label">USD / KRW</td>
+      <td class="value">1,501.36</td>
+      <td class="change down">▲원화약세 0.80%</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ─── Overnight News ─── -->
+<div class="card">
+  <div class="card-title">⚡ 오버나이트 주요 뉴스</div>
+  <div class="news-item">
+    <span class="tag">NVDA</span>
+    <strong>엔비디아 실적 오늘 발표</strong> — Blackwell·Vera Rubin 칩 매출 $1조 경로 확인 여부 주목. AI 인프라 수요 강세 지속 기대.
+  </div>
+  <div class="news-item" style="margin-top:6px">
+    <span class="tag">SOX</span>
+    SOX 반도체 지수 YTD <strong>+65%</strong> 급등 중. AMD, OpenAI·Meta에 MI450 GPU 하반기 공급 계획 공개. 단기 과열 우려 병존.
+  </div>
+</div>
+
+<!-- ─── Gap Prediction ─── -->
+<div class="card">
+  <div class="card-title">🎯 오늘 한국장 갭상/갭하 예측</div>
+  <div class="gap-row">
+    <span class="gap-icon">📉</span>
+    <span class="gap-label">출발</span>
+    <span>미국 나스닥 <span class="down">▼0.84%</span> 영향 → <strong>소폭 갭하 출발</strong> 가능성 우세</span>
+  </div>
+  <div class="gap-row" style="margin-top:4px">
+    <span class="gap-icon">📈</span>
+    <span class="gap-label">반전 조건</span>
+    <span>KOSPI200 선물 강매수 시그널 + NVDA 실적 기대감 → <strong>하락 흡수 후 반등</strong></span>
+  </div>
+  <div class="gap-row" style="margin-top:4px">
+    <span class="gap-icon">💱</span>
+    <span class="gap-label">환율 영향</span>
+    <span>달러 강세(₩약세 0.80%) → 삼성전자·SK하이닉스 등 수출 대형주 <strong>방어 요소</strong></span>
+  </div>
+</div>
+
+<!-- ─── Spotlight Stock ─── -->
+<div class="card">
+  <div class="card-title">🔍 오늘 주목 종목</div>
+  <div class="stock-spotlight">
+    <div>
+      <div class="stock-name">SK하이닉스</div>
+      <div class="stock-code">000660 · KOSPI</div>
+    </div>
+    <div class="divider"></div>
+    <div class="stock-reason">
+      오늘 밤 <strong>NVIDIA 실적 발표</strong>에 직접 연동.<br>
+      HBM3E 공급 수요 확인 시 <span class="up"><strong>강한 상승 모멘텀</strong></span> 기대.<br>
+      실적 서프라이즈면 한국 개장 다음 날 갭상 유력.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Summary ─── -->
+<div class="summary-bar">
+  <span class="prefix">📋 ETHAN 대표님 한 줄 총평</span>
+  미국 증시 소폭 하락 출발 예상되나, NVIDIA 실적·선물 강세로 빠른 낙폭 회복 가능. SK하이닉스 중심 반도체 섹터 주시 권장.
+</div>
+
+<!-- ─── Footer ─── -->
+<div class="footer">
+  데이터 출처: CNBC, Investing.com, Yahoo Finance, Motley Fool &nbsp;·&nbsp; 본 보고서는 투자 권유가 아닙니다.
+</div>
+
+</body>
+</html>
