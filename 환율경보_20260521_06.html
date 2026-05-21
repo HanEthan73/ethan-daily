@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚠️ USD/KRW 환율 경보 — 2026-05-21</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --red: #ff4d4f;
+      --red-dim: #3d1212;
+      --orange: #f0883e;
+      --yellow: #e3b341;
+      --green: #3fb950;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 16px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    /* ── Header ── */
+    .header {
+      background: var(--red-dim);
+      border: 1px solid var(--red);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .header .badge {
+      display: inline-block;
+      background: var(--red);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: 4px;
+      padding: 2px 8px;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--red);
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+    .header .subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    /* ── Stat row ── */
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .stat-label { color: var(--muted); font-size: 13px; }
+    .stat-value { font-size: 15px; font-weight: 600; }
+    .up   { color: var(--red); }
+    .down { color: var(--green); }
+    .neu  { color: var(--text); }
+    /* ── 1500 alert ── */
+    .breach-alert {
+      background: #2d1a00;
+      border: 1px solid var(--orange);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .breach-alert .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .breach-alert .msg  { font-size: 13px; line-height: 1.5; color: var(--orange); }
+    .breach-alert .msg strong { color: #ffa940; }
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      text-align: left;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 4px 6px 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody td {
+      padding: 7px 6px;
+      border-bottom: 1px solid #1e252e;
+      vertical-align: top;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 3px;
+      padding: 1px 5px;
+      text-transform: uppercase;
+    }
+    .tag-red    { background: var(--red-dim); color: var(--red); }
+    .tag-orange { background: #2d1a00; color: var(--orange); }
+    .tag-blue   { background: #0d1f3c; color: var(--blue); }
+    /* ── Action list ── */
+    .action-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #1e252e;
+      font-size: 13px;
+    }
+    .action-item:last-child { border-bottom: none; }
+    .action-num {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #0d1117;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <div class="header">
+    <div class="badge">⚠ 환율 경보 발령</div>
+    <div class="h1-wrapper">
+      <h1>₩ 1,496 – 1,509</h1>
+    </div>
+    <div class="subtitle">USD/KRW · 2026년 5월 21일 06시 기준 · 경보 기준 초과 (>1,480)</div>
+  </div>
+
+  <!-- ── 현재 환율 ── -->
+  <div class="card">
+    <div class="card-title">📊 현재 환율 현황</div>
+
+    <div class="stat-row">
+      <span class="stat-label">현재 미드마켓 환율</span>
+      <span class="stat-value up">₩1,496.78</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">전일 마감 (5/20)</span>
+      <span class="stat-value up">₩1,509.11 <small style="color:var(--muted)">(+0.08%)</small></span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">금주 고점 (5/19)</span>
+      <span class="stat-value up">₩1,511.00</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">금주 저점 (5/18)</span>
+      <span class="stat-value neu">₩1,488.38</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">경보 기준선</span>
+      <span class="stat-value" style="color:var(--yellow)">₩1,480.00</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">최근 12개월 변동</span>
+      <span class="stat-value up">+9.77% 원화 약세</span>
+    </div>
+
+    <div class="breach-alert">
+      <div class="icon">🔴</div>
+      <div class="msg">
+        <strong>1,500 레벨 돌파 확인.</strong> 이번 주 최고 ₩1,511을 기록하며 심리적 저항선인 1,500원을 상회. 현재도 1,496~1,509 구간에서 등락 중으로 재돌파 압력 지속.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 코스피 외국인 수급 영향 ── -->
+  <div class="card">
+    <div class="card-title">📉 코스피 외국인 수급 영향 분석</div>
+    <table>
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th>영향</th>
+          <th>수준</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>외국인 원화자산 평가손실</td>
+          <td>달러 기준 환산 손실 확대 → 매도 유인 증가</td>
+          <td><span class="tag tag-red">경계</span></td>
+        </tr>
+        <tr>
+          <td>외국인 순매도 압력</td>
+          <td>환율 1,500+ 구간 장기화 시 차익실현 매물 출회 가능</td>
+          <td><span class="tag tag-orange">주의</span></td>
+        </tr>
+        <tr>
+          <td>수출주 수혜 (반도체·자동차)</td>
+          <td>원화 약세로 달러 환산 수익 개선 → 매수 유입 가능</td>
+          <td><span class="tag tag-blue">중립+</span></td>
+        </tr>
+        <tr>
+          <td>수입주·내수주 부담</td>
+          <td>원자재·에너지 수입원가 상승 → 이익 압박</td>
+          <td><span class="tag tag-red">경계</span></td>
+        </tr>
+        <tr>
+          <td>외국인 채권 자금 이탈</td>
+          <td>환 헷지 비용 상승 시 채권 외인 이탈, 주식 시장 유동성 위축 연계</td>
+          <td><span class="tag tag-orange">주의</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── 권고 조치 ── -->
+  <div class="card">
+    <div class="card-title">✅ 권고 조치</div>
+    <div class="action-item">
+      <div class="action-num">1</div>
+      <div><strong>달러 자산 비중 점검</strong> — 달러 표시 자산(ETF, 예금, 해외주식) 비중 상향 여부 검토. 환율 추가 상승 시 헤지 효과 기대.</div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">2</div>
+      <div><strong>국내 수출 대형주 모니터링</strong> — 삼성전자·현대차 등 환율 수혜주 단기 매수 관심. 단, 글로벌 경기 둔화 리스크와 교차 확인 필요.</div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">3</div>
+      <div><strong>수입 비용 상승 종목 리스크 관리</strong> — 항공·식품·에너지 섹터는 원가 상승 부담. 포지션 축소 또는 손절선 재점검 권고.</div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">4</div>
+      <div><strong>1,510 돌파 시 추가 경계</strong> — ₩1,510을 재돌파할 경우 외국인 대규모 순매도 시나리오 전환. 실시간 외인 수급 데이터 체크 강화.</div>
+    </div>
+    <div class="action-item">
+      <div class="action-num">5</div>
+      <div><strong>한국은행 스무딩 개입 가능성</strong> — 당국의 구두개입·물량 개입 신호 발생 시 역포지션 기회 검토. 기재부·한은 브리핑 주시.</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    자동 생성 · Claude Cowork · 데이터 출처: XE.com, ExchangeRates.org.uk, Yahoo Finance<br>
+    본 보고는 정보 제공 목적이며 투자 자문이 아닙니다.
+  </div>
+
+</body>
+</html>
