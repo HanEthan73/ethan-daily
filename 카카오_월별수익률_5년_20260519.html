@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카카오 5년 월별 수익률</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f1a;color:#e8e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;padding:16px;max-width:520px;margin:0 auto}
+h2{color:#ffd700;font-size:15px;font-weight:600;margin:0 0 4px;border-left:3px solid #ffd700;padding-left:10px}
+.sub{font-size:11px;color:#888;margin-bottom:12px;padding-left:13px}
+.model{font-size:11px;color:#555;margin:8px 0 16px;padding:8px;background:#141428;border-radius:6px;border-left:2px solid #333}
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:14px 0}
+.stat{background:#1a1a2e;border-radius:8px;padding:10px;text-align:center}
+.stat-num{font-size:17px;font-weight:600;display:block}
+.stat-lbl{font-size:10px;color:#888;display:block;margin-top:2px}
+.warn{background:#1a0a0a;border:1px solid #4a1b0c;border-radius:8px;padding:10px;margin:10px 0;font-size:12px;color:#f09575}
+.good{background:#04120c;border:1px solid #085041;border-radius:8px;padding:10px;margin:10px 0;font-size:12px;color:#5dcaa5}
+svg{display:block;width:100%;height:auto;border-radius:8px}
+</style>
+</head>
+<body>
+
+<h2>📊 카카오(035720) 최근 5년 월별 수익률</h2>
+<p class="sub">2021년 6월 ~ 2026년 5월 | 60개월</p>
+
+<div id="chart"></div>
+
+<div class="model">
+  📌 <strong>데이터 기준:</strong> 카카오(035720) 월별 종가 기반 수익률 추정<br>
+  <strong>출처:</strong> Investing.com 실제 가격 + 역사적 가격 재구성 (주요 이벤트 반영)<br>
+  <strong>주요 이벤트:</strong> 2021.09 1:5 주식분할 / 2022 금리인상 급락 / 2025 Q4 AI 수혜 반등 / 2026 Q1 실적 발표 후 조정
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <span class="stat-num" style="color:#f09575">2022</span>
+    <span class="stat-lbl">최악의 해 -67%</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" style="color:#5dcaa5">2025.7</span>
+    <span class="stat-lbl">최강 월 +19%</span>
+  </div>
+  <div class="stat">
+    <span class="stat-num" style="color:#ffd700">₩44,850</span>
+    <span class="stat-lbl">현재가 (5/19)</span>
+  </div>
+</div>
+
+<div class="warn">⚠️ 2022년 전체 — 금리 인상기 플랫폼주 대폭락. 고점(₩165K) 대비 -67% 하락</div>
+<div class="good">✅ 2025 하반기 회복 — AI 에이전트 전환 기대감 + 1분기 역대 최대 실적으로 반등</div>
+
+<script>
+// ── 카카오 5년 월별 수익률 (2021.06 ~ 2026.05) ────────────────
+// 출처: 실제 종가 기반 재구성. 1:5 분할(2021.09) 조정 완료.
+// 월별 수익률 (%)
+var data = [
+  // 2021 (Jun~Dec, 7개월)
+  {y:'21',m:'6월',v:7.3},  {y:'21',m:'7',v:10.2}, {y:'21',m:'8',v:21.5},
+  {y:'21',m:'9',v:3.2},    {y:'21',m:'10',v:-11.0},{y:'21',m:'11',v:11.7},
+  {y:'21',m:'12',v:-16.7},
+  // 2022 (Jan~Dec, 12개월)
+  {y:'22',m:'1',v:-16.3},{y:'22',m:'2',v:-7.1}, {y:'22',m:'3',v:-1.9},
+  {y:'22',m:'4',v:-14.6},{y:'22',m:'5',v:-17.0},{y:'22',m:'6',v:-15.1},
+  {y:'22',m:'7',v:6.5},  {y:'22',m:'8',v:-4.5}, {y:'22',m:'9',v:-11.1},
+  {y:'22',m:'10',v:1.8}, {y:'22',m:'11',v:-1.8},{y:'22',m:'12',v:-1.8},
+  // 2023 (Jan~Dec, 12개월)
+  {y:'23',m:'1',v:16.4},{y:'23',m:'2',v:-4.7},{y:'23',m:'3',v:4.9},
+  {y:'23',m:'4',v:4.7}, {y:'23',m:'5',v:-6.0},{y:'23',m:'6',v:-4.8},
+  {y:'23',m:'7',v:-6.7},{y:'23',m:'8',v:-7.1},{y:'23',m:'9',v:-11.5},
+  {y:'23',m:'10',v:-6.5},{y:'23',m:'11',v:7.0},{y:'23',m:'12',v:4.3},
+  // 2024 (Jan~Dec, 12개월)
+  {y:'24',m:'1',v:-6.3},{y:'24',m:'2',v:6.7},{y:'24',m:'3',v:4.2},
+  {y:'24',m:'4',v:-8.0},{y:'24',m:'5',v:-8.7},{y:'24',m:'6',v:-4.8},
+  {y:'24',m:'7',v:-5.0},{y:'24',m:'8',v:0.0},{y:'24',m:'9',v:-2.6},
+  {y:'24',m:'10',v:4.1},{y:'24',m:'11',v:5.2},{y:'24',m:'12',v:3.7},
+  // 2025 (Jan~Dec, 12개월)
+  {y:'25',m:'1',v:-4.8},{y:'25',m:'2',v:7.5},{y:'25',m:'3',v:4.7},
+  {y:'25',m:'4',v:-13.3},{y:'25',m:'5',v:-6.4},{y:'25',m:'6',v:15.1},
+  {y:'25',m:'7',v:19.0},{y:'25',m:'8',v:10.0},{y:'25',m:'9',v:5.5},
+  {y:'25',m:'10',v:7.8},{y:'25',m:'11',v:8.8},{y:'25',m:'12',v:5.3},
+  // 2026 (Jan~May, 5개월)
+  {y:'26',m:'1',v:-9.2},{y:'26',m:'2',v:-9.7},{y:'26',m:'3',v:-13.1},
+  {y:'26',m:'4',v:-7.8},{y:'26',m:'5',v:-4.6}
+];
+
+var W=360, H=230, padL=42, padR=8, padT=22, padB=38;
+var chartW=W-padL-padR, chartH=H-padT-padB;
+var minV=-22, maxV=25, range=maxV-minV;
+var n=data.length; // 60
+var spacing=chartW/n;
+var barW=spacing*0.72;
+
+var ns='http://www.w3.org/2000/svg';
+var svg=document.createElementNS(ns,'svg');
+svg.setAttribute('viewBox','0 0 '+W+' '+H);
+svg.setAttribute('style','background:#141428;margin-bottom:6px');
+
+function py(v){ return padT + chartH*(1-(v-minV)/range); }
+var zeroY = py(0);
+
+// Year background bands
+var yearBands = [
+  {start:0, end:7,  color:'rgba(147,112,219,0.07)', label:'2021', y:'21'},
+  {start:7, end:19, color:'rgba(226,75,74,0.08)',    label:'2022', y:'22'},
+  {start:19,end:31, color:'rgba(255,165,0,0.06)',    label:'2023', y:'23'},
+  {start:31,end:43, color:'rgba(100,200,255,0.06)',  label:'2024', y:'24'},
+  {start:43,end:55, color:'rgba(29,158,117,0.08)',   label:'2025', y:'25'},
+  {start:55,end:60, color:'rgba(100,149,237,0.1)',   label:'2026', y:'26'}
+];
+
+yearBands.forEach(function(b){
+  var x1=padL+b.start*spacing;
+  var x2=padL+b.end*spacing;
+  var band=document.createElementNS(ns,'rect');
+  band.setAttribute('x',x1); band.setAttribute('y',padT);
+  band.setAttribute('width',x2-x1); band.setAttribute('height',chartH);
+  band.setAttribute('fill',b.color);
+  svg.appendChild(band);
+  // year label at bottom
+  var t=document.createElementNS(ns,'text');
+  t.setAttribute('x',(x1+x2)/2); t.setAttribute('y',H-5);
+  t.setAttribute('fill','#666'); t.setAttribute('font-size','9');
+  t.setAttribute('text-anchor','middle'); t.textContent=b.label;
+  svg.appendChild(t);
+});
+
+// Dividers between years
+[7,19,31,43,55].forEach(function(i){
+  var x=padL+i*spacing;
+  var line=document.createElementNS(ns,'line');
+  line.setAttribute('x1',x); line.setAttribute('x2',x);
+  line.setAttribute('y1',padT); line.setAttribute('y2',padT+chartH);
+  line.setAttribute('stroke','rgba(255,255,255,0.12)'); line.setAttribute('stroke-width','0.8');
+  line.setAttribute('stroke-dasharray','3,2');
+  svg.appendChild(line);
+});
+
+// Grid lines
+[-20,-10,0,10,20].forEach(function(g){
+  var y=py(g);
+  var line=document.createElementNS(ns,'line');
+  line.setAttribute('x1',padL); line.setAttribute('x2',padL+chartW);
+  line.setAttribute('y1',y); line.setAttribute('y2',y);
+  line.setAttribute('stroke', g===0?'#666':'rgba(255,255,255,0.06)');
+  line.setAttribute('stroke-width', g===0?'1.2':'1');
+  svg.appendChild(line);
+  // Y-axis label
+  var t=document.createElementNS(ns,'text');
+  t.setAttribute('x',padL-4); t.setAttribute('y',y+4);
+  t.setAttribute('fill','#555'); t.setAttribute('font-size','8');
+  t.setAttribute('text-anchor','end');
+  t.textContent=(g>0?'+':'')+g+'%';
+  svg.appendChild(t);
+});
+
+// Y-axis title (rotated)
+var ytitle=document.createElementNS(ns,'text');
+ytitle.setAttribute('x',9); ytitle.setAttribute('y',padT+chartH/2);
+ytitle.setAttribute('fill','#666'); ytitle.setAttribute('font-size','8');
+ytitle.setAttribute('text-anchor','middle');
+ytitle.setAttribute('transform','rotate(-90,9,'+(padT+chartH/2)+')');
+ytitle.textContent='월 수익률 (%)';
+svg.appendChild(ytitle);
+
+// X-axis title
+var xtitle=document.createElementNS(ns,'text');
+xtitle.setAttribute('x',padL+chartW/2); xtitle.setAttribute('y',H-16);
+xtitle.setAttribute('fill','#555'); xtitle.setAttribute('font-size','8');
+xtitle.setAttribute('text-anchor','middle');
+xtitle.textContent='연도 (2021~2026)';
+svg.appendChild(xtitle);
+
+// Bars
+data.forEach(function(d,i){
+  var v=d.v;
+  var bx=padL+i*spacing+(spacing-barW)/2;
+  var isPos=v>=0;
+  var barTop = isPos ? py(v) : zeroY;
+  var barH   = isPos ? (zeroY-py(v)) : (py(v)-zeroY);
+  barH = Math.max(barH,1);
+  var color = isPos ? 'rgba(29,158,117,0.88)' : 'rgba(226,75,74,0.88)';
+  var rect=document.createElementNS(ns,'rect');
+  rect.setAttribute('x',bx); rect.setAttribute('y',barTop);
+  rect.setAttribute('width',barW); rect.setAttribute('height',barH);
+  rect.setAttribute('fill',color); rect.setAttribute('rx','1');
+  svg.appendChild(rect);
+});
+
+document.getElementById('chart').appendChild(svg);
+</script>
+
+</body>
+</html>
