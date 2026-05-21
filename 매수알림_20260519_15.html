@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔔 자동매수 알림 점검 — 2026-05-19 15:00</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg2: #1a1d27;
+      --bg3: #22263a;
+      --border: #2e3250;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --blue: #60a5fa;
+      --purple: #a78bfa;
+      --teal: #2dd4bf;
+      --triggered-bg: rgba(248,113,113,0.10);
+      --warn-bg: rgba(251,191,36,0.10);
+      --ok-bg: rgba(74,222,128,0.06);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 16px;
+      max-width: 900px;
+      margin: auto;
+    }
+    header {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--blue);
+      margin-bottom: 4px;
+    }
+    header .meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .summary-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .badge {
+      flex: 1 1 140px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      text-align: center;
+    }
+    .badge .num { font-size: 2rem; font-weight: 800; }
+    .badge .label { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .badge.red { border-color: var(--red); }
+    .badge.red .num { color: var(--red); }
+    .badge.yellow { border-color: var(--yellow); }
+    .badge.yellow .num { color: var(--yellow); }
+    .badge.green { border-color: var(--green); }
+    .badge.green .num { color: var(--green); }
+
+    section { margin-bottom: 20px; }
+    section h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 10px 16px;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid var(--border);
+      border-bottom: none;
+    }
+    h2.triggered-header { background: rgba(248,113,113,0.15); color: var(--red); border-color: var(--red); }
+    h2.warn-header { background: rgba(251,191,36,0.12); color: var(--yellow); border-color: var(--yellow); }
+    h2.ok-header { background: rgba(74,222,128,0.08); color: var(--green); border-color: var(--green); }
+
+    .card-list { border: 1px solid var(--border); border-radius: 0 0 8px 8px; overflow: hidden; }
+    .card {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .card:last-child { border-bottom: none; }
+    .card.triggered { background: var(--triggered-bg); }
+    .card.warn { background: var(--warn-bg); }
+    .card.ok { background: var(--ok-bg); }
+
+    .ticker-box {
+      min-width: 68px;
+      text-align: center;
+      background: var(--bg3);
+      border-radius: 8px;
+      padding: 8px 4px;
+    }
+    .ticker-box .ticker { font-size: 0.95rem; font-weight: 800; color: var(--blue); }
+    .ticker-box .name { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+    .info { flex: 1; }
+    .info .price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .current-price { font-size: 1.3rem; font-weight: 800; }
+    .status-label { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .status-label.triggered { background: var(--red); color: #fff; }
+    .status-label.warn { background: var(--yellow); color: #111; }
+    .status-label.ok { background: var(--green); color: #111; }
+
+    .detail-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .detail-row span strong { color: var(--text); }
+
+    .bar-wrap { margin-top: 8px; }
+    .bar-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 3px; }
+    .bar-bg { background: var(--bg3); border-radius: 6px; height: 6px; overflow: hidden; }
+    .bar-fill { height: 6px; border-radius: 6px; transition: width 0.4s; }
+    .bar-fill.triggered { background: var(--red); }
+    .bar-fill.warn { background: var(--yellow); }
+    .bar-fill.ok { background: var(--green); }
+    .bar-fill.far { background: var(--blue); }
+
+    .trigger-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .tag {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--bg3);
+      color: var(--muted);
+    }
+    .tag.trigger { color: var(--red); border: 1px solid var(--red); }
+    .tag.stop { color: var(--yellow); border: 1px solid var(--yellow); }
+    .tag.target { color: var(--green); border: 1px solid var(--green); }
+
+    .conclusion {
+      background: var(--bg2);
+      border: 1px solid var(--purple);
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 0.95rem;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .conclusion strong { color: var(--purple); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th {
+      background: var(--bg3);
+      color: var(--muted);
+      text-align: left;
+      padding: 10px 12px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    tr.tr-triggered td { background: rgba(248,113,113,0.07); }
+    tr.tr-warn td { background: rgba(251,191,36,0.07); }
+    .td-ticker { font-weight: 700; color: var(--blue); }
+    .td-price { font-weight: 700; color: var(--text); }
+    .td-triggered { color: var(--red); font-weight: 700; }
+    .td-warn { color: var(--yellow); font-weight: 700; }
+    .td-ok { color: var(--green); }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 24px;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 10px; font-size: 14px; }
+      .summary-bar { gap: 8px; }
+      .badge { flex: 1 1 100px; padding: 10px 8px; }
+      .badge .num { font-size: 1.6rem; }
+      .card { flex-direction: column; gap: 10px; padding: 14px; }
+      .ticker-box { display: flex; align-items: center; gap: 8px; min-width: auto; padding: 6px 10px; width: 100%; }
+      .detail-row { gap: 6px 12px; }
+      header h1 { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔔 자동매수 알림 점검 — 2026-05-19 PM 3:00 KST</h1>
+  <div class="meta">모니터링 10종목 · 가격 출처: WebSearch 실시간 조회 · ETHAN 대표님 보고용</div>
+</header>
+
+<!-- 요약 뱃지 -->
+<div class="summary-bar">
+  <div class="badge red">
+    <div class="num">2</div>
+    <div class="label">🚨 트리거 도달</div>
+  </div>
+  <div class="badge yellow">
+    <div class="num">2</div>
+    <div class="label">⚠️ 주의 (2% 이내)</div>
+  </div>
+  <div class="badge green">
+    <div class="num">6</div>
+    <div class="label">✅ 정상 모니터링</div>
+  </div>
+</div>
+
+<!-- 섹션 1: 트리거 도달 -->
+<section>
+  <h2 class="triggered-header">🚨 트리거 도달 종목 — 즉시 매수 검토</h2>
+  <div class="card-list">
+
+    <!-- AVGO -->
+    <div class="card triggered">
+      <div class="ticker-box">
+        <div class="ticker">AVGO</div>
+        <div class="name">브로드컴</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--red)">$419.79</span>
+          <span class="status-label triggered">트리거 도달</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$419.79</strong></span>
+          <span>트리거 <strong style="color:var(--red)">$420.00</strong></span>
+          <span>차이 <strong style="color:var(--red)">−$0.21 (-0.05%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag trigger">진입 $415~$420</span>
+          <span class="tag stop">손절 $390</span>
+          <span class="tag target">목표 $480</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label" style="color:var(--red)">▼ 트리거가 하방 돌파</div>
+          <div class="bar-bg"><div class="bar-fill triggered" style="width:100%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MRVL -->
+    <div class="card triggered">
+      <div class="ticker-box">
+        <div class="ticker">MRVL</div>
+        <div class="name">마벨테크</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--red)">$166.69</span>
+          <span class="status-label triggered">트리거 도달</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$166.69</strong></span>
+          <span>트리거 <strong style="color:var(--red)">$168.00</strong></span>
+          <span>차이 <strong style="color:var(--red)">−$1.31 (-0.78%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag trigger">진입 $163~$168</span>
+          <span class="tag stop">손절 $150</span>
+          <span class="tag target">목표 $215</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label" style="color:var(--red)">▼ 트리거가 하방 돌파 (ATH $192.15에서 조정 중)</div>
+          <div class="bar-bg"><div class="bar-fill triggered" style="width:100%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 섹션 2: 주의 종목 -->
+<section>
+  <h2 class="warn-header">⚠️ 주의 종목 — 트리거까지 2% 이내</h2>
+  <div class="card-list">
+
+    <!-- TSM -->
+    <div class="card warn">
+      <div class="ticker-box">
+        <div class="ticker">TSM</div>
+        <div class="name">TSMC</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--yellow)">$395.95</span>
+          <span class="status-label warn">⚠️ 0.24% 남음</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$395.95</strong></span>
+          <span>트리거 <strong style="color:var(--yellow)">$395.00</strong></span>
+          <span>잔여 <strong style="color:var(--yellow)">$0.95 (0.24%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag trigger">트리거 $395</span>
+          <span class="tag stop">손절 $355</span>
+          <span class="tag target">목표 $455</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label" style="color:var(--yellow)">트리거까지 0.24% — 즉시 진입 대기 필요</div>
+          <div class="bar-bg"><div class="bar-fill warn" style="width:12%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTC -->
+    <div class="card warn">
+      <div class="ticker-box">
+        <div class="ticker">INTC</div>
+        <div class="name">인텔</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--yellow)">$106.12</span>
+          <span class="status-label warn">⚠️ 1.53% 남음</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$106.12</strong></span>
+          <span>트리거 <strong style="color:var(--yellow)">$104.50</strong></span>
+          <span>잔여 <strong style="color:var(--yellow)">$1.62 (1.53%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag trigger">트리거 $104.50</span>
+          <span class="tag stop">손절 $95</span>
+          <span class="tag target">목표 $130</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-label" style="color:var(--yellow)">트리거까지 1.53% — 5일 연속 하락 주목 (YTD +170%)</div>
+          <div class="bar-bg"><div class="bar-fill warn" style="width:30%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 섹션 3: 정상 모니터링 -->
+<section>
+  <h2 class="ok-header">✅ 정상 모니터링 중 — 미도달</h2>
+  <div class="card-list">
+
+    <!-- MSFT -->
+    <div class="card ok">
+      <div class="ticker-box">
+        <div class="ticker">MSFT</div>
+        <div class="name">마이크로소프트</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--green)">$423.54</span>
+          <span class="status-label ok">+3.20% 여유</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$423.54</strong></span>
+          <span>트리거 <strong>$410.00</strong></span>
+          <span>잔여 <strong style="color:var(--green)">$13.54 (3.20%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag stop">손절 $360</span>
+          <span class="tag target">목표 $500</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill ok" style="width:55%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOOGL -->
+    <div class="card ok">
+      <div class="ticker-box">
+        <div class="ticker">GOOGL</div>
+        <div class="name">알파벳</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--green)">$403.45</span>
+          <span class="status-label ok">+4.79% 여유</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$403.45</strong></span>
+          <span>트리거 <strong>$385.00</strong></span>
+          <span>잔여 <strong style="color:var(--green)">$18.45 (4.79%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag stop">손절 $355</span>
+          <span class="tag target">목표 $450</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill ok" style="width:60%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AMZN -->
+    <div class="card ok">
+      <div class="ticker-box">
+        <div class="ticker">AMZN</div>
+        <div class="name">아마존</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--green)">$266.81</span>
+          <span class="status-label ok">+4.63% 여유</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$266.81</strong></span>
+          <span>트리거 <strong>$255.00</strong></span>
+          <span>잔여 <strong style="color:var(--green)">$11.81 (4.43%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag stop">손절 $230</span>
+          <span class="tag target">목표 $320</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill ok" style="width:58%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORCL -->
+    <div class="card ok">
+      <div class="ticker-box">
+        <div class="ticker">ORCL</div>
+        <div class="name">오라클</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--green)">$185.35</span>
+          <span class="status-label ok">+4.13% 여유</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$185.35</strong></span>
+          <span>트리거 <strong>$178.00</strong></span>
+          <span>잔여 <strong style="color:var(--green)">$7.35 (3.97%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag stop">손절 $162</span>
+          <span class="tag target">목표 $225</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill ok" style="width:55%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLTR -->
+    <div class="card ok">
+      <div class="ticker-box">
+        <div class="ticker">PLTR</div>
+        <div class="name">팔란티르</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--green)">$132.20</span>
+          <span class="status-label ok">+8.36% 여유</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$132.20</strong></span>
+          <span>트리거 <strong>$122.00</strong></span>
+          <span>잔여 <strong style="color:var(--green)">$10.20 (7.72%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag stop">손절 $105</span>
+          <span class="tag target">목표 $170</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill far" style="width:65%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASTS -->
+    <div class="card ok">
+      <div class="ticker-box">
+        <div class="ticker">ASTS</div>
+        <div class="name">AST SpaceMobile</div>
+      </div>
+      <div class="info">
+        <div class="price-row">
+          <span class="current-price" style="color:var(--green)">$87.01</span>
+          <span class="status-label ok">+27.95% 여유</span>
+        </div>
+        <div class="detail-row">
+          <span>현재가 <strong>$87.01</strong></span>
+          <span>트리거 <strong>$68.00</strong></span>
+          <span>잔여 <strong style="color:var(--green)">$19.01 (21.84%)</strong></span>
+        </div>
+        <div class="trigger-row" style="margin-top:8px">
+          <span class="tag stop">손절 $45</span>
+          <span class="tag target">목표 $100</span>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-bg"><div class="bar-fill far" style="width:80%"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- 전체 요약 표 -->
+<section>
+  <h2 style="font-size:1rem;font-weight:700;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;color:var(--text);">📊 전체 현황 요약표</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>티커</th>
+        <th>종목</th>
+        <th>현재가</th>
+        <th>트리거가</th>
+        <th>상태</th>
+        <th>손절가</th>
+        <th>목표가</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="tr-triggered">
+        <td class="td-ticker">AVGO</td>
+        <td>브로드컴</td>
+        <td class="td-price">$419.79</td>
+        <td>$420.00</td>
+        <td class="td-triggered">🚨 트리거 도달 (-0.05%)</td>
+        <td>$390</td>
+        <td>$480</td>
+      </tr>
+      <tr class="tr-triggered">
+        <td class="td-ticker">MRVL</td>
+        <td>마벨테크</td>
+        <td class="td-price">$166.69</td>
+        <td>$168.00</td>
+        <td class="td-triggered">🚨 트리거 도달 (-0.78%)</td>
+        <td>$150</td>
+        <td>$215</td>
+      </tr>
+      <tr class="tr-warn">
+        <td class="td-ticker">TSM</td>
+        <td>TSMC</td>
+        <td class="td-price">$395.95</td>
+        <td>$395.00</td>
+        <td class="td-warn">⚠️ 0.24% 남음</td>
+        <td>$355</td>
+        <td>$455</td>
+      </tr>
+      <tr class="tr-warn">
+        <td class="td-ticker">INTC</td>
+        <td>인텔</td>
+        <td class="td-price">$106.12</td>
+        <td>$104.50</td>
+        <td class="td-warn">⚠️ 1.53% 남음</td>
+        <td>$95</td>
+        <td>$130</td>
+      </tr>
+      <tr>
+        <td class="td-ticker">MSFT</td>
+        <td>마이크로소프트</td>
+        <td class="td-price">$423.54</td>
+        <td>$410.00</td>
+        <td class="td-ok">✅ 3.20% 남음</td>
+        <td>$360</td>
+        <td>$500</td>
+      </tr>
+      <tr>
+        <td class="td-ticker">GOOGL</td>
+        <td>알파벳</td>
+        <td class="td-price">$403.45</td>
+        <td>$385.00</td>
+        <td class="td-ok">✅ 4.79% 남음</td>
+        <td>$355</td>
+        <td>$450</td>
+      </tr>
+      <tr>
+        <td class="td-ticker">AMZN</td>
+        <td>아마존</td>
+        <td class="td-price">$266.81</td>
+        <td>$255.00</td>
+        <td class="td-ok">✅ 4.43% 남음</td>
+        <td>$230</td>
+        <td>$320</td>
+      </tr>
+      <tr>
+        <td class="td-ticker">ORCL</td>
+        <td>오라클</td>
+        <td class="td-price">$185.35</td>
+        <td>$178.00</td>
+        <td class="td-ok">✅ 3.97% 남음</td>
+        <td>$162</td>
+        <td>$225</td>
+      </tr>
+      <tr>
+        <td class="td-ticker">PLTR</td>
+        <td>팔란티르</td>
+        <td class="td-price">$132.20</td>
+        <td>$122.00</td>
+        <td class="td-ok">✅ 7.72% 남음</td>
+        <td>$105</td>
+        <td>$170</td>
+      </tr>
+      <tr>
+        <td class="td-ticker">ASTS</td>
+        <td>AST SpaceMobile</td>
+        <td class="td-price">$87.01</td>
+        <td>$68.00</td>
+        <td class="td-ok">✅ 21.84% 남음</td>
+        <td>$45</td>
+        <td>$100</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 총평 -->
+<div class="conclusion">
+  <strong>📝 총평 (2026-05-19 PM 3:00):</strong><br>
+  <strong>AVGO</strong>와 <strong>MRVL</strong> 2종목이 트리거가에 도달하여 즉시 매수 검토가 필요하며, <strong>TSM(잔여 0.24%)</strong>과 <strong>INTC(잔여 1.53%)</strong>는 트리거 초근접 구간에 진입한 상태로 장중 언제든 도달 가능한 만큼 사전 주문 준비를 권고드립니다.
+</div>
+
+<footer>
+  ⚠️ 본 보고서는 자동 모니터링 시스템이 생성한 참고자료로, 최종 투자 판단은 반드시 대표님 본인이 직접 확인하시기 바랍니다.<br>
+  가격 데이터 출처: WebSearch 실시간 조회 (CNBC, Yahoo Finance, MarketBeat, Investing.com 등) | 생성 시각: 2026-05-19 15:00 KST
+</footer>
+
+</body>
+</html>
