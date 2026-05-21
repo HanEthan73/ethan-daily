@@ -1,0 +1,775 @@
+<!DOCTYPE html><html lang='ko'><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px; line-height: 1.7;
+    background: #0f0f1a; color: #e8e8f0;
+    padding: 16px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { font-size: 1.5em; color: #ffd700; border-bottom: 2px solid #ffd700; padding-bottom: 8px; margin: 20px 0 12px; }
+  h2 { font-size: 1.25em; color: #ffd700; margin: 20px 0 10px; border-left: 4px solid #ffd700; padding-left: 10px; }
+  h3 { font-size: 1.1em; color: #a78bfa; margin: 16px 0 8px; }
+  h4 { font-size: 1em; color: #7dd3fc; margin: 12px 0 6px; }
+  p { margin: 8px 0; }
+  strong { color: #ffd700; }
+  em { color: #a78bfa; font-style: normal; }
+  code { background: #1e1e3a; color: #7dd3fc; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+  pre { background: #1e1e3a; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; }
+  blockquote { border-left: 3px solid #a78bfa; margin: 10px 0; padding: 8px 12px; background: #1a1a2e; border-radius: 0 6px 6px 0; color: #c4c4d8; }
+  hr { border: none; border-top: 1px solid #333; margin: 20px 0; }
+  ul, ol { padding-left: 20px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.88em; display: block; overflow-x: auto; }
+  th { background: #1a1a3e; color: #ffd700; padding: 8px 10px; text-align: left; border: 1px solid #333; white-space: nowrap; }
+  td { padding: 7px 10px; border: 1px solid #2a2a4a; vertical-align: top; }
+  tr:nth-child(even) { background: #141428; }
+  tr:hover { background: #1e1e38; }
+  a { color: #7dd3fc; text-decoration: none; }
+</style>
+<title>차트지표 공부 20260518</title></head><body><h1>📊 차트 지표 완전 정복 — 대표님 전용 학습 자료</h1>
+<blockquote>
+<p>작성 기준: 2026.05.18 | 기반: 대표님 앱 스크린샷 전체 지표</p>
+</blockquote>
+<hr />
+<h2>🗂️ 전체 지표 한눈에 보기</h2>
+<table>
+<thead>
+<tr>
+<th>분류</th>
+<th>지표명</th>
+<th>핵심 한 줄 정의</th>
+<th>4전략 연관</th>
+<th>권장 사용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>메인</td>
+<td><strong>이동평균선</strong></td>
+<td>일정 기간 주가 평균선 — 추세의 뼈대</td>
+<td>✅✅✅ Weinstein 핵심</td>
+<td>✅ 반드시 ON</td>
+</tr>
+<tr>
+<td>메인</td>
+<td>엔벨로프</td>
+<td>MA 위아래에 일정 % 밴드 그린 것</td>
+<td>보조적</td>
+<td>❌ 볼린저로 대체</td>
+</tr>
+<tr>
+<td>메인</td>
+<td><strong>볼린저밴드</strong></td>
+<td>변동성 기반 상·중·하단 밴드</td>
+<td>✅✅ VCP 수축 확인</td>
+<td>✅ ON</td>
+</tr>
+<tr>
+<td>메인</td>
+<td>일목균형표</td>
+<td>일본식 5선 복합 지표</td>
+<td>미해당</td>
+<td>❌ 복잡도만 증가</td>
+</tr>
+<tr>
+<td>메인</td>
+<td><strong>매물대</strong></td>
+<td>과거 거래 집중 가격대 시각화</td>
+<td>✅✅ 지지/저항</td>
+<td>✅ ON</td>
+</tr>
+<tr>
+<td>메인</td>
+<td>추세선</td>
+<td>수동으로 그리는 고점·저점 연결선</td>
+<td>참고용</td>
+<td>⚠️ 수동 작업</td>
+</tr>
+<tr>
+<td>보조</td>
+<td><strong>MACD</strong></td>
+<td>단기-장기 MA 간격으로 모멘텀 측정</td>
+<td>✅✅ 추세 전환</td>
+<td>✅ <strong>ON 추가 권장</strong></td>
+</tr>
+<tr>
+<td>보조</td>
+<td>DMI</td>
+<td>추세 방향·강도 동시 측정</td>
+<td>⚠️ MACD 있으면 중복</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>보조</td>
+<td>ATR</td>
+<td>일정 기간 평균 변동폭(절대값)</td>
+<td>⚠️ 손절가 계산 참고</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>보조</td>
+<td><strong>거래량</strong></td>
+<td>하루 거래된 주식 수량</td>
+<td>✅✅✅ C&amp;H 브레이크아웃</td>
+<td>✅ 반드시 ON</td>
+</tr>
+<tr>
+<td>보조</td>
+<td>CCI</td>
+<td>현재가가 평균 대비 얼마나 벗어났나</td>
+<td>⚠️ RSI와 중복</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>보조</td>
+<td>OBV</td>
+<td>거래량 누적으로 매집/분산 추적</td>
+<td>⚠️ 참고용</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>보조</td>
+<td>MFI</td>
+<td>거래량+가격 결합 모멘텀</td>
+<td>⚠️ RSI+거래량으로 대체</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>모멘텀</td>
+<td>모멘텀</td>
+<td>n일 전 대비 현재가 변화율 (단순)</td>
+<td>보조적</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>모멘텀</td>
+<td>ROC</td>
+<td>모멘텀의 % 버전, 0 기준선</td>
+<td>⚠️ MACD로 대체</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>모멘텀</td>
+<td><strong>RSI</strong></td>
+<td>과매수/과매도 강도 0~100 척도</td>
+<td>✅✅✅ VCP 핵심</td>
+<td>✅ <strong>ON 추가 권장</strong></td>
+</tr>
+<tr>
+<td>모멘텀</td>
+<td>스토캐스틱</td>
+<td>최근 고점/저점 내 현재 위치</td>
+<td>⚠️ RSI 있으면 중복</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>모멘텀</td>
+<td>William's R</td>
+<td>스토캐스틱 반전판, –100~0 척도</td>
+<td>⚠️ 중복</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>모멘텀</td>
+<td><strong>TRIX</strong></td>
+<td>3중 평활 MA 변화율 — 잡음 제거</td>
+<td>⚠️ MACD 추가 시 중복</td>
+<td>❌ OFF 권장</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>📌 메인 지표 (차트 위에 직접 그려지는 것들)</h2>
+<hr />
+<h3>1. 이동평균선 (MA — Moving Average)</h3>
+<p><strong>"주가의 평균을 선으로 이어 추세의 방향을 보는 가장 기본적인 도구"</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>원리</td>
+<td>n일간 종가 평균을 매일 계산해 이어 그림</td>
+</tr>
+<tr>
+<td>종류</td>
+<td>MA5(1주) / MA20(1달) / MA50(약 2.5달) / MA200(1년) / MA30W(주간 30주=약 7.5달)</td>
+</tr>
+<tr>
+<td>골든크로스</td>
+<td>MA50이 MA200을 <strong>위로</strong> 돌파 → 강세 전환 신호 → <strong>매수 허가</strong></td>
+</tr>
+<tr>
+<td>데드크로스</td>
+<td>MA50이 MA200을 <strong>아래로</strong> 이탈 → 약세 전환 → <strong>매수 절대 금지</strong></td>
+</tr>
+<tr>
+<td>지지/저항</td>
+<td>주가가 MA선에서 반등하면 "지지", 막히면 "저항"</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4전략과의 관계:</strong><br />
+- <em>Weinstein: MA30W(주간 30주선) 위에서 거래 = Stage 2(상승) 확인</em><br />
+- <em>VCP: MA50 기울기 우상향 확인 필수</em><br />
+- <em>C&amp;H: 컵 손잡이 구간이 MA50~MA200 사이에 위치하면 이상적</em></p>
+<p><strong>실전 활용 — 대표님 포트폴리오 기준:</strong><br />
+- NVDA MA50 $222 → 현재가 $224 부근 = 지지선 근접 → 눌림목 진입 구간<br />
+- AMD MA50 &lt; MA200 = 데드크로스 확인 → 추천 제외 (절대원칙)</p>
+<hr />
+<h3>2. 엔벨로프 (Envelope)</h3>
+<p><strong>"MA 위아래에 일정 % 거리로 밴드를 그려 과매수/과매도 범위를 표시"</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>원리</td>
+<td>보통 MA20 기준 ±5~10%에 상단/하단 선</td>
+</tr>
+<tr>
+<td>읽는 법</td>
+<td>상단 터치 = 단기 과매수 → 매도 고려 / 하단 터치 = 과매도 → 매수 고려</td>
+</tr>
+</tbody>
+</table>
+<p><strong>단점:</strong> 변동성이 큰 AI주(NVDA, ASTS)에서 밴드 폭이 고정되어 부정확. 볼린저밴드가 변동성을 동적으로 반영하므로 대체 가능 → <strong>OFF 권장</strong></p>
+<hr />
+<h3>3. 볼린저밴드 (Bollinger Bands)</h3>
+<p><strong>"변동성이 클수록 밴드가 벌어지고, 잠잠해지면 수축 — VCP 전략의 핵심 확인 도구"</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>구성</td>
+<td>중심선(MA20) + 상단(MA20 + 2σ) + 하단(MA20 - 2σ)</td>
+</tr>
+<tr>
+<td>σ(시그마)</td>
+<td><em>표준편차: 가격이 평균에서 얼마나 퍼져 있는지 측정값</em></td>
+</tr>
+<tr>
+<td>수축(Squeeze)</td>
+<td>밴드 간격이 좁아짐 = 변동성 감소 = 폭발 직전 신호</td>
+</tr>
+<tr>
+<td>팽창</td>
+<td>밴드 간격이 벌어짐 = 강한 추세 진행 중</td>
+</tr>
+<tr>
+<td>상단 터치</td>
+<td>단기 과매수 경고 (RSI와 함께 확인)</td>
+</tr>
+<tr>
+<td>하단 터치</td>
+<td>과매도 → 반등 가능성</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4전략과의 관계:</strong><br />
+- <em>VCP: 볼린저밴드 수축 = 변동성 수축 패턴 시각적 확인. 수축 후 거래량 폭발과 함께 상단 돌파 = 매수 진입 신호</em></p>
+<p><strong>실전 예시:</strong></p>
+<blockquote>
+<p>NVDA 볼린저밴드가 좁아지며 MA20($222) 부근에서 3주째 횡보 중이라면 → 조만간 방향성 폭발 임박. 거래량 급증과 함께 상단 돌파 시 VCP 진입 신호</p>
+</blockquote>
+<hr />
+<h3>4. 일목균형표 (Ichimoku Cloud)</h3>
+<p><strong>"5가지 선이 동시에 지지·저항·추세·모멘텀을 표시하는 일본식 복합 지표"</strong></p>
+<table>
+<thead>
+<tr>
+<th>선 이름</th>
+<th>계산법</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>전환선</td>
+<td>(9일 고+저)/2</td>
+<td>단기 중심가</td>
+</tr>
+<tr>
+<td>기준선</td>
+<td>(26일 고+저)/2</td>
+<td>중기 중심가</td>
+</tr>
+<tr>
+<td>선행스팬A</td>
+<td>(전환+기준)/2 → 26일 앞에 표시</td>
+<td>구름 상단</td>
+</tr>
+<tr>
+<td>선행스팬B</td>
+<td>(52일 고+저)/2 → 26일 앞에 표시</td>
+<td>구름 하단</td>
+</tr>
+<tr>
+<td>후행스팬</td>
+<td>종가 → 26일 뒤에 표시</td>
+<td>현재 모멘텀 확인</td>
+</tr>
+</tbody>
+</table>
+<p><strong>현실적 평가:</strong> 선이 너무 많아 AI주 단기 트레이딩에 노이즈만 추가. 4전략 프레임워크로 모든 기능이 커버됨 → <strong>OFF 권장</strong></p>
+<hr />
+<h3>5. 매물대</h3>
+<p><strong>"과거에 거래가 많이 몰렸던 가격 구간 — 실제 지지·저항선을 눈으로 바로 확인"</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>원리</td>
+<td>가격대별 누적 거래량을 수평 막대로 표시</td>
+</tr>
+<tr>
+<td>두꺼운 막대</td>
+<td>그 가격에서 엄청나게 많은 사람이 매수/매도 = 강한 지지·저항</td>
+</tr>
+<tr>
+<td>읽는 법</td>
+<td>현재가 아래 두꺼운 매물대 = 지지선 / 위 = 저항선</td>
+</tr>
+<tr>
+<td>매물대 돌파</td>
+<td>대량 거래로 두꺼운 매물대를 뚫고 올라가면 → 다음 저항까지 빠른 상승 가능</td>
+</tr>
+</tbody>
+</table>
+<p><strong>실전 활용:</strong></p>
+<blockquote>
+<p>MU $715 아래에 매물대가 두껍다면 → 그 구간이 실질적 1차 지지선. 자동매수가($748/$725) 설정 근거가 됨</p>
+</blockquote>
+<hr />
+<h3>6. 추세선 (Trend Line)</h3>
+<p><strong>"고점끼리, 저점끼리 이어 그린 수동 선 — 추세의 각도와 방향을 직관적으로 확인"</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>상승 추세선</td>
+<td>저점들을 이어 그린 선 → 이 선 위에서 매수 유지</td>
+</tr>
+<tr>
+<td>하락 추세선</td>
+<td>고점들을 이어 그린 선 → 이 선 아래에서 매도/회피</td>
+</tr>
+<tr>
+<td>돌파</td>
+<td>추세선을 강한 거래량으로 돌파 = 추세 전환 신호</td>
+</tr>
+</tbody>
+</table>
+<p>자동 계산이 아닌 수동 작업이므로 앱 알림 자동화와 무관. 참고 도구로만 활용.</p>
+<hr />
+<h2>📌 보조 지표 (차트 하단에 별도 패널로 표시)</h2>
+<hr />
+<h3>7. MACD (Moving Average Convergence Divergence)</h3>
+<p><strong><em>MACD: 이동평균 수렴·발산 지수 — 단기와 장기 추세의 벌어짐·좁혀짐으로 모멘텀 측정</em></strong></p>
+<p><strong>"두 MA 선이 벌어지면 추세 강하고, 좁혀지면 약해진다는 신호"</strong></p>
+<table>
+<thead>
+<tr>
+<th>구성요소</th>
+<th>계산법</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MACD 선</td>
+<td>EMA12 - EMA26</td>
+<td>단기-장기 차이값</td>
+</tr>
+<tr>
+<td>시그널 선</td>
+<td>MACD의 EMA9</td>
+<td>MACD의 평균선</td>
+</tr>
+<tr>
+<td>히스토그램</td>
+<td>MACD - 시그널</td>
+<td>두 선의 간격 (막대로 표시)</td>
+</tr>
+</tbody>
+</table>
+<p><em>EMA: Exponential Moving Average, 지수이동평균 — 최근 데이터에 더 큰 가중치</em></p>
+<table>
+<thead>
+<tr>
+<th>신호</th>
+<th>읽는 법</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>골든크로스</td>
+<td>MACD선이 시그널선 위로 교차 → 매수 신호</td>
+</tr>
+<tr>
+<td>데드크로스</td>
+<td>MACD선이 시그널선 아래로 교차 → 매도 신호</td>
+</tr>
+<tr>
+<td>히스토그램 증가</td>
+<td>추세 강화 중</td>
+</tr>
+<tr>
+<td>히스토그램 감소</td>
+<td>추세 약화 중 (주의)</td>
+</tr>
+<tr>
+<td>다이버전스</td>
+<td>주가는 신고점인데 MACD는 낮아짐 → 상승 약화 경고</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4전략과의 관계:</strong><br />
+- <em>Weinstein Stage 판단 보조: MACD가 0선 위 = 상승 추세 확인</em><br />
+- <em>VCP 브레이크아웃 타이밍: MACD 히스토그램 급증과 동시에 볼륨 폭발 = 최적 진입</em></p>
+<hr />
+<h3>8. DMI (Directional Movement Index)</h3>
+<p><strong><em>DMI: 방향성 운동 지수 — 추세의 방향과 강도를 동시에 측정</em></strong></p>
+<table>
+<thead>
+<tr>
+<th>구성</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>+DI</td>
+<td>상승 압력 강도</td>
+</tr>
+<tr>
+<td>-DI</td>
+<td>하락 압력 강도</td>
+</tr>
+<tr>
+<td>ADX</td>
+<td>추세 강도 (방향 무관, 25 이상 = 강한 추세)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>+DI &gt; -DI 이면 상승 추세 / ADX &gt; 25 이면 그 추세가 강하다</li>
+<li>MACD로 같은 기능을 더 직관적으로 파악 가능 → <strong>OFF 권장</strong></li>
+</ul>
+<hr />
+<h3>9. ATR (Average True Range)</h3>
+<p><strong><em>ATR: 평균 실제 범위 — 일정 기간 주가의 평균 변동폭(달러/원 기준)</em></strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>원리</td>
+<td>매일 고점-저점 폭의 14일 평균값</td>
+</tr>
+<tr>
+<td>용도</td>
+<td>"이 종목은 하루에 평균 얼마 움직이나" → 손절가 설정 기준</td>
+</tr>
+<tr>
+<td>활용</td>
+<td>손절가 = 진입가 - (ATR × 2) 방식으로 기계적 설정</td>
+</tr>
+</tbody>
+</table>
+<p><strong>예시:</strong> NVDA ATR이 $8이면 → 손절가를 진입가 대비 $16(ATR×2) 아래에 설정</p>
+<p>브리핑에서 직접 손절가를 제공하므로 차트에 띄울 필요는 낮음 → <strong>OFF 권장</strong></p>
+<hr />
+<h3>10. 거래량 (Volume)</h3>
+<p><strong>"하루에 실제로 거래된 주식 수 — 모든 기술적 분석의 실체 확인 도구"</strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>거래량 급증 + 상승</td>
+<td>강력한 매수세 = 진짜 상승 신호</td>
+</tr>
+<tr>
+<td>거래량 급증 + 하락</td>
+<td>강력한 매도세 = 추세 전환 경고</td>
+</tr>
+<tr>
+<td>거래량 감소 + 횡보</td>
+<td>VCP 수축 구간 = 폭발 직전</td>
+</tr>
+<tr>
+<td>거래량 없는 상승</td>
+<td>신뢰도 낮음 — "속임수 상승" 가능성</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4전략과의 관계:</strong><br />
+- <em>VCP: 변동성 수축 시 거래량도 점진적 감소 → 돌파 시 평균 대비 2~3배 이상 폭발 확인 필수</em><br />
+- <em>C&amp;H(컵앤핸들): 컵 바닥 형성 시 거래량 낮음 → 핸들 돌파 시 거래량 폭발 = 완벽한 매수 신호</em></p>
+<hr />
+<h3>11. CCI (Commodity Channel Index)</h3>
+<p><strong><em>CCI: 상품 채널 지수 — 현재가가 통계적 평균 대비 얼마나 벗어났는지 측정</em></strong></p>
+<ul>
+<li>+100 이상 = 과매수 / -100 이하 = 과매도</li>
+<li>RSI가 같은 기능을 더 직관적으로 제공 → <strong>OFF 권장</strong></li>
+</ul>
+<hr />
+<h3>12. OBV (On-Balance Volume)</h3>
+<p><strong><em>OBV: 온밸런스 거래량 — 상승일 거래량은 더하고 하락일은 빼는 누적 지표</em></strong></p>
+<table>
+<thead>
+<tr>
+<th>신호</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OBV 상승 + 주가 횡보</td>
+<td>세력 매집 중 → 조만간 주가 상승</td>
+</tr>
+<tr>
+<td>OBV 하락 + 주가 횡보</td>
+<td>세력 분산 중 → 주가 하락 선행</td>
+</tr>
+</tbody>
+</table>
+<p>실제로는 거래량 차트로 직접 확인하는 편이 더 직관적 → <strong>OFF 권장</strong></p>
+<hr />
+<h3>13. MFI (Money Flow Index)</h3>
+<p><strong><em>MFI: 자금 흐름 지수 — 거래량을 가격과 결합한 "거래량 가중 RSI"</em></strong></p>
+<ul>
+<li>0~100 척도, 80 이상 과매수 / 20 이하 과매도</li>
+<li>RSI + 거래량 차트를 동시에 보면 MFI 없이도 동일한 판단 가능 → <strong>OFF 권장</strong></li>
+</ul>
+<hr />
+<h2>📌 모멘텀 지표 (보조 패널에 추가 표시)</h2>
+<hr />
+<h3>14. 모멘텀 (Momentum)</h3>
+<p><strong>"n일 전 가격과 오늘 가격의 차이 — 상승 속도가 빠른지 느린지"</strong></p>
+<ul>
+<li>0 이상 = 상승 중 / 0 이하 = 하락 중</li>
+<li>ROC의 절대값 버전. 둘 다 있으면 중복 → <strong>OFF 권장</strong></li>
+</ul>
+<hr />
+<h3>15. ROC (Rate of Change)</h3>
+<p><strong><em>ROC: 변화율 — n일 전 대비 현재 가격 변화율(%)</em></strong></p>
+<ul>
+<li>모멘텀의 % 표현. MACD로 훨씬 풍부한 정보 제공 가능 → <strong>OFF 권장</strong></li>
+</ul>
+<hr />
+<h3>16. RSI (Relative Strength Index)</h3>
+<p><strong><em>RSI: 상대 강도 지수 — 일정 기간 상승폭과 하락폭의 비율로 과매수/과매도 측정 (0~100)</em></strong></p>
+<p><strong>"주가가 너무 많이 올랐나, 너무 많이 내렸나를 숫자로 보여주는 온도계"</strong></p>
+<table>
+<thead>
+<tr>
+<th>구간</th>
+<th>의미</th>
+<th>전략 적용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RSI &gt; 70</td>
+<td>과매수 — 단기 조정 가능성</td>
+<td>신규 진입 자제 / 기존 보유자 일부 익절 고려</td>
+</tr>
+<tr>
+<td>RSI 50~70</td>
+<td>정상 상승 구간</td>
+<td>매수 유지</td>
+</tr>
+<tr>
+<td>RSI 30~50</td>
+<td>약세 전환 경고</td>
+<td>손절 준비</td>
+</tr>
+<tr>
+<td>RSI &lt; 30</td>
+<td>과매도 — 반등 가능성</td>
+<td>눌림목 매수 기회 탐색</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4전략과의 관계:</strong><br />
+- <em>VCP: RSI가 과매수에서 식히면서 MA 눌림목 = 최적 진입 구간</em><br />
+- <em>브리핑에서 항상 "RSI 77 → 과매수, 눌림목 대기" 식으로 활용하는 바로 그 지표</em></p>
+<p><strong>실전 예시 (브리핑 그대로):</strong></p>
+<blockquote>
+<p>"NVDA 현재가 $224, RSI 77(단기 과매수). MA20($215~222) 눌림목이 이상적 진입 구간. RSI 60 이하로 식을 때까지 기다려야 할 종목."</p>
+</blockquote>
+<hr />
+<h3>17. 스토캐스틱 (Stochastic)</h3>
+<p><strong><em>Stochastic: 최근 n일 고점-저점 범위 내에서 현재가의 상대적 위치 (0~100)</em></strong></p>
+<table>
+<thead>
+<tr>
+<th>구성</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>%K선</td>
+<td>현재 위치 (빠른 선)</td>
+</tr>
+<tr>
+<td>%D선</td>
+<td>%K의 이동평균 (느린 선)</td>
+</tr>
+<tr>
+<td>80 이상</td>
+<td>과매수</td>
+</tr>
+<tr>
+<td>20 이하</td>
+<td>과매도</td>
+</tr>
+</tbody>
+</table>
+<p>RSI와 거의 동일한 기능. RSI 하나면 충분 → <strong>OFF 권장</strong></p>
+<hr />
+<h3>18. William's R</h3>
+<p><strong><em>Williams %R: 스토캐스틱의 반전판. 0 ~ –100 척도</em></strong></p>
+<ul>
+<li>–20 이상 = 과매수 / –80 이하 = 과매도</li>
+<li>스토캐스틱을 뒤집어 놓은 것. RSI 있으면 완전 중복 → <strong>OFF 권장</strong></li>
+</ul>
+<hr />
+<h3>19. TRIX</h3>
+<p><strong><em>TRIX: Triple Exponential Average — EMA를 3번 겹쳐 계산한 변화율 (잡음 제거 특화)</em></strong></p>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>원리</td>
+<td>EMA → EMA → EMA 3번 평활화 후 전일 대비 변화율</td>
+</tr>
+<tr>
+<td>장점</td>
+<td>일반 MA보다 잡음(noise) 제거 효과 탁월</td>
+</tr>
+<tr>
+<td>단점</td>
+<td>너무 느림 — 신호 지연이 커서 단기 트레이딩에 부적합</td>
+</tr>
+<tr>
+<td>신호</td>
+<td>0선 위 = 상승 추세 / 0선 아래 = 하락 추세</td>
+</tr>
+</tbody>
+</table>
+<p>MACD를 추가하면 같은 기능을 더 빠르게 파악 가능. <strong>TRIX OFF → MACD + RSI ON</strong> 교체 권장</p>
+<hr />
+<h2>🎯 최종 권장 세팅 요약</h2>
+<table>
+<thead>
+<tr>
+<th>지표</th>
+<th>현재</th>
+<th>변경</th>
+<th>이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>이동평균선</td>
+<td>✅ ON</td>
+<td>✅ 유지</td>
+<td>4전략 전체의 뼈대</td>
+</tr>
+<tr>
+<td>볼린저밴드</td>
+<td>✅ ON</td>
+<td>✅ 유지</td>
+<td>VCP 수축 시각화</td>
+</tr>
+<tr>
+<td>매물대</td>
+<td>✅ ON</td>
+<td>✅ 유지</td>
+<td>실제 지지·저항 확인</td>
+</tr>
+<tr>
+<td>거래량</td>
+<td>✅ ON</td>
+<td>✅ 유지</td>
+<td>C&amp;H·VCP 돌파 확인</td>
+</tr>
+<tr>
+<td><strong>MACD</strong></td>
+<td>❌ OFF</td>
+<td>✅ <strong>ON</strong></td>
+<td>추세 방향 + 전환 신호</td>
+</tr>
+<tr>
+<td><strong>RSI</strong></td>
+<td>❌ OFF</td>
+<td>✅ <strong>ON</strong></td>
+<td>과매수/과매도 + VCP 진입 타이밍</td>
+</tr>
+<tr>
+<td><strong>TRIX</strong></td>
+<td>✅ ON</td>
+<td>❌ <strong>OFF</strong></td>
+<td>MACD 추가 시 중복</td>
+</tr>
+<tr>
+<td>나머지 전부</td>
+<td>❌ OFF</td>
+<td>❌ 유지</td>
+<td>위 6개로 충분히 커버</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>핵심 원칙:</strong> 지표는 많을수록 좋은 게 아닙니다. 서로 보완하는 최소한의 조합이 최강입니다.<br />
+- <strong>추세 확인</strong>: 이동평균선 + MACD<br />
+- <strong>변동성 확인</strong>: 볼린저밴드<br />
+- <strong>과매수/과매도</strong>: RSI<br />
+- <strong>거래량 확인</strong>: 거래량 차트<br />
+- <strong>지지·저항</strong>: 매물대</p>
+</blockquote>
+<hr />
+<p><em>작성: Claude for ETHAN (한의성 대표님) | 2026.05.18</em></p></body></html>
