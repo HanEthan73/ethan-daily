@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PLTR 트레이딩 툴</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px;max-width:480px;margin:0 auto}
+.hd{background:#1F4E79;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.hd h1{font-size:16px;font-weight:600}
+.hd p{font-size:10px;opacity:.7;margin-top:2px}
+.live{background:#e74c3c;color:#fff;font-size:10px;padding:3px 8px;border-radius:12px;font-weight:700;flex-shrink:0}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e8edf3}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;font-weight:500;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;-webkit-user-select:none;user-select:none}
+.tab.on{color:#1F4E79;border-bottom-color:#1F4E79;font-weight:700}
+.pane{display:none;padding:14px}
+.pane.on{display:block}
+
+/* 공통 컴포넌트 */
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f0f2f5}
+.row:last-child{border-bottom:none}
+.rl{font-size:13px;color:#555}
+.rv{font-size:13px;font-weight:600}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:#fff;border-radius:10px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.sl{font-size:10px;color:#888;margin-bottom:4px}
+.sv{font-size:18px;font-weight:700}
+.ss{font-size:10px;color:#888;margin-top:2px}
+.sec{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px}
+.lbl{font-size:11px;color:#888;margin-bottom:4px;display:block}
+input[type=number]{width:100%;padding:10px 12px;border:1.5px solid #dde3ec;border-radius:9px;font-size:15px;outline:none;background:#fff;-webkit-appearance:none;appearance:none;margin-bottom:10px}
+input[type=number]:focus{border-color:#1F4E79}
+.pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.pg{background:#d5f5e3;color:#1e6b40}
+.pr{background:#fce4e4;color:#b02020}
+.pb{background:#d6eaf8;color:#1F4E79}
+.pa{background:#fef3cd;color:#7a5700}
+.green{color:#1e8449}.red{color:#c0392b}.blue{color:#1F4E79}.amber{color:#d68910}
+
+/* 상태 알림 카드 */
+.alert{border-radius:10px;padding:12px 14px;margin-bottom:12px;border-left:4px solid}
+.al-safe{background:#eaf4fb;border-color:#1F4E79;color:#1a3a5c}
+.al-w1{background:#fef9e7;border-color:#f39c12;color:#7d5a00}
+.al-w2{background:#fdecea;border-color:#e74c3c;color:#922b21}
+.al-cut{background:#fdedec;border-color:#b03a2e;color:#7b241c}
+.at{font-size:14px;font-weight:700;margin-bottom:4px}
+.ab{font-size:12px;line-height:1.6;opacity:.9}
+
+/* 가격 존 바 */
+.zonewrap{margin:12px 0 6px}
+.zonebar{position:relative;height:46px;border-radius:10px;overflow:visible;display:flex}
+.zseg{flex:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.zseg:first-child{border-radius:10px 0 0 10px}
+.zseg:last-child{border-radius:0 10px 10px 0}
+.zneedle{position:absolute;top:-8px;width:4px;height:62px;background:#1a1a2e;border-radius:3px;transform:translateX(-50%);transition:left .5s cubic-bezier(.4,0,.2,1);z-index:5;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.zneedle::before{content:'▼';position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:11px;color:#1a1a2e;white-space:nowrap}
+.zlabels{display:flex;justify-content:space-between;font-size:9px;color:#888;margin-top:6px;padding:0 2px}
+
+/* 손익 결과 박스 */
+.rr-box{background:#1F4E79;color:#fff;border-radius:12px;padding:14px;text-align:center;margin-top:12px}
+.rr-n{font-size:28px;font-weight:700}
+.rr-l{font-size:11px;opacity:.8;margin-top:3px}
+
+/* RSI 게이지 */
+.rsi-bar{height:14px;border-radius:7px;position:relative;margin:10px 0;overflow:visible}
+.rsi-fill{height:14px;border-radius:7px;background:linear-gradient(to right,#3498db 0%,#2ecc71 28%,#2ecc71 72%,#e74c3c 100%);width:100%}
+.rsi-nd{position:absolute;top:-4px;width:6px;height:22px;background:#1a1a2e;border-radius:3px;transform:translateX(-50%);transition:left .4s;z-index:5}
+.rsi-labs{display:flex;justify-content:space-between;font-size:9px;color:#888;margin-top:3px}
+
+/* 기술지표 포뮬러 */
+.formula{background:#f4f6fb;border:1px solid #e0e6ef;border-radius:8px;padding:10px 12px;font-family:'Courier New',Courier,monospace;font-size:11px;color:#2c3e50;line-height:1.8;margin-bottom:8px}
+.iname{font-size:14px;font-weight:700;color:#1F4E79}
+.ifull{font-size:10px;color:#888;margin:2px 0 8px}
+
+/* SVG 가격 추이 */
+.chart-svg{width:100%;overflow:visible}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div><h1>PLTR 트레이딩 툴</h1><p>팔란티어 테크놀로지스 | 한의성 대표님 전용</p></div>
+  <span class="live">LIVE</span>
+</div>
+
+<div class="tabs">
+  <div class="tab on" id="t-price" onclick="sw('price')">가격 추적</div>
+  <div class="tab" id="t-calc" onclick="sw('calc')">손익 계산</div>
+  <div class="tab" id="t-ind" onclick="sw('ind')">기술지표</div>
+  <div class="tab" id="t-biz" onclick="sw('biz')">기업 분석</div>
+</div>
+
+<!-- 탭1: 가격 추적 -->
+<div class="pane on" id="p-price">
+  <div class="sec" style="margin-top:0">현재가 입력</div>
+  <input type="number" id="cp" value="133" step="0.5" placeholder="현재가 ($)" oninput="upd()">
+
+  <div class="zonewrap">
+    <div class="zonebar" id="zbar">
+      <div class="zseg" style="background:#b03a2e;flex:1.7">손절</div>
+      <div class="zseg" style="background:#e74c3c;flex:1.9">2차진입</div>
+      <div class="zseg" style="background:#f39c12;flex:1.7">1차진입</div>
+      <div class="zseg" style="background:#27ae60;flex:4.7">홀딩 구간</div>
+      <div class="zneedle" id="zneedle" style="left:74%"></div>
+    </div>
+    <div class="zlabels">
+      <span>$108</span><span>$114</span><span>$121</span><span>$128</span><span>$178</span>
+    </div>
+  </div>
+
+  <div id="alertbox"></div>
+
+  <div class="g2">
+    <div class="stat"><div class="sl">52주 고가</div><div class="sv blue">$178</div><div class="ss" id="fhigh" style="color:#c0392b"></div></div>
+    <div class="stat"><div class="sl">52주 저가</div><div class="sv red">$116</div><div class="ss" id="flow" style="color:#1e8449"></div></div>
+    <div class="stat"><div class="sl">1차 목표</div><div class="sv green">$145</div><div class="ss" id="t1" style="color:#1e8449"></div></div>
+    <div class="stat"><div class="sl">2차 목표</div><div class="sv green">$159</div><div class="ss" id="t2" style="color:#1e8449"></div></div>
+  </div>
+
+  <div class="sec">YTD 주가 추이 (2026)</div>
+  <div class="card">
+    <svg class="chart-svg" viewBox="0 0 320 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1F4E79" stop-opacity=".15"/>
+          <stop offset="100%" stop-color="#1F4E79" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <!-- 배경 격자 -->
+      <line x1="30" y1="10" x2="310" y2="10" stroke="#f0f2f5" stroke-width="1"/>
+      <line x1="30" y1="35" x2="310" y2="35" stroke="#f0f2f5" stroke-width="1"/>
+      <line x1="30" y1="60" x2="310" y2="60" stroke="#f0f2f5" stroke-width="1"/>
+      <line x1="30" y1="85" x2="310" y2="85" stroke="#f0f2f5" stroke-width="1"/>
+      <!-- Y축 레이블 -->
+      <text x="26" y="13" font-size="9" fill="#aaa" text-anchor="end">$178</text>
+      <text x="26" y="38" font-size="9" fill="#aaa" text-anchor="end">$155</text>
+      <text x="26" y="63" font-size="9" fill="#aaa" text-anchor="end">$135</text>
+      <text x="26" y="88" font-size="9" fill="#aaa" text-anchor="end">$115</text>
+      <!-- 1차진입 점선 -->
+      <line x1="30" y1="68" x2="310" y2="68" stroke="#f39c12" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="313" y="71" font-size="8" fill="#f39c12">$128</text>
+      <!-- 2차진입 점선 -->
+      <line x1="30" y1="76" x2="310" y2="76" stroke="#e74c3c" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="313" y="79" font-size="8" fill="#e74c3c">$121</text>
+      <!-- 가격 데이터: 1월171 2월178 3월155 4월135 5월133 -->
+      <!-- y = 10 + (178-price)/(178-115) * 75 -->
+      <!-- 171→18.3, 178→10, 155→27.4, 135→51.8, 133→54.2 -->
+      <polygon points="30,18 90,10 150,27 210,52 270,54 270,100 30,100" fill="url(#ga)"/>
+      <polyline points="30,18 90,10 150,27 210,52 270,54" fill="none" stroke="#1F4E79" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="30" cy="18" r="4" fill="#1F4E79"/>
+      <circle cx="90" cy="10" r="4" fill="#1F4E79"/>
+      <circle cx="150" cy="27" r="4" fill="#1F4E79"/>
+      <circle cx="210" cy="52" r="4" fill="#1F4E79"/>
+      <circle cx="270" cy="54" r="5" fill="#e74c3c"/>
+      <!-- X 레이블 -->
+      <text x="30" y="112" font-size="9" fill="#aaa" text-anchor="middle">1월</text>
+      <text x="90" y="112" font-size="9" fill="#aaa" text-anchor="middle">2월</text>
+      <text x="150" y="112" font-size="9" fill="#aaa" text-anchor="middle">3월</text>
+      <text x="210" y="112" font-size="9" fill="#aaa" text-anchor="middle">4월</text>
+      <text x="270" y="112" font-size="9" fill="#aaa" text-anchor="middle">5월</text>
+      <!-- 현재가 레이블 -->
+      <text x="270" y="48" font-size="9" fill="#e74c3c" text-anchor="middle" font-weight="bold">$133</text>
+    </svg>
+  </div>
+</div>
+
+<!-- 탭2: 손익 계산 -->
+<div class="pane" id="p-calc">
+  <div class="sec" style="margin-top:0">매매 시뮬레이터</div>
+  <label class="lbl">진입 가격 ($)</label>
+  <input type="number" id="ep" value="126.5" oninput="cpnl()">
+  <label class="lbl">매수 수량 (주)</label>
+  <input type="number" id="sh" value="10" oninput="cpnl()">
+  <label class="lbl">목표 가격 ($)</label>
+  <input type="number" id="tp" value="145" oninput="cpnl()">
+
+  <div class="card">
+    <div class="row"><span class="rl">진입 총액</span><span class="rv blue" id="te">-</span></div>
+    <div class="row"><span class="rl">목표 총액</span><span class="rv" id="tt">-</span></div>
+    <div class="row"><span class="rl">손익 금액</span><span class="rv" id="pa">-</span></div>
+    <div class="row"><span class="rl">손익률</span><span class="rv" id="pp">-</span></div>
+    <div class="row"><span class="rl">손절 시 손실 ($114)</span><span class="rv red" id="sl">-</span></div>
+  </div>
+
+  <div class="sec">R/R 비율 계산기</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+    <div><label class="lbl">손절가 ($)</label><input type="number" id="sp2" value="114" oninput="crr()"></div>
+    <div><label class="lbl">목표가 ($)</label><input type="number" id="rrt" value="145" oninput="crr()"></div>
+  </div>
+  <label class="lbl">기준 진입가 ($)</label>
+  <input type="number" id="rre" value="126.5" oninput="crr()">
+  <div class="rr-box" id="rrbox">
+    <div class="rr-n" id="rrn">1 : —</div>
+    <div class="rr-l">리스크 : 리워드</div>
+  </div>
+</div>
+
+<!-- 탭3: 기술지표 -->
+<div class="pane" id="p-ind">
+  <div class="card">
+    <div class="iname">RSI</div>
+    <div class="ifull">Relative Strength Index — 상대강도지수</div>
+    <div class="formula">RSI = 100 − 100 ÷ (1 + AU ÷ AD)<br>AU = 14일 평균상승폭<br>AD = 14일 평균하락폭<br>기간: 14일 / 과매수 ≥70 / 과매도 ≤30</div>
+    <label class="lbl">현재 RSI 입력</label>
+    <input type="number" id="rsi" value="45" min="0" max="100" oninput="ursi()">
+    <div class="rsi-bar"><div class="rsi-fill"></div><div class="rsi-nd" id="rsiptr" style="left:45%"></div></div>
+    <div class="rsi-labs"><span>0</span><span>과매도(30)</span><span>중립</span><span>과매수(70)</span><span>100</span></div>
+    <div id="rsistat" style="margin-top:10px;font-size:13px;font-weight:700"></div>
+  </div>
+
+  <div class="card">
+    <div class="iname">MACD</div>
+    <div class="ifull">Moving Average Convergence Divergence — 이동평균 수렴·확산</div>
+    <div class="formula">MACD선  = 12일 EMA − 26일 EMA<br>Signal선 = MACD의 9일 EMA<br>히스토그램 = MACD − Signal<br>EMA(n): α = 2÷(n+1)</div>
+    <div style="font-size:12px;color:#555;line-height:1.6">📈 골든크로스 (MACD > Signal) → 매수 신호<br>📉 데드크로스 (MACD &lt; Signal) → 매도 신호<br><br>PLTR 진입 조건: <strong>골든크로스 전환 확인 후</strong></div>
+  </div>
+
+  <div class="card">
+    <div class="iname">이동평균선 (MA)</div>
+    <div class="ifull">Moving Average — 일정 기간 종가 평균</div>
+    <div class="formula">SMA(n) = (P₁+P₂+…+Pₙ) ÷ n<br>EMA: 전일EMA×(1−α) + 당일종가×α</div>
+    <div class="row"><span class="rl">20일선 ~$136</span><span class="pill pr">저항</span></div>
+    <div class="row"><span class="rl">50일선 ~$141</span><span class="pill pr">저항</span></div>
+    <div class="row"><span class="rl">200일선 ~$125</span><span class="pill pg">지지 ↔ 눌림목</span></div>
+  </div>
+
+  <div class="card">
+    <div class="iname">볼린저 밴드 (BB)</div>
+    <div class="ifull">Bollinger Bands — 변동성 기반 가격 채널</div>
+    <div class="formula">중심선 = 20일 SMA<br>상단밴드 = SMA + 2σ<br>하단밴드 = SMA − 2σ<br>σ = 20일 표준편차</div>
+    <div style="font-size:12px;color:#555;line-height:1.6">하단밴드 근접 시 반등 가능성↑<br>눌림목 구간 $125~128이 하단밴드와 겹치면 매수 신뢰도 ↑</div>
+  </div>
+</div>
+
+<!-- 탭4: 기업 분석 -->
+<div class="pane" id="p-biz">
+  <div class="g2">
+    <div class="stat"><div class="sl">Q1 2026 매출 성장</div><div class="sv green">+85%</div><div class="ss">YoY</div></div>
+    <div class="stat"><div class="sl">미국 상업 성장</div><div class="sv green">+104%</div><div class="ss">YoY</div></div>
+    <div class="stat"><div class="sl">S&P500 편입</div><div class="sv blue" style="font-size:15px">2024년</div><div class="ss">패시브 자금 유입</div></div>
+    <div class="stat"><div class="sl">설립</div><div class="sv blue" style="font-size:15px">2003년</div><div class="ss">피터 틸 공동창업</div></div>
+  </div>
+
+  <div class="sec">3대 핵심 제품</div>
+  <div class="card">
+    <div class="row"><span class="rl">🛡️ GOTHAM</span><span class="pill pb">정부용 55%</span></div>
+    <div style="font-size:12px;color:#555;padding:8px 0;border-bottom:1px solid #f0f2f5;line-height:1.5">미 국방부·CIA·NSA. 전장 데이터 분석, 표적 식별. 테러 방지.</div>
+    <div class="row"><span class="rl">🏭 FOUNDRY</span><span class="pill pb">기업용</span></div>
+    <div style="font-size:12px;color:#555;padding:8px 0;border-bottom:1px solid #f0f2f5;line-height:1.5">제조·금융·의료 공급망 최적화. 보잉·에어버스·포드 사용.</div>
+    <div class="row"><span class="rl">🤖 AIP</span><span class="pill pg">고성장 엔진</span></div>
+    <div style="font-size:12px;color:#555;padding:8px 0;line-height:1.5">2023 출시. GPT 기반 기업 AI 자동화. 상업 매출 +104% 주도.</div>
+  </div>
+
+  <div class="sec">매출 구성 (2026 Q1)</div>
+  <div class="card">
+    <div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>정부 부문</span><span style="font-weight:600">55%</span></div>
+      <div style="height:10px;background:#e8edf3;border-radius:5px;overflow:hidden"><div style="width:55%;height:100%;background:#1F4E79;border-radius:5px"></div></div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>상업 부문</span><span style="font-weight:600">45%</span></div>
+      <div style="height:10px;background:#e8edf3;border-radius:5px;overflow:hidden"><div style="width:45%;height:100%;background:#27ae60;border-radius:5px"></div></div>
+    </div>
+  </div>
+
+  <div class="sec">촉매 vs 리스크</div>
+  <div class="card">
+    <div class="row"><span class="rl">🇺🇸 미 국방 AI 예산 확대</span><span class="pill pg">강력</span></div>
+    <div class="row"><span class="rl">AIP 상업 계약 폭발적 증가</span><span class="pill pg">강력</span></div>
+    <div class="row"><span class="rl">H200 대중 수출 허용</span><span class="pill pg">중간</span></div>
+    <div class="row"><span class="rl">PSR 50배+ 밸류에이션 부담</span><span class="pill pr">리스크</span></div>
+    <div class="row"><span class="rl">미중 90일 유예 결렬 시</span><span class="pill pa">주의</span></div>
+  </div>
+
+  <div class="sec">눌림목 진입 전략 요약</div>
+  <div class="card">
+    <div class="row"><span class="rl">1차 진입 (50%)</span><span class="rv amber">$125~128</span></div>
+    <div class="row"><span class="rl">2차 진입 (50%)</span><span class="rv blue">$118~121</span></div>
+    <div class="row"><span class="rl">손절가</span><span class="rv red">$114</span></div>
+    <div class="row"><span class="rl">1차 목표</span><span class="rv green">$145 (+13%)</span></div>
+    <div class="row"><span class="rl">2차 목표</span><span class="rv green">$159 (+23%)</span></div>
+    <div class="row"><span class="rl">R/R 비율</span><span class="rv blue">1 : 4.2</span></div>
+  </div>
+</div>
+
+<script>
+var MIN=108,MAX=178;
+
+function sw(t){
+  ['price','calc','ind','biz'].forEach(function(id){
+    document.getElementById('p-'+id).className='pane';
+    document.getElementById('t-'+id).className='tab';
+  });
+  document.getElementById('p-'+t).className='pane on';
+  document.getElementById('t-'+t).className='tab on';
+}
+
+function upd(){
+  var p=parseFloat(document.getElementById('cp').value);
+  if(isNaN(p)||p<=0) return;
+  var pct=Math.max(0,Math.min(100,(p-MIN)/(MAX-MIN)*100));
+  document.getElementById('zneedle').style.left=pct.toFixed(1)+'%';
+  document.getElementById('fhigh').textContent='고점 대비 '+((p-178)/178*100).toFixed(1)+'%';
+  document.getElementById('flow').textContent='저점 대비 +'+((p-116)/116*100).toFixed(1)+'%';
+  document.getElementById('t1').textContent='+'+((145-p)/p*100).toFixed(1)+'%';
+  document.getElementById('t2').textContent='+'+((159-p)/p*100).toFixed(1)+'%';
+  var rr1=((145-p)/(p-114)).toFixed(1);
+  var h='';
+  if(p<=114){
+    h='<div class="alert al-cut"><div class="at">⚠️ 손절 경고 구간 ($'+p+')</div><div class="ab">$114 손절선 하회. 포지션 즉시 재검토 필요.</div></div>';
+  } else if(p<=121){
+    h='<div class="alert al-w2"><div class="at">🔴 2차 눌림목 도달! ($'+p+')</div><div class="ab">52주 저점 재테스트 구간. 나머지 50% 매수 검토.<br>목표 $145 (+'+((145-p)/p*100).toFixed(1)+'%) / R:R ≈ 1:'+((145-p)/(p-114)).toFixed(1)+'</div></div>';
+  } else if(p<=128){
+    h='<div class="alert al-w1"><div class="at">🟡 1차 눌림목 진입구간 ($'+p+')</div><div class="ab">RSI 38~40 확인 후 50% 분할 매수 권장.<br>목표 $145 (+'+((145-p)/p*100).toFixed(1)+'%) / R:R ≈ 1:'+((145-p)/(p-114)).toFixed(1)+'</div></div>';
+  } else {
+    h='<div class="alert al-safe"><div class="at">🟢 홀딩 구간 ($'+p+')</div><div class="ab">눌림목 미도달. $125~128 대기 권장.<br>고점($178) 대비 '+((p-178)/178*100).toFixed(1)+'% 위치</div></div>';
+  }
+  document.getElementById('alertbox').innerHTML=h;
+}
+
+function cpnl(){
+  var ep=parseFloat(document.getElementById('ep').value)||0;
+  var sh=parseFloat(document.getElementById('sh').value)||0;
+  var tp=parseFloat(document.getElementById('tp').value)||0;
+  if(!ep||!sh||!tp) return;
+  var te=ep*sh, tt=tp*sh, pnl=tt-te, pp=pnl/te*100, sl=(114-ep)*sh;
+  document.getElementById('te').textContent='$'+te.toFixed(0);
+  document.getElementById('tt').textContent='$'+tt.toFixed(0);
+  document.getElementById('pa').textContent=(pnl>=0?'+$':'−$')+Math.abs(pnl).toFixed(0);
+  document.getElementById('pa').className='rv '+(pnl>=0?'green':'red');
+  document.getElementById('pp').textContent=(pp>=0?'+':'')+pp.toFixed(2)+'%';
+  document.getElementById('pp').className='rv '+(pp>=0?'green':'red');
+  document.getElementById('sl').textContent='−$'+Math.abs(sl).toFixed(0)+' ('+((114-ep)/ep*100).toFixed(1)+'%)';
+  crr();
+}
+
+function crr(){
+  var en=parseFloat(document.getElementById('rre').value)||0;
+  var sp=parseFloat(document.getElementById('sp2').value)||0;
+  var tg=parseFloat(document.getElementById('rrt').value)||0;
+  if(!en||!sp||!tg) return;
+  var r=Math.abs(en-sp), rw=Math.abs(tg-en);
+  if(!r) return;
+  var ratio=(rw/r).toFixed(1);
+  document.getElementById('rrn').textContent='1 : '+ratio;
+  document.getElementById('rrbox').style.background=ratio>=2?'#1e8449':ratio>=1?'#1F4E79':'#c0392b';
+}
+
+function ursi(){
+  var v=parseFloat(document.getElementById('rsi').value)||50;
+  if(v<0) v=0; if(v>100) v=100;
+  document.getElementById('rsiptr').style.left=v+'%';
+  var el=document.getElementById('rsistat');
+  if(v<=30){el.textContent='📉 과매도 — PLTR 매수 적극 검토 구간';el.style.color='#1F4E79';}
+  else if(v<=40){el.textContent='🟡 과매도 근접 — 1차 눌림목 진입 검토';el.style.color='#d68910';}
+  else if(v<=60){el.textContent='🟢 중립 구간 — 방향성 대기';el.style.color='#1e8449';}
+  else if(v<=70){el.textContent='🟠 과매수 근접 — 신규 매수 자제';el.style.color='#d68910';}
+  else{el.textContent='🔴 과매수 — 차익 실현 고려';el.style.color='#c0392b';}
+}
+
+upd(); cpnl(); crr(); ursi();
+</script>
+</body>
+</html>
