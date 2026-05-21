@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🔔 자동매수 알림 점검 — 2026-05-20 19:00</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-secondary: #8b949e;
+    --red: #f85149;
+    --red-bg: #2d1315;
+    --red-border: #6e2e2e;
+    --green: #3fb950;
+    --green-bg: #0d2318;
+    --green-border: #1e4b28;
+    --yellow: #d29922;
+    --yellow-bg: #272115;
+    --yellow-border: #5a4010;
+    --blue: #58a6ff;
+    --orange: #ff7b72;
+    --purple: #bc8cff;
+    --teal: #39d353;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 0 0 40px 0;
+  }
+
+  header {
+    background: linear-gradient(135deg, #1c2128 0%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 16px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  header .subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+
+  .badge-trigger { background: #6e2e2e; color: #ff9492; }
+  .badge-warning { background: #5a4010; color: #e3b341; }
+  .badge-ok { background: #1e4b28; color: #56d364; }
+
+  .section {
+    padding: 16px 16px 0;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title .count {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  /* === 카드 === */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+
+  .card.triggered { border-color: var(--red-border); background: var(--red-bg); }
+  .card.triggered::before { background: var(--red); }
+
+  .card.warning { border-color: var(--yellow-border); background: var(--yellow-bg); }
+  .card.warning::before { background: var(--yellow); }
+
+  .card.ok { border-color: var(--green-border); background: var(--green-bg); }
+  .card.ok::before { background: var(--green); }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .stock-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .ticker {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    margin-left: 5px;
+  }
+
+  .current-price {
+    font-size: 17px;
+    font-weight: 800;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  .price-triggered { color: var(--red); }
+  .price-warning { color: var(--yellow); }
+  .price-ok { color: var(--teal); }
+
+  .card-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .meta-item {
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+
+  .meta-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .meta-value {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  .meta-value.stop { color: var(--red); }
+  .meta-value.target { color: var(--green); }
+  .meta-value.trigger { color: var(--yellow); }
+
+  .progress-bar-wrap {
+    margin-top: 10px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .fill-red { background: var(--red); }
+  .fill-yellow { background: var(--yellow); }
+  .fill-green { background: var(--green); }
+
+  .triggered-detail {
+    font-size: 12px;
+    color: #ff9492;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(248, 81, 73, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(248, 81, 73, 0.2);
+  }
+
+  .summary-box {
+    margin: 20px 16px 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .summary-box strong {
+    color: var(--text);
+  }
+
+  .summary-box .highlight {
+    color: var(--orange);
+    font-weight: 700;
+  }
+
+  /* 요약 통계 카드 */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 16px 16px 0;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: 24px;
+    font-weight: 800;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    display: block;
+  }
+
+  .stat-num.red { color: var(--red); }
+  .stat-num.yellow { color: var(--yellow); }
+  .stat-num.green { color: var(--green); }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 20px 16px 0;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  @media (min-width: 600px) {
+    body { max-width: 720px; margin: 0 auto; }
+    .card-meta { grid-template-columns: repeat(4, 1fr); }
+    .stat-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔔 자동매수 알림 점검</h1>
+  <div class="subtitle">2026-05-20 19:00 KST &nbsp;·&nbsp; 10개 종목 모니터링 &nbsp;·&nbsp; ETHAN 대표님 전용</div>
+</header>
+
+<!-- 요약 통계 -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-num red">3</span>
+    <span class="stat-label">🚨 트리거 도달</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-num yellow">2</span>
+    <span class="stat-label">⚠️ 2% 이내 주의</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-num green">5</span>
+    <span class="stat-label">✅ 정상 모니터링</span>
+  </div>
+</div>
+
+<!-- 🚨 트리거 도달 -->
+<div class="section" style="padding-top:20px;">
+  <div class="section-title" style="color:#f85149;">
+    🚨 트리거 도달 종목 — 즉시 매수 검토
+    <span class="count">3개</span>
+  </div>
+
+  <!-- AVGO -->
+  <div class="card triggered">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">브로드컴</span>
+        <span class="ticker">AVGO</span>
+        <span class="badge badge-trigger">트리거 도달</span>
+      </div>
+      <span class="current-price price-triggered">$402.17</span>
+    </div>
+    <div class="triggered-detail">
+      📍 현재가 $402.17 → 트리거 $420.00 하향 돌파 | 진입구간 $400~$420 / 손절 $390 / 목표 $480
+    </div>
+    <div class="card-meta">
+      <div class="meta-item">
+        <span class="meta-label">트리거가</span>
+        <span class="meta-value trigger">$420.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">손절가</span>
+        <span class="meta-value stop">$390.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">목표가</span>
+        <span class="meta-value target">$480.00</span>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>손절 $390</span>
+        <span>현재 $402.17</span>
+        <span>목표 $480</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-red" style="width:13.5%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOOGL -->
+  <div class="card triggered">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">알파벳</span>
+        <span class="ticker">GOOGL</span>
+        <span class="badge badge-trigger">트리거 도달</span>
+      </div>
+      <span class="current-price price-triggered">$384.27</span>
+    </div>
+    <div class="triggered-detail">
+      📍 현재가 $384.27 → 트리거 $385.00 하향 돌파 | 진입구간 $375~$385 / 손절 $355 / 목표 $450
+    </div>
+    <div class="card-meta">
+      <div class="meta-item">
+        <span class="meta-label">트리거가</span>
+        <span class="meta-value trigger">$385.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">손절가</span>
+        <span class="meta-value stop">$355.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">목표가</span>
+        <span class="meta-value target">$450.00</span>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>손절 $355</span>
+        <span>현재 $384.27</span>
+        <span>목표 $450</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-red" style="width:30.6%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MRVL -->
+  <div class="card triggered">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">마벨테크</span>
+        <span class="ticker">MRVL</span>
+        <span class="badge badge-trigger">트리거 도달</span>
+      </div>
+      <span class="current-price price-triggered">$167.06</span>
+    </div>
+    <div class="triggered-detail">
+      📍 현재가 $167.06 → 트리거 $168.00 하향 돌파 | 진입구간 $160~$168 / 손절 $150 / 목표 $215 &nbsp;·&nbsp; ⚡ 5/27 Q1 실적 발표 예정
+    </div>
+    <div class="card-meta">
+      <div class="meta-item">
+        <span class="meta-label">트리거가</span>
+        <span class="meta-value trigger">$168.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">손절가</span>
+        <span class="meta-value stop">$150.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">목표가</span>
+        <span class="meta-value target">$215.00</span>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>손절 $150</span>
+        <span>현재 $167.06</span>
+        <span>목표 $215</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-red" style="width:26.1%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⚠️ 주의 종목 -->
+<div class="section" style="padding-top:20px;">
+  <div class="section-title" style="color:#d29922;">
+    ⚠️ 주의 종목 — 트리거까지 2% 이내
+    <span class="count">2개</span>
+  </div>
+
+  <!-- TSM -->
+  <div class="card warning">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">TSMC</span>
+        <span class="ticker">TSM</span>
+        <span class="badge badge-warning">+0.24% 접근</span>
+      </div>
+      <span class="current-price price-warning">$395.95</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item">
+        <span class="meta-label">트리거가</span>
+        <span class="meta-value trigger">$395.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">손절가</span>
+        <span class="meta-value stop">$355.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">목표가</span>
+        <span class="meta-value target">$455.00</span>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>트리거까지 남은 비율</span>
+        <span style="color:#d29922; font-weight:700;">▼ 0.24%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-yellow" style="width:99%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTC -->
+  <div class="card warning">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">인텔</span>
+        <span class="ticker">INTC</span>
+        <span class="badge badge-warning">+2.36% 접근</span>
+      </div>
+      <span class="current-price price-warning">$107.03</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item">
+        <span class="meta-label">트리거가</span>
+        <span class="meta-value trigger">$104.50</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">손절가</span>
+        <span class="meta-value stop">$95.00</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">목표가</span>
+        <span class="meta-value target">$130.00</span>
+      </div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">
+        <span>트리거까지 남은 비율</span>
+        <span style="color:#d29922; font-weight:700;">▼ 2.36%</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill fill-yellow" style="width:88%;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ 정상 모니터링 -->
+<div class="section" style="padding-top:20px;">
+  <div class="section-title" style="color:#3fb950;">
+    ✅ 정상 모니터링 중
+    <span class="count">5개</span>
+  </div>
+
+  <!-- MSFT -->
+  <div class="card ok">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">마이크로소프트</span>
+        <span class="ticker">MSFT</span>
+        <span class="badge badge-ok">안전</span>
+      </div>
+      <span class="current-price price-ok">$425.24</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item"><span class="meta-label">트리거가</span><span class="meta-value trigger">$410.00</span></div>
+      <div class="meta-item"><span class="meta-label">손절가</span><span class="meta-value stop">$360.00</span></div>
+      <div class="meta-item"><span class="meta-label">목표가</span><span class="meta-value target">$500.00</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>트리거까지</span><span style="color:#56d364; font-weight:700;">▼ 3.58%</span></div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:46%;"></div></div>
+    </div>
+  </div>
+
+  <!-- AMZN -->
+  <div class="card ok">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">아마존</span>
+        <span class="ticker">AMZN</span>
+        <span class="badge badge-ok">안전</span>
+      </div>
+      <span class="current-price price-ok">$264.86</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item"><span class="meta-label">트리거가</span><span class="meta-value trigger">$255.00</span></div>
+      <div class="meta-item"><span class="meta-label">손절가</span><span class="meta-value stop">$230.00</span></div>
+      <div class="meta-item"><span class="meta-label">목표가</span><span class="meta-value target">$320.00</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>트리거까지</span><span style="color:#56d364; font-weight:700;">▼ 3.72%</span></div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:55%;"></div></div>
+    </div>
+  </div>
+
+  <!-- ORCL -->
+  <div class="card ok">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">오라클</span>
+        <span class="ticker">ORCL</span>
+        <span class="badge badge-ok">안전</span>
+      </div>
+      <span class="current-price price-ok">$183.39</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item"><span class="meta-label">트리거가</span><span class="meta-value trigger">$178.00</span></div>
+      <div class="meta-item"><span class="meta-label">손절가</span><span class="meta-value stop">$162.00</span></div>
+      <div class="meta-item"><span class="meta-label">목표가</span><span class="meta-value target">$225.00</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>트리거까지</span><span style="color:#56d364; font-weight:700;">▼ 2.94%</span></div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:25%;"></div></div>
+    </div>
+  </div>
+
+  <!-- PLTR -->
+  <div class="card ok">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">팔란티르</span>
+        <span class="ticker">PLTR</span>
+        <span class="badge badge-ok">안전</span>
+      </div>
+      <span class="current-price price-ok">$135.58</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item"><span class="meta-label">트리거가</span><span class="meta-value trigger">$122.00</span></div>
+      <div class="meta-item"><span class="meta-label">손절가</span><span class="meta-value stop">$105.00</span></div>
+      <div class="meta-item"><span class="meta-label">목표가</span><span class="meta-value target">$170.00</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>트리거까지</span><span style="color:#56d364; font-weight:700;">▼ 10.02%</span></div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:23%;"></div></div>
+    </div>
+  </div>
+
+  <!-- ASTS -->
+  <div class="card ok">
+    <div class="card-header">
+      <div>
+        <span class="stock-name">AST SpaceMobile</span>
+        <span class="ticker">ASTS</span>
+        <span class="badge badge-ok">안전</span>
+      </div>
+      <span class="current-price price-ok">$86.83</span>
+    </div>
+    <div class="card-meta">
+      <div class="meta-item"><span class="meta-label">트리거가</span><span class="meta-value trigger">$68.00</span></div>
+      <div class="meta-item"><span class="meta-label">손절가</span><span class="meta-value stop">$45.00</span></div>
+      <div class="meta-item"><span class="meta-label">목표가</span><span class="meta-value target">$100.00</span></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label"><span>트리거까지</span><span style="color:#56d364; font-weight:700;">▼ 21.69%</span></div>
+      <div class="progress-bar"><div class="progress-fill fill-green" style="width:8%;"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 총평 -->
+<div class="summary-box">
+  <strong>📋 종합 총평</strong><br><br>
+  AVGO($402.17)·GOOGL($384.27)·MRVL($167.06) 3종목이 알림 트리거를 하향 돌파했으며
+  <span class="highlight">즉시 매수 진입 검토</span>가 필요합니다.
+  특히 TSM($395.95)은 트리거 $395까지 <span class="highlight">0.24% 이내</span>로 금일 중 추가 이탈 가능성이 매우 높고,
+  INTC($107.03)도 2.36% 거리로 MRVL 5/27 실적 발표 전후 반응에 따라 연동 변동이 예상됩니다.
+  나머지 MSFT·AMZN·ORCL·PLTR·ASTS는 트리거 대비 안전 거리를 유지 중입니다.
+</div>
+
+<footer>
+  자동 생성 · Claude Cowork &nbsp;|&nbsp; 2026-05-20 &nbsp;|&nbsp; 투자 판단은 반드시 본인이 직접 확인 후 결정하세요
+</footer>
+
+</body>
+</html>
