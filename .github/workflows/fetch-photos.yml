@@ -13,14 +13,23 @@ jobs:
       - name: Download and resize
         run: |
           mkdir -p toeic/photos/raw
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           while read -r id; do
             [ -z "$id" ] && continue
-            f="toeic/photos/raw/$id.jpg"
-            curl -sSL -A "Mozilla/5.0" -o "$f.tmp" "https://unsplash.com/photos/$id/download?force=true" || true
+            f="toeic/photos/raw/$id.jpg"; url=""
+            case "$id" in http*) url="$id"; f="toeic/photos/raw/$(echo "$id" | sed 's#.*/photo-##; s#[?].*##').jpg";; esac
+            if [ -z "$url" ]; then
+              url=$(curl -sSL -A "$UA" -H "Accept: application/json" "https://unsplash.com/napi/photos/$id" | jq -r '.urls.regular // empty' 2>/dev/null)
+            fi
+            if [ -z "$url" ]; then
+              url=$(curl -sSL -A "$UA" "https://unsplash.com/photos/$id" | grep -o 'https://images.unsplash.com/photo-[^"&?]*' | head -1)
+            fi
+            if [ -z "$url" ]; then echo "fail $id: no url"; continue; fi
+            curl -sSL -A "$UA" -o "$f.tmp" "${url%%\?*}?w=1400&q=85&fm=jpg" || true
             if file "$f.tmp" | grep -qi 'image'; then
-              convert "$f.tmp" -auto-orient -resize '1280x1280>' -strip -quality 80 "$f" && echo "ok $id $(du -h "$f" | cut -f1)"
+              convert "$f.tmp" -auto-orient -resize '1280x1280>' -strip -quality 80 "$f" && echo "ok $id $(du -h "$f" | cut -f1) $url"
             else
-              echo "fail $id: $(file "$f.tmp")"
+              echo "fail $id: $(file -b "$f.tmp" | cut -c1-60) $url"
             fi
             rm -f "$f.tmp"
           done < toeic/photos/list.txt
