@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.2",
-"buildVersion": "2",
-"date": "2026-11-07T19:47:16Z",
-"localizedDescription": "ETHAN MEMO iOS: publish ipa and SideStore source to Pages on every build",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=2",
-"size": 338671,
+"version": "1.0.3",
+"buildVersion": "3",
+"date": "2026-11-07T19:53:39Z",
+"localizedDescription": "ETHAN MEMO iOS: app icon, scheme, TestFlight auto-deploy workflow (inactive until secrets set)",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=3",
+"size": 423667,
 "minOSVersion": "17.0"
         }
       ],
