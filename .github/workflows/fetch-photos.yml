@@ -12,7 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Download and resize
         run: |
+          set +e
           mkdir -p toeic/photos/raw
+          curl -sSL -A "Mozilla/5.0" -H "Accept: application/json" https://unsplash.com/napi/photos/wGi9dQZCP0s | head -c 300; echo
           UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
           while read -r id; do
             [ -z "$id" ] && continue
