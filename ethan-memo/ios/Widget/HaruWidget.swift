@@ -61,6 +61,45 @@ struct TodoWidgetView: View {
         }
     }
 
+    struct Line: Identifiable {
+        enum K { case header(Date, Int), todo(TodoSnap) }
+        let id: String
+        let kind: K
+        var first = false
+    }
+
+    /// 날짜별로 끊은 줄 목록(최신 날짜가 위), 크기에 맞게 자름
+    private var lines: [Line] {
+        let maxLines: Int
+        switch family {
+        case .systemSmall: maxLines = 4
+        case .systemMedium: maxLines = 4
+        default: maxLines = 12
+        }
+        let groups = Dictionary(grouping: entry.todos) { $0.day }
+        var out: [Line] = []
+        for d in groups.keys.sorted(by: >) {
+            if out.count >= maxLines - 1 { break }
+            let list = groups[d] ?? []
+            out.append(Line(id: "h\(d.timeIntervalSince1970)", kind: .header(d, list.count), first: out.isEmpty))
+            for t in list {
+                if out.count >= maxLines { break }
+                out.append(Line(id: t.id, kind: .todo(t)))
+            }
+        }
+        return out
+    }
+
+    private func relative(_ d: Date) -> String {
+        let n = Fmt.daysBetween(.now, d)
+        switch n {
+        case 0: return "오늘"
+        case -1: return "어제"
+        case 1: return "내일"
+        default: return n < 0 ? "\(-n)일 지남" : "\(n)일 후"
+        }
+    }
+
     private var subtitle: String {
         var s = "오늘 \(entry.todayCount)"
         if entry.lateCount > 0 { s += " · 지난 \(entry.lateCount)" }
@@ -96,26 +135,36 @@ struct TodoWidgetView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: family == .systemLarge ? 10 : 6) {
-                    ForEach(entry.todos.prefix(rows)) { t in
-                        Button(intent: ToggleTodoIntent(uid: t.id)) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "circle")
-                                    .font(family == .systemSmall ? .callout : .title3)
-                                    .foregroundStyle(.secondary)
-                                Text(t.text)
-                                    .font(family == .systemSmall ? .caption : .subheadline)
-                                    .lineLimit(1)
-                                    .foregroundStyle(.primary)
+                VStack(alignment: .leading, spacing: family == .systemLarge ? 7 : 4) {
+                    ForEach(lines) { line in
+                        switch line.kind {
+                        case .header(let d, let count):
+                            HStack(spacing: 6) {
+                                Text(Fmt.string(d, "M/d (E)"))
+                                    .font(.caption.weight(.semibold).monospacedDigit())
+                                    .foregroundStyle(Fmt.cal.isDateInToday(d) ? Color.accentColor : Color.primary)
+                                Text(relative(d))
+                                    .font(.caption2)
+                                    .foregroundStyle(d < Fmt.cal.startOfDay(for: .now) ? Color.orange : Color.secondary)
                                 Spacer(minLength: 0)
-                                if family == .systemLarge && !Fmt.cal.isDateInToday(t.day) {
-                                    Text(Fmt.string(t.day, "M/d"))
-                                        .font(.caption2.monospacedDigit())
-                                        .foregroundStyle(t.day < Fmt.cal.startOfDay(for: .now) ? Color.orange : Color.secondary)
+                                Text("\(count)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                            }
+                            .padding(.top, line.first ? 0 : 4)
+                        case .todo(let t):
+                            Button(intent: ToggleTodoIntent(uid: t.id)) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "circle")
+                                        .font(family == .systemSmall ? .callout : .title3)
+                                        .foregroundStyle(.secondary)
+                                    Text(t.text)
+                                        .font(family == .systemSmall ? .caption : .subheadline)
+                                        .lineLimit(1)
+                                        .foregroundStyle(.primary)
+                                    Spacer(minLength: 0)
                                 }
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
