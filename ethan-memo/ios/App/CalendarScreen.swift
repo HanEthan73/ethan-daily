@@ -103,9 +103,11 @@ struct MonthGrid: View {
 
     @State private var dragFrom: Int?
     @State private var dragTo: Int?
+    @State private var pressTask: DispatchWorkItem?
+    @State private var longPressed = false
 
-    private let rowH: CGFloat = 58
-    private let barH: CGFloat = 12
+    private let rowH: CGFloat = 70
+    private let barH: CGFloat = 13
     private let maxLanes = 2
 
     private var firstCell: Date {
@@ -124,7 +126,7 @@ struct MonthGrid: View {
     /// 하루짜리 항목 → 점
     private var dots: [Date: Set<Kind>] {
         var m: [Date: Set<Kind>] = [:]
-        for i in items where !i.isMultiDay && !(i.kind == .todo && i.done) {
+        for i in items where i.kind != .event && !(i.kind == .todo && i.done) {
             m[i.day, default: []].insert(i.kind)
         }
         return m
@@ -141,7 +143,9 @@ struct MonthGrid: View {
     private var bars: [Seg] {
         let n = weeks * 7
         let first = firstCell
-        let multi = items.filter { $0.isMultiDay }.sorted { ($0.day, $0.createdAt) < ($1.day, $1.createdAt) }
+        let multi = items.filter { $0.kind == .event }.sorted {
+            ($0.day, -Fmt.daysBetween($0.day, $0.lastDay), Fmt.minutes($0.time), $0.createdAt) < ($1.day, -Fmt.daysBetween($1.day, $1.lastDay), Fmt.minutes($1.time), $1.createdAt)
+        }
         var laneEnds: [Int] = []
         var out: [Seg] = []
         for ev in multi {
@@ -232,7 +236,7 @@ struct MonthGrid: View {
                     // 3) 여러 날 일정 막대
                     ForEach(bars) { b in
                         Text(b.title)
-                            .font(.system(size: 9, weight: .semibold))
+                            .font(.system(size: 9.5, weight: .semibold))
                             .lineLimit(1)
                             .padding(.horizontal, 4)
                             .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 2) - (b.openRight ? 0 : 2),
@@ -246,7 +250,7 @@ struct MonthGrid: View {
                                     .fill(Color.blue)
                             )
                             .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 2),
-                                    y: CGFloat(b.row) * rowH + 32 + CGFloat(b.lane) * (barH + 1))
+                                    y: CGFloat(b.row) * rowH + 33 + CGFloat(b.lane) * (barH + 1))
                             .allowsHitTesting(false)
                     }
                 }
@@ -254,14 +258,40 @@ struct MonthGrid: View {
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { v in
+                            if longPressed { return }
                             let idx = index(at: v.location, w: w)
-                            if dragFrom == nil { dragFrom = index(at: v.startLocation, w: w) }
+                            if dragFrom == nil {
+                                let start = index(at: v.startLocation, w: w)
+                                dragFrom = start
+                                // 꾹 누르기(0.45초) → 그날 하루 일정 등록
+                                let task = DispatchWorkItem {
+                                    guard dragFrom == start, dragTo == nil || dragTo == start else { return }
+                                    longPressed = true
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    let d = days[start]
+                                    selected = d
+                                    onRange(d, d)
+                                }
+                                pressTask = task
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: task)
+                            }
                             if dragTo != idx {
                                 dragTo = idx
-                                if dragFrom != idx { UISelectionFeedbackGenerator().selectionChanged() }
+                                if dragFrom != idx {
+                                    pressTask?.cancel()
+                                    UISelectionFeedbackGenerator().selectionChanged()
+                                }
                             }
                         }
                         .onEnded { v in
+                            pressTask?.cancel()
+                            pressTask = nil
+                            if longPressed {
+                                longPressed = false
+                                dragFrom = nil
+                                dragTo = nil
+                                return
+                            }
                             let a = dragFrom ?? index(at: v.startLocation, w: w)
                             let b = index(at: v.location, w: w)
                             dragFrom = nil
@@ -286,7 +316,7 @@ struct MonthGrid: View {
                 legend(.todo, "할 일")
                 legend(.memo, "메모")
                 Spacer()
-                Text("여러 날은 드래그").font(.caption2).foregroundStyle(.secondary)
+                Text("꾹 누르기·드래그로 일정").font(.caption2).foregroundStyle(.secondary)
             }
             .font(.caption)
             .foregroundStyle(.secondary)
