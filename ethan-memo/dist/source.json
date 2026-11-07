@@ -1,0 +1,32 @@
+{
+  "name": "ETHAN MEMO",
+  "identifier": "io.github.hanethan73.ethanmemo",
+  "subtitle": "개인용 메모 · 할 일 · 캘린더",
+  "iconURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/icon-512.png",
+  "tintColor": "#2A50C8",
+  "apps": [
+    {
+      "name": "ETHAN MEMO",
+      "bundleIdentifier": "com.ethanhan.haru",
+      "developerName": "Ethan",
+      "subtitle": "날짜별 메모 · 할 일 · 캘린더 · 위젯",
+      "localizedDescription": "날짜별 메모, 완료 체크되는 할 일, 드래그로 기간 일정 등록, 홈 화면 위젯, 메모를 바로 Claude에게.",
+      "iconURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/icon-512.png",
+      "tintColor": "#2A50C8",
+      "category": "productivity",
+      "versions": [
+        {
+"version": "1.0.2",
+"buildVersion": "2",
+"date": "2026-11-07T19:47:16Z",
+"localizedDescription": "ETHAN MEMO iOS: publish ipa and SideStore source to Pages on every build",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=2",
+"size": 338671,
+"minOSVersion": "17.0"
+        }
+      ],
+      "appPermissions": { "entitlements": [], "privacy": {} }
+    }
+  ],
+  "news": []
+}
