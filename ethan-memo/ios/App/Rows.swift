@@ -26,7 +26,7 @@ struct ItemRow: View {
                     .foregroundStyle(item.done ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 meta
-                if item.kind == .memo { answerBlock }
+                answerBlock
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onEdit)

@@ -113,11 +113,17 @@ struct EditSheet: View {
                         Toggle("완료", isOn: $done)
                     }
                 }
-                if kind == .memo, let a = item.answer {
-                    Section("Claude 답변") {
+                Section {
+                    Button {
+                        save(close: false)
+                        Asker.shared.ask(item, ctx: ctx)
+                        dismiss()
+                    } label: { Label("Claude에게 묻기", systemImage: "sparkle") }
+                    ShareLink(item: text) { Label("Claude 앱으로 보내기", systemImage: "square.and.arrow.up") }
+                    if let a = item.answer {
                         Text(a).font(.subheadline).textSelection(.enabled)
                     }
-                }
+                } header: { Text("Claude") }
                 Section {
                     Button("삭제", role: .destructive) { confirmDelete = true }
                 }
@@ -126,7 +132,7 @@ struct EditSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("저장") { save() } }
+                ToolbarItem(placement: .confirmationAction) { Button("저장") { save(close: true) } }
             }
             .onChange(of: day) { _, d in if end < d { end = d } }
             .confirmationDialog("이 기록을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -139,7 +145,7 @@ struct EditSheet: View {
         }
     }
 
-    private func save() {
+    private func save(close: Bool) {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
         item.kind = kind
@@ -151,6 +157,6 @@ struct EditSheet: View {
         item.done = kind == .todo ? done : false
         item.doneAt = item.done ? (item.doneAt ?? .now) : nil
         Store.save(ctx)
-        dismiss()
+        if close { dismiss() }
     }
 }

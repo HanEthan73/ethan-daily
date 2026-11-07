@@ -19,7 +19,7 @@ final class Asker {
             return
         }
         busy.insert(item.uid)
-        let prompt = Prompt.make(text: item.text, day: item.day)
+        let prompt = Prompt.make(item)
         Task {
             do {
                 let answer = try await ClaudeClient.ask(prompt)
@@ -35,16 +35,32 @@ final class Asker {
 }
 
 enum Prompt {
-    static func make(text: String, day: Date) -> String {
-        """
-        다음은 사용자가 \(Fmt.string(day, "yyyy년 M월 d일"))에 메모해 둔 궁금증이나 생각입니다. 한국어로 답하세요.
+    static func make(_ item: Item) -> String {
+        let kind: String
+        let extra: String
+        switch item.kind {
+        case .memo:
+            kind = "메모해 둔 궁금증이나 생각"
+            extra = "질문이 아니라 메모라면 그 주제에서 알면 좋을 핵심과, 이어서 생각해 볼 질문 1개를 주세요."
+        case .todo:
+            kind = "할 일로 적어 둔 것"
+            extra = "이 할 일을 끝내기 위한 구체적인 단계와 놓치기 쉬운 점을 알려 주세요."
+        case .event:
+            kind = "일정으로 잡아 둔 것"
+            extra = "이 일정을 위해 미리 준비하거나 확인할 것을 알려 주세요."
+        }
+        var when = Fmt.string(item.day, "yyyy년 M월 d일")
+        if let e = item.endDay { when += " ~ " + Fmt.string(e, "M월 d일") }
+        if let t = item.time { when += " " + Fmt.time(t) }
+        return """
+        다음은 사용자가 \(when)에 \(kind)입니다. 한국어로 답하세요.
         - 첫 줄은 "한 줄 요약: "으로 시작하는 쉬운 한 문장.
         - 이어서 핵심을 간결하게 (필요하면 "1." "2." 같은 짧은 번호 목록).
         - 마크다운 기호(#, **, 표)는 쓰지 말고 일반 텍스트로. 600자 이내.
-        - 질문이 아니라 메모라면 그 주제에서 알면 좋을 핵심과, 이어서 생각해 볼 질문 1개를 주세요.
+        - \(extra)
 
-        메모:
-        \(text)
+        내용:
+        \(item.text)
         """
     }
 }
