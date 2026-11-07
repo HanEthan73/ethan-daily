@@ -269,6 +269,8 @@ input[type=password]{background:var(--bg);border:1px solid var(--line);border-ra
     <label class="f-col">답변 모델
       <select id="sModel"></select>
     </label>
+    <div class="lockrow"><span>백업<small id="bkState">다시 설치하거나 iOS 앱으로 옮길 때 사용</small></span><span style="display:flex;gap:6px"><button class="ghost" id="bkOut">내보내기</button><button class="ghost" id="bkIn">불러오기</button></span></div>
+    <input type="file" id="bkFile" accept="application/json,.json" hidden>
     <div class="lockrow"><span>Face ID 잠금<small id="lockState">앱을 열 때 Face ID로 본인 확인</small></span><button class="ghost" id="lockToggle">켜기</button></div>
     <p class="hint">기록은 이 기기의 브라우저에 저장됩니다. 홈 화면에 추가한 앱과 Safari는 저장소가 따로이니 한 곳에서만 쓰세요.</p>
     <div class="actions">
@@ -693,6 +695,34 @@ async function enableLock(){
   }catch(e){toast('Face ID 잠금을 켜지 못했습니다');}
 }
 function paintLockRow(){$('lockToggle').textContent=lockOn()?'끄기':'켜기';$('lockState').textContent=lockOn()?'켜짐 · 열 때와 1분 이상 나갔다 오면 확인':'앱을 열 때 Face ID로 본인 확인';}
+/* ---------- 백업 (iOS 앱과 같은 형식) ---------- */
+function backupJSON(){
+  const items=[...S.items.values()].map(x=>({id:x.id,type:x.type,date:x.date,endDate:x.endDate||null,time:x.time||null,text:x.text,
+    done:!!x.done,doneAt:x.doneAt||null,createdAt:x.createdAt||null,answer:x.answer||null,answeredAt:x.answeredAt||null}));
+  return JSON.stringify({app:'ETHAN MEMO',version:1,exportedAt:Date.now(),items},null,2);
+}
+$('bkOut').onclick=async()=>{
+  const name=`ETHAN-MEMO-백업-${ymd(new Date()).slice(2).replace(/-/g,'')}.json`;
+  const file=new File([backupJSON()],name,{type:'application/json'});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file]});toast('백업 파일을 저장했습니다');return;}
+  }catch(e){if(e&&e.name==='AbortError')return;}
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast('백업 파일을 받았습니다');
+};
+$('bkIn').onclick=()=>$('bkFile').click();
+$('bkFile').onchange=async e=>{
+  const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const data=JSON.parse(await f.text());if(!data||!Array.isArray(data.items))throw 0;
+    let add=0,upd=0;
+    for(const b of data.items){if(!b||!b.id||!b.date||!b.text)continue;
+      S.items.has(b.id)?upd++:add++;
+      S.items.set(b.id,{id:b.id,type:['memo','todo','event'].includes(b.type)?b.type:'memo',date:b.date,endDate:b.endDate||'',time:b.time||'',text:b.text,
+        done:!!b.done,doneAt:b.doneAt||null,createdAt:b.createdAt||Date.now(),answer:b.answer||undefined,answeredAt:b.answeredAt||undefined});}
+    saveLocal();render();toast(`불러왔습니다 · 새 기록 ${add}개, 갱신 ${upd}개`);
+  }catch(_){toast('불러오지 못했습니다. ETHAN MEMO 백업 파일인지 확인하세요.');}
+};
 $('lockToggle').onclick=()=>{if(lockOn()){lsSet(LOCK_LS,'');paintLockRow();toast('Face ID 잠금을 껐습니다');}else enableLock();};
 $('unlockBtn').onclick=unlock;
 document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(lockOn()&&hiddenAt&&Date.now()-hiddenAt>60000)showLock();});
