@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ETHAN MEMO 설치</title>
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+:root{--bg:#F3F5F9;--surface:#fff;--ink:#141C28;--muted:#647083;--line:#DFE4EC;--accent:#2A50C8;--accent-ink:#fff;--todo:#0E8468;--warn:#C2410C;--sunk:#EBEFF5;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0D1219;--surface:#151C26;--ink:#E5EAF2;--muted:#8C97A8;--line:#253041;--accent:#7395FF;--accent-ink:#0D1219;--todo:#3CC49F;--warn:#FF8F5E;--sunk:#1B2330;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 "Apple SD Gothic Neo",system-ui,sans-serif;
+  padding:24px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.hero{display:flex;gap:14px;align-items:center}
+.hero img{width:64px;height:64px;border-radius:15px}
+h1{margin:0;font-size:24px;letter-spacing:-.02em}
+.sub{margin:0;color:var(--muted);font-size:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+h2{margin:0 0 4px;font-size:17px}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);margin-left:6px;vertical-align:2px}
+.tag.go{background:var(--todo);color:#fff}
+ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600;text-decoration:none;border:0;font-size:15px;cursor:pointer}
+.btn.ghost{background:var(--sunk);color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+code{display:block;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--sunk);font:13px ui-monospace,Menlo,monospace;word-break:break-all;user-select:all}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <img src="icon-180.png" alt="">
+    <div><h1>ETHAN MEMO</h1><p class="sub">메모 · 할 일 · 캘린더 · 위젯 · Claude</p></div>
+  </div>
+
+  <div class="card">
+    <h2>① 지금 바로 쓰기 <span class="tag go">1분</span></h2>
+    <p class="sub">설치 파일 없이 Safari에서 앱처럼 씁니다. 업데이트는 열 때마다 자동으로 반영됩니다.</p>
+    <ol>
+      <li>이 페이지를 <b>Safari</b>로 열기</li>
+      <li>아래 버튼으로 앱 열기 → 하단 <b>공유</b> 버튼 → <b>홈 화면에 추가</b></li>
+      <li>홈 화면의 ETHAN MEMO 아이콘으로 실행</li>
+    </ol>
+    <div class="row"><a class="btn" href="./">ETHAN MEMO 열기</a></div>
+    <p class="note">홈 화면 위젯은 ② 네이티브 앱에서만 됩니다.</p>
+  </div>
+
+  <div class="card">
+    <h2>② 네이티브 앱 + 위젯 <span class="tag">처음 한 번 PC 필요</span></h2>
+    <p class="sub">SideStore로 설치합니다. 처음 설정만 PC로 하고, 그 뒤 업데이트와 7일 갱신은 아이폰에서 처리됩니다.</p>
+    <ol>
+      <li>PC(Windows/Mac)에서 <a href="https://sidestore.io" target="_blank" rel="noopener">sidestore.io</a> 설치 가이드대로 SideStore 설치(페어링 파일 만들기 포함)</li>
+      <li>아이폰 SideStore → <b>Sources</b> → <b>+</b> → 아래 주소 붙여넣기</li>
+      <li>목록에 뜬 <b>ETHAN MEMO</b> → <b>Free</b>(설치)</li>
+      <li>홈 화면 길게 누름 → 편집 → 위젯 추가 → ETHAN MEMO</li>
+    </ol>
+    <code id="src">https://hanethan73.github.io/ethan-daily/ethan-memo/dist/source.json</code>
+    <div class="row">
+      <button class="btn" id="copy">소스 주소 복사</button>
+      <a class="btn ghost" href="dist/ETHAN-MEMO.ipa">ipa 직접 받기</a>
+    </div>
+    <p class="note">업데이트: Claude가 코드를 고치면 자동 빌드 후 몇 분 안에 SideStore에 ‘업데이트’가 뜹니다. 눌러서 받으면 됩니다. 무료 Apple ID는 7일마다 갱신이 필요한데, SideStore의 Refresh(단축어 자동화 가능)로 아이폰에서 처리됩니다.</p>
+  </div>
+</div>
+<script>
+document.getElementById('copy').addEventListener('click',async e=>{
+  const t=document.getElementById('src').textContent;
+  try{await navigator.clipboard.writeText(t);e.target.textContent='복사했습니다';}
+  catch(_){const r=document.createRange();r.selectNodeContents(document.getElementById('src'));const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent='주소를 길게 눌러 복사하세요';}
+  setTimeout(()=>e.target.textContent='소스 주소 복사',2500);
+});
+</script>
+</body>
+</html>
