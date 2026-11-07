@@ -1,0 +1,39 @@
+name: make-tts
+on:
+  push:
+    paths: ['toeic/tts/tts.tsv']
+permissions:
+  contents: write
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -q edge-tts gTTS
+      - name: Generate
+        run: |
+          python - <<'PY'
+          import asyncio, edge_tts, os
+          from gtts import gTTS
+          rows=[l.rstrip('\n').split('\t') for l in open('toeic/tts/tts.tsv',encoding='utf-8') if l.strip()]
+          async def one(k,v,t):
+              out=f'toeic/tts/{k}.mp3'
+              for i in range(3):
+                  try:
+                      await edge_tts.Communicate(t,v,rate='-5%').save(out)
+                      if os.path.getsize(out)>2000: print('edge',k,os.path.getsize(out)); return
+                  except Exception as e: print('retry',k,e)
+                  await asyncio.sleep(2)
+              gTTS(t,lang='en',tld='com').save(out); print('gtts',k,os.path.getsize(out))
+          async def main():
+              for k,v,t in rows: await one(k,v,t)
+          asyncio.run(main())
+          PY
+      - name: Commit
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add toeic/tts/*.mp3
+          git commit -m "Generate Set 3 audio" && git push || echo "nothing to commit"
