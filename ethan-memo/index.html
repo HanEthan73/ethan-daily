@@ -187,11 +187,25 @@ input[type=password]{background:var(--bg);border:1px solid var(--line);border-ra
 .wg-add{display:flex;gap:8px;padding-top:8px;border-top:1px solid var(--line);margin-top:4px}
 .wg-add input{flex:1;min-width:0}
 .wg-foot{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:4px 2px 0}
+.lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));text-align:center}
+.lock h2{margin:0;font-size:22px;letter-spacing:-.02em}
+.lock p{margin:0;color:var(--muted);font-size:14px}
+.lock .mark{width:56px;height:56px;border-radius:14px}
+.lock .mark::after{left:13px;top:13px;width:14px;height:14px}
+.lock .primary{min-height:48px;padding:0 24px;font-size:16px}
+.lockrow{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:14px;font-weight:500}
+.lockrow small{display:block;color:var(--muted);font-weight:400;font-size:12px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;z-index:30;max-width:90%}
 @media (prefers-reduced-motion:no-preference){.day,.chk,.tabs button{transition:background .15s,color .15s}}
 </style>
 </head>
 <body>
+<div class="lock" id="lock" hidden>
+  <span class="mark" aria-hidden="true"></span>
+  <h2>ETHAN MEMO</h2>
+  <p id="lockMsg">잠겨 있습니다</p>
+  <button class="primary" id="unlockBtn">Face ID로 열기</button>
+</div>
 <div class="app" id="app" data-view="todo">
   <header class="top">
     <div class="brand"><span class="mark" aria-hidden="true"></span><h1>ETHAN MEMO</h1></div>
@@ -255,6 +269,7 @@ input[type=password]{background:var(--bg);border:1px solid var(--line);border-ra
     <label class="f-col">답변 모델
       <select id="sModel"></select>
     </label>
+    <div class="lockrow"><span>Face ID 잠금<small id="lockState">앱을 열 때 Face ID로 본인 확인</small></span><button class="ghost" id="lockToggle">켜기</button></div>
     <p class="hint">기록은 이 기기의 브라우저에 저장됩니다. 홈 화면에 추가한 앱과 Safari는 저장소가 따로이니 한 곳에서만 쓰세요.</p>
     <div class="actions">
       <button class="danger" id="sClear">키 삭제</button>
@@ -652,6 +667,36 @@ function closeSettings(){$('setBg').hidden=true;}
 $('setBtn').onclick=()=>openSettings();
 $('sCancel').onclick=closeSettings;
 $('sSave').onclick=()=>{lsSet(KEY_LS,$('sKey').value.trim());lsSet(MODEL_LS,$('sModel').value);closeSettings();render();toast(lsGet(KEY_LS)?'저장했습니다. 메모에서 Claude에게 물어보세요.':'저장했습니다');};
+/* ---------- Face ID 잠금 (패스키, 이 기기 안에서만) ---------- */
+const LOCK_LS='ethanmemo.lock';
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0));};
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+let hiddenAt=0;
+function lockOn(){return !!lsGet(LOCK_LS);}
+function showLock(msg){if(!lockOn())return;$('lockMsg').textContent=msg||'잠겨 있습니다';$('lock').hidden=false;$('app').setAttribute('aria-hidden','true');}
+function hideLock(){$('lock').hidden=true;$('app').removeAttribute('aria-hidden');}
+async function unlock(){
+  try{
+    await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:unb64(lsGet(LOCK_LS))}],userVerification:'required',timeout:60000}});
+    hideLock();
+  }catch(e){$('lockMsg').textContent='확인하지 못했습니다. 다시 눌러 주세요.';}
+}
+async function enableLock(){
+  if(!window.PublicKeyCredential){toast('이 브라우저는 Face ID 잠금을 지원하지 않습니다');return;}
+  try{
+    const c=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'ETHAN MEMO'},
+      user:{id:rnd(16),name:'ethan-memo',displayName:'ETHAN MEMO'},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},timeout:60000}});
+    lsSet(LOCK_LS,b64(c.rawId));paintLockRow();toast('Face ID 잠금을 켰습니다');
+  }catch(e){toast('Face ID 잠금을 켜지 못했습니다');}
+}
+function paintLockRow(){$('lockToggle').textContent=lockOn()?'끄기':'켜기';$('lockState').textContent=lockOn()?'켜짐 · 열 때와 1분 이상 나갔다 오면 확인':'앱을 열 때 Face ID로 본인 확인';}
+$('lockToggle').onclick=()=>{if(lockOn()){lsSet(LOCK_LS,'');paintLockRow();toast('Face ID 잠금을 껐습니다');}else enableLock();};
+$('unlockBtn').onclick=unlock;
+document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(lockOn()&&hiddenAt&&Date.now()-hiddenAt>60000)showLock();});
+paintLockRow();showLock();
 $('sClear').onclick=()=>{lsSet(KEY_LS,'');$('sKey').value='';render();toast('키를 삭제했습니다');};
 $('setBg').addEventListener('click',e=>{if(e.target===$('setBg'))closeSettings();});
 fromHash();
