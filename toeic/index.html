@@ -93,6 +93,8 @@ th{color:var(--mute);font-weight:600;white-space:nowrap}
 .checks label{display:flex;align-items:center;gap:5px;font-size:12.5px;padding:4px 8px;border-radius:7px;border:1px solid var(--line);background:var(--bg)}
 .checks input{width:16px;height:16px}
 .mini{width:120px;border-radius:6px;border:1px solid var(--line)}
+.mini.photo{width:100%;max-width:420px;overflow:hidden}.mini.photo img,.pic.photo img{display:block;width:100%;height:auto;border-radius:6px}
+.pic .credit{margin:4px 2px 0;font-size:10.5px;color:var(--mute)}
 .grade{display:grid;gap:10px}
 .err{color:var(--hot);font-size:13px}
 a.dl{font-size:12.5px;color:var(--accent)}
@@ -279,6 +281,13 @@ function info(S){var b=el('div','info');b.appendChild(el('h3',null,S.q810.title)
   var t=el('table'),h=el('tr');S.q810.cols.forEach(function(c){h.appendChild(el('th',null,c));});var th=el('thead');th.appendChild(h);t.appendChild(th);
   var tb=el('tbody');S.q810.rows.forEach(function(r){var tr=el('tr');r.forEach(function(c){tr.appendChild(el('td',null,c));});tb.appendChild(tr);});t.appendChild(tb);b.appendChild(t);return b;}
 function pic(k){var d=el('div','pic');d.innerHTML=SVG[k];return d;}
+/* ---------- Q3–4 실제 사진 ---------- */
+var PHOTOS={"s1q3": {"credit": "Photo: PattayaPatrol · Wikimedia Commons · CC BY-SA 4.0", "model": "This picture was taken at an outdoor market. In the foreground, a lot of bananas are on display. On the left, a woman wearing a face mask and a light blue apron is reaching for some grapes. On the right, a young man in a red T-shirt is holding up a plastic bag of fruit over a scale. In the background, I can see other vendors and more fruit stands. It seems like a busy evening at the market.", "src": "photos/market.jpg"}, "s1q4": {"credit": "Photo: U.S. Department of Agriculture · Wikimedia Commons · Public domain", "model": "This picture was taken in a restaurant. In the middle of the picture, a man in a black jacket and a cap is leaning over a table and serving some customers. Three people are sitting around the wooden table, and there are glasses of iced tea and a cup of soup on it. On the right, a young woman in a dark sweatshirt is standing and watching. In the background, many framed photos are hanging on an orange wall. It seems like they're having lunch together.", "src": "photos/restaurant.jpg"}, "s2q3": {"credit": "Photo: zoetnet · Wikimedia Commons · CC BY 2.0", "model": "This picture was taken at an outdoor café on a sunny day. In the middle of the picture, a waitress with blond hair is standing next to a table. She's wearing a navy T-shirt and a long brown apron, and it looks like she's taking an order. On the right, a man in a green shirt and a woman in a blue top are sitting at a small table. Many other people are sitting outside, and in the background, I can see brick buildings and a striped awning. It seems like a busy afternoon.", "src": "photos/terrace.jpg"}, "s2q4": {"credit": "Photo: Ivan Radic · Wikimedia Commons · CC BY 2.0", "model": "This picture was taken in a park on a sunny day. In the middle of the picture, four people are sitting on a long green bench, and I can only see their backs. On the left, a man in a striped shirt has his hands behind his head, so he looks very relaxed. Behind the bench, there's a red bag on the grass. In the foreground, there's a wide gravel path, and the scene is framed by green trees and bushes. It looks like a peaceful summer afternoon.", "src": "photos/park.jpg"}};
+DATA.sets.forEach(function(S,i){['q3','q4'].forEach(function(k){var p=PHOTOS['s'+(i+1)+k];if(p){S[k].photo=p.src;S[k].model=p.model;S[k].credit=p.credit;}});});
+DATA.sets.forEach(function(S){['q3','q4'].forEach(function(k){if(S[k].photo){var im=new Image();im.src=S[k].photo;}});});
+function picIt(it){if(!it.photo)return pic(it.pic);var d=el('div','pic photo'),im=new Image();im.src=it.photo;im.alt='';d.appendChild(im);if(it.credit)d.appendChild(el('p','credit',it.credit));return d;}
+function sayEn(t){try{speechSynthesis.cancel();var u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.rate=0.95;var vs=speechSynthesis.getVoices(),v=vs.filter(function(x){return /en[-_]US/i.test(x.lang)&&/Samantha|Ava|Allison|Google US|Aria|Jenny|Natural/i.test(x.name);})[0]||vs.filter(function(x){return /en[-_]US/i.test(x.lang);})[0];if(v)u.voice=v;speechSynthesis.speak(u);}catch(e){}}
+
 var R={},CUR=0;
 var IDB=null;function idb(){if(IDB)return IDB;IDB=new Promise(function(res){try{var r=indexedDB.open('toeicMock',1);r.onupgradeneeded=function(){r.result.createObjectStore('runs');};
   r.onsuccess=function(){res(r.result);};r.onerror=function(){res(null);};}catch(e){res(null);}});return IDB;}
@@ -308,7 +317,7 @@ async function runTest(S,si){
     await prep(45,'d_prep');await play('d_read');check();await respond('q'+i,45,'Q'+i);}
   // Q3-4
   stage([part('QUESTIONS 3–4 · DESCRIBE A PICTURE'),dirBox('Describe a Picture',DATA.dir.q34)],'');await play('d_q34');check();await gap(500);
-  for(i=3;i<=4;i++){stage([part('QUESTION '+i+' OF 11'),pic(S['q'+i].pic)],'Question '+i+' of 11');
+  for(i=3;i<=4;i++){stage([part('QUESTION '+i+' OF 11'),picIt(S['q'+i])],'Question '+i+' of 11');
     await prep(45,'d_prep');await play('d_speak');check();await respond('q'+i,30,'Q'+i);}
   // Q5-7
   stage([part('QUESTIONS 5–7 · RESPOND TO QUESTIONS'),dirBox('Respond to Questions',DATA.dir.q57)],'');await play('d_q57');check();await gap(500);
@@ -362,14 +371,14 @@ function review(S,si,fresh){GV.S=S;GV.si=si;GV.busy=false;AUTO=null;var W=$('rev
   var g=el('div','card grade');g.id='gradeBox';W.appendChild(g);gradeUI();
   ORDER.forEach(function(k){var t=typeOf(k),c=el('div','rq'),h=el('h3');c.id='rq_'+k;h.appendChild(el('span','tag',k.toUpperCase()));h.appendChild(D.createTextNode(NAMES[t]));c.appendChild(h);
     var pr=promptOf(S,k);if(pr&&+k.slice(1)>2)c.appendChild(el('p','prompt',pr));
-    if(t==='q34'){var m=el('div');m.className='mini';m.innerHTML=SVG[S[k].pic];m.firstChild.style.width='100%';m.firstChild.style.display='block';c.appendChild(m);}
+    if(t==='q34'){var m=el('div');m.className='mini';if(S[k].photo){m.className='mini photo';var pim=new Image();pim.src=S[k].photo;pim.alt='';m.appendChild(pim);}else{m.innerHTML=SVG[S[k].pic];m.firstChild.style.width='100%';m.firstChild.style.display='block';}c.appendChild(m);}
     var r=R[k],mine=el('div','mine');mine.appendChild(el('span','lbl','내 답변'+(r?' · '+r.used+'/'+r.sec+'초':' · 안 함')));if(r&&r.silent)mine.appendChild(el('span','warn','⚠️ 소리가 거의 안 잡혔어요 — 마이크를 가리지 않았는지 확인하세요'));
     if(r&&r.blob&&r.blob.size){var a=D.createElement('audio');a.controls=true;a.setAttribute('playsinline','');a.dataset.k=k;var u=URL.createObjectURL(r.blob);a.src=u;mine.appendChild(a);
       var dl=el('a','dl','⬇ 파일로 저장');dl.href=u;dl.download=S.name.replace(' ','')+'_'+k.toUpperCase()+(r.blob.type.indexOf('wav')>=0?'.wav':r.blob.type.indexOf('webm')>=0?'.webm':'.m4a');boost(k,a,dl);}
     if(r){var mm=el('div','mm');mm.id='mm_'+k;mine.appendChild(mm);mine.appendChild(txBox(k,si));}else mine.appendChild(el('span','sub','—'));
     c.appendChild(mine);
     c.appendChild(el('span','lbl',+k.slice(1)<=2?'원어민 낭독':'AL 모범답안'));c.appendChild(el('p','model',modelOf(S,k)));
-    var sb=el('button','say','▶ 모범답안 듣기');sb.type='button';sb.onclick=function(){au.src=aurl(P+k+'m');au.play().catch(function(){});};c.appendChild(sb);
+    var sb=el('button','say','▶ 모범답안 듣기');sb.type='button';sb.onclick=function(){if(S[k].photo){au.pause();sayEn(modelOf(S,k));return;}au.src=aurl(P+k+'m');au.play().catch(function(){});};c.appendChild(sb);
     var ck=el('div','checks');(DATA.check[t]||[]).forEach(function(x){var l=el('label'),i=D.createElement('input');i.type='checkbox';l.appendChild(i);l.appendChild(D.createTextNode(x));ck.appendChild(l);});c.appendChild(ck);var gv=el('div','gv');gv.id='gv_'+k;c.appendChild(gv);
     W.appendChild(c);});
   ORDER.forEach(function(k){renderMM(k);renderG(k);});
