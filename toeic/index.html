@@ -127,6 +127,12 @@ a.dl{font-size:12.5px;color:var(--accent)}
 .res{display:grid;gap:8px;margin-top:6px}
 .lvl.top b{background:var(--ok)}.lvl.low b{background:var(--hot)}
 .rq{scroll-margin-top:12px}
+.wbox{display:grid;gap:6px;padding:10px;border-radius:10px;background:var(--ok-bg)}
+.wstat{margin:0;font-weight:700;color:var(--ok);font-size:14px}
+.akey{border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px}
+.akey summary{cursor:pointer;font-weight:600;color:var(--accent)}
+.akey input{flex:1;min-width:160px;font:16px var(--mono);padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.akey .row{margin-top:8px}
 @media (max-width:420px){.read{font-size:17.5px}.q{font-size:17.5px}.timer .t{font-size:23px}}
 </style>
 
@@ -281,7 +287,7 @@ async function respond(key,sec,label){
   var h=recStart();$('recDot').classList.toggle('on',!!h);var t0=Date.now(),asr=h?asrStart():null;
   try{await timer('resp',sec);}finally{
     var used=Math.min(sec,Math.round((Date.now()-t0)/1000));
-    var blob=await recStop(h);$('recDot').classList.remove('on');relMic();
+    var blob=await recStop(h);$('recDot').classList.remove('on');
     var said=await asrStop(asr),silent=!!(h&&blob&&h.peak<0.01);if(silent&&said){store.asrOff=true;save();}
     R[key]={label:label,sec:sec,used:used,blob:blob,text:MIC.ok?said:dict.value.trim(),silent:silent};
     saveRun(CUR);dict.hidden=true;dict.blur();idle();}
@@ -319,7 +325,7 @@ async function runTest(S,si){
 var wake=null;
 async function start(){
   acInit();au.src=aurl('beep');var p=au.play();if(p&&p.catch)p.catch(function(){});  // unlock audio in the tap
-  CUR=setIdx;if(MIC.ok!==false){await ensureStream();relMic();}
+  CUR=setIdx;if(MIC.ok!==false)await ensureStream();
   E={paused:false,skip:null,abort:false};$('home').hidden=true;$('review').hidden=true;$('exam').hidden=false;$('exam').classList.remove('paused');$('pauseBtn').textContent='⏸';
   try{if(navigator.wakeLock)wake=await navigator.wakeLock.request('screen');}catch(e){}
   var S=DATA.sets[setIdx],ok=true;
@@ -361,7 +367,8 @@ function review(S,si,fresh){GV.S=S;GV.si=si;GV.busy=false;AUTO=null;var W=$('rev
     var ck=el('div','checks');(DATA.check[t]||[]).forEach(function(x){var l=el('label'),i=D.createElement('input');i.type='checkbox';l.appendChild(i);l.appendChild(D.createTextNode(x));ck.appendChild(l);});c.appendChild(ck);var gv=el('div','gv');gv.id='gv_'+k;c.appendChild(gv);
     W.appendChild(c);});
   ORDER.forEach(function(k){renderMM(k);renderG(k);});
-  if(fresh&&!R._final&&ORDER.some(function(k){return R[k]&&R[k].text;})){if(sState==='wait')AUTO={S:S,si:si};else gradeAll(S,si);}}
+  var needW=ORDER.some(function(k){var r=R[k];return r&&r.blob&&r.blob.size&&!r.text;});
+  if(needW&&store.whOK)whisperAll(S,si,fresh);else if(fresh)autoGo(S,si);}
 
 /* ---------- 볼륨 보정 · 받아쓰기 · 채점 ---------- */
 function asess(t){try{if(navigator.audioSession)navigator.audioSession.type=t;}catch(e){}}
@@ -401,7 +408,8 @@ function proc(blob){return decode(blob).then(function(b){
   var wb=toWav(x,sr);return {url:URL.createObjectURL(wb),blob:wb,m:m};});}
 
 var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-function asrStart(){if(!SR||store.asrOff||store.noAsr)return null;var o={tx:'',base:'',i:'',on:true};
+var IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function asrStart(){if(!SR||IOS||store.asrOff||store.noAsr)return null;var o={tx:'',base:'',i:'',on:true};
   try{var r=new SR();o.r=r;r.lang='en-US';r.continuous=true;r.interimResults=true;
     r.onresult=function(e){var f='',i2='';for(var j=0;j<e.results.length;j++){var t=e.results[j][0].transcript;if(e.results[j].isFinal)f+=t+' ';else i2+=t;}
       o.tx=(o.base+' '+f).replace(/\s+/g,' ').trim();o.i=i2;};
@@ -437,9 +445,9 @@ function ctxOf(S,k){var n=+k.slice(1);
   if(n<=7)return 'Situation: '+S.q57.ctx+'\nQuestion: '+S.q57.qs[n-5];
   if(n<=10)return 'Information provided: '+S.q810.title+' | '+S.q810.sub+'\n'+S.q810.cols.join(' | ')+'\n'+S.q810.rows.map(function(r){return r.join(' | ');}).join('\n')+'\nCaller: '+S.q810.intro+'\nQuestion: '+S.q810.qs[n-8];
   return 'Question: '+S.q11.q;}
-function itemBlock(S,k){var r=R[k],n=+k.slice(1),m=r&&r.m,w=r?wcount(r.text):0,ra=readAcc(S,k);
+function itemBlock(S,k,lite){var r=R[k],n=+k.slice(1),m=r&&r.m,w=r?wcount(r.text):0,ra=readAcc(S,k);
   return '['+k.toUpperCase()+' · '+TYPE_EN[typeOf(k)]+' · time limit '+(r?r.sec:'?')+' s · scale 0–'+maxOf(k)+']\n'+ctxOf(S,k)+
-    (n>=3?'\nReference AL answer (calibration only): '+modelOf(S,k):'')+
+    (n>=3&&!lite?'\nReference AL answer (calibration only): '+modelOf(S,k):'')+
     '\nFluency measured from audio: '+(m?('speaking span '+m.span+' s, first word after '+m.start+' s, pauses ≥1.5 s: '+m.p15+', longest pause '+m.longest+' s'):'n/a')+
     '; '+w+' words'+(m&&m.span>2?' (~'+Math.round(w/(m.span/60))+' wpm)':'')+
     (ra?'\nWord accuracy vs passage: '+ra.pct+'%; missed/misrecognised: '+(ra.miss.join(', ')||'none'):'')+
@@ -457,6 +465,16 @@ function fixG(k,g){var max=maxOf(k);g.max=max;g.score=Math.max(0,Math.min(max,Ma
   ['good','fix','pron'].forEach(function(x){if(!Array.isArray(g[x]))g[x]=[];});return g;}
 
 var SAMPLE=null,sState='wait',AUTO=null;
+function apiKey(){return (store.akey||'').trim();}
+function canGrade(){return sState==='ok'||!!apiKey();}
+function llmJson(prompt){
+  if(sState==='ok')return SAMPLE.json(prompt,{cache:false,modelTier:'default'});
+  return fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':apiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:16000,messages:[{role:'user',content:prompt}]})})
+    .then(function(r){return r.json().catch(function(){return {};}).then(function(j){
+      if(!r.ok)throw {code:r.status===401||r.status===403?'bad_key':r.status===429||r.status===529?'rate_limited':'api',message:(j&&j.error&&j.error.message)||('HTTP '+r.status)};return j;});})
+    .then(function(j){var t=(j.content||[]).map(function(c){return c.text||'';}).join(''),a=t.indexOf('{'),b=t.lastIndexOf('}');
+      if(a<0||b<a)throw {code:'invalid_json'};try{return JSON.parse(t.slice(a,b+1));}catch(e){throw {code:'invalid_json'};}});}
 try{if(window.claude&&claude.use)claude.use('sample').then(function(f){SAMPLE=f;sState=f?'ok':'none';gradeUI();if(f&&AUTO){var a=AUTO;AUTO=null;gradeAll(a.S,a.si);}})
   .catch(function(){sState='none';gradeUI();});else sState='none';}catch(e){sState='none';}
 var GV={S:null,si:0,busy:false};
@@ -487,13 +505,13 @@ function renderG(k){var box=$('gv_'+k);if(!box)return;box.innerHTML='';var r=R[k
   if(r&&r.gw)box.appendChild(el('p','err',r.gw));
   if(r&&r.g)box.appendChild(gView(r.g));}
 function busyWait(box,msg){var w=el('p','sub',msg);box.appendChild(w);var t0=Date.now(),tk=setInterval(function(){w.textContent=msg+' '+Math.round((Date.now()-t0)/1000)+'초';},1000);return function(){clearInterval(tk);w.remove();};}
-function sampleErr(e){var c=e&&e.code;if(c==='not_granted'||c==='sampling_disabled'||c==='not_declared'||c==='capability_disabled'){sState='denied';return '';}
+function sampleErr(e){var c=e&&e.code;if(c==='bad_key')return 'API 키가 올바르지 않아요. 아래 「API 키로 바로 채점」에서 다시 넣어 주세요.';if(c==='api')return 'API 오류: '+((e&&e.message)||'')+' — 잠시 후 다시 눌러 주세요.';if(c==='not_granted'||c==='sampling_disabled'||c==='not_declared'||c==='capability_disabled'){sState='denied';return '';}
   return c==='rate_limited'?'요청이 많아요. 잠시 후 다시 눌러 주세요.':'채점에 실패했어요. 다시 눌러 주세요.';}
 function gradeOne(S,si,k){var r=R[k];if(!r||!r.text)return;delete r.gw;
-  if(sState!=='ok'){r.g=localGrade(S,k);saveRun(si);renderG(k);return;}
+  if(!canGrade()){r.g=localGrade(S,k);saveRun(si);renderG(k);return;}
   GV.busy=true;ORDER.forEach(renderG);var box=$('gv_'+k),stop=busyWait(box,'Claude가 채점 중…');
   var P=['You are a strict, experienced ETS-certified TOEIC Speaking rater. Grade ONE response from a full mock test (2022+ format).',RULES,itemBlock(S,k),'Reply with ONLY this JSON: '+ITEM].join('\n\n');
-  SAMPLE.json(P,{cache:false,modelTier:'default'}).then(function(g){if(!g||typeof g!=='object')throw {code:'invalid_json'};r.g=fixG(k,g);saveRun(si);},
+  llmJson(P).then(function(g){if(!g||typeof g!=='object')throw {code:'invalid_json'};r.g=fixG(k,g);saveRun(si);},
     function(e){var m=sampleErr(e);if(sState==='denied')r.g=localGrade(S,k);else r.gw=m;})
   .then(function(){stop();GV.busy=false;ORDER.forEach(renderG);gradeUI();});}
 function gradeAll(S,si){var ans=ORDER.filter(function(k){return R[k]&&R[k].text;});if(!ans.length||GV.busy)return;
@@ -504,29 +522,41 @@ function gradeAll(S,si){var ans=ORDER.filter(function(k){return R[k]&&R[k].text;
       f.strengths=o.strengths||[];f.weaknesses=o.weaknesses||[];f.plan=o.plan||[];}
     R._final=f;saveRun(si);var d=new Date();store['last'+si]=(d.getMonth()+1)+'/'+d.getDate()+' '+f.level;save();
     GV.busy=false;ORDER.forEach(renderG);gradeUI();}
-  if(sState!=='ok'){ans.forEach(function(k){R[k].g=localGrade(S,k);});finish('local');return;}
+  if(!canGrade()){ans.forEach(function(k){R[k].g=localGrade(S,k);});finish('local');return;}
   GV.busy=true;ORDER.forEach(renderG);var gb=g.querySelector('.gbtn');if(gb)gb.disabled=true;var stop=busyWait(out,'Claude가 11문항을 채점 중… (보통 1–2분)');
   var P=['You are a strict, experienced ETS-certified TOEIC Speaking rater. Grade this learner\'s FULL mock test (11 questions, 2022+ format). Scales: Q1–10 0–3, Q11 0–5.',RULES,
     ORDER.map(function(k){return itemBlock(S,k);}).join('\n\n'),
     'Then estimate the overall level as if this were the real test (unanswered questions count as 0). Levels: AH 200, AM 180–190, AL 160–170, IH 140–150, IM3 130, IM2 120, IM1 110, IL 90–100, NH 60–80, NM 40–50, NL 0–30. The learner targets AL.',
     'Keep lists short (good ≤2, fix ≤3, pron ≤5). Include ALL 11 questions in "items" (unanswered: score 0, summary "미응답").',
     'Reply with ONLY this JSON: {"level":"IH","range":"140–150","summary":"한 줄 총평","items":['+ITEM+'],"strengths":["..."],"weaknesses":["..."],"plan":[{"what":"무엇을","how":"어떻게 (구체적으로)"}]}'].join('\n\n');
-  SAMPLE.json(P,{cache:false,modelTier:'default'}).then(function(o){stop();if(!o||!Array.isArray(o.items))throw {code:'invalid_json'};
+  llmJson(P).then(function(o){stop();if(!o||!Array.isArray(o.items))throw {code:'invalid_json'};
       o.items.forEach(function(it){var k='q'+String(it.label||'').replace(/\D/g,'');if(R[k]&&R[k].text){delete R[k].gw;R[k].g=fixG(k,it);}});finish('claude',o);},
     function(e){stop();var m=sampleErr(e);if(sState==='denied'){ans.forEach(function(k){R[k].g=localGrade(S,k);});finish('local');return;}
       GV.busy=false;ORDER.forEach(renderG);gradeUI();var o2=$('gradeBox').querySelector('.gout');o2.appendChild(el('p','err',m));});}
 function gradeUI(){var g=$('gradeBox');if(!g||!GV.S)return;var S=GV.S,si=GV.si;g.innerHTML='';
   var ans=ORDER.filter(function(k){return R[k]&&R[k].text;}),recs=ORDER.filter(function(k){return R[k]&&R[k].blob;}),F=R._final;
   g.appendChild(el('h2','gh','🏁 최종 채점'));
-  g.appendChild(el('p','sub',sState==='ok'?'받아쓴 내 답변 '+ans.length+'개 + 녹음에서 잰 말한 시간·멈춤으로 Claude가 채점합니다 (처음 한 번 허용을 물어봐요 · 내 Claude 사용량에서 차감).':
+  g.appendChild(el('p','sub',sState!=='ok'&&apiKey()?'받아쓴 내 답변 '+ans.length+'개 + 녹음의 말한 시간·멈춤으로 Claude가 이 화면에서 바로 채점합니다 (내 API 키 사용량에서 차감).':sState==='ok'?'받아쓴 내 답변 '+ans.length+'개 + 녹음에서 잰 말한 시간·멈춤으로 Claude가 채점합니다 (처음 한 번 허용을 물어봐요 · 내 Claude 사용량에서 차감).':
     sState==='denied'?'Claude 사용을 허용하지 않아 길이·멈춤 기준 자동 추정으로만 채점해요. 페이지를 다시 열면 다시 물어봐요.':
-    sState==='none'?'Claude 채점은 Claude 앱·웹에서 열었을 때만 돼요. 지금은 길이·멈춤 기준 자동 추정이에요.':'Claude 연결 확인 중…'));
-  if(recs.length&&!ans.length)g.appendChild(el('p','mnote','자동 받아쓰기가 안 된 녹음이에요. 각 문항 「받아쓴 내 답변」 칸을 누르고 키보드 🎤로 다시 말하거나 적은 뒤 채점하세요.'));
+    sState==='none'?'Safari에서는 Claude 앱 채점이 바로 안 돼요 → 아래 「🤖 Claude 앱에서 채점」(무료) 또는 「API 키로 바로 채점」을 쓰세요. 「최종 채점받기」만 누르면 길이·멈춤 기준 자동 추정이에요.':'Claude 연결 확인 중…'));
+  var need=ORDER.filter(function(k){var r=R[k];return r&&r.blob&&r.blob.size&&!r.text;});
+  if(need.length||WH.busy){var wb=el('div','wbox');
+    if(WH.busy)wb.appendChild(el('p','wstat',WH.msg||'받아쓰는 중…'));
+    else{var wbt=el('button','btn pri','🎧 내 녹음 받아쓰기 ('+need.length+'개)');wbt.type='button';wbt.onclick=function(){store.whOK=1;save();whisperAll(S,si,true);};wb.appendChild(wbt);
+      wb.appendChild(el('p','mnote',WH.err?WH.err:'녹음을 이 폰에서 직접 영어로 받아씁니다 (Whisper 음성인식). 처음 한 번 약 75MB 다운로드 — 와이파이 권장, 이후엔 바로 돼요. 다 받아쓰면 자동으로 채점까지 이어집니다.'));}
+    g.appendChild(wb);}
   var bar=el('div','row'),b=el('button','btn pri gbtn',F?'↺ 전체 다시 채점':'최종 채점받기');b.type='button';b.disabled=!ans.length||GV.busy;
   b.onclick=function(){gradeAll(S,si);};bar.appendChild(b);
-  if(sState!=='ok'&&ans.length){var cp=el('button','btn','📋 Claude 채점용 복사');cp.type='button';cp.onclick=function(){copyForClaude(S,cp);};bar.appendChild(cp);}
+  if(sState!=='ok'&&ans.length){var cp=el('button','btn','🤖 Claude 앱에서 채점');cp.type='button';cp.onclick=function(){copyForClaude(S,cp,true);};bar.appendChild(cp);}
   g.appendChild(bar);
-  if(sState!=='ok'&&ans.length)g.appendChild(el('p','mnote','📋 버튼 → Claude 앱 채팅에 붙여넣기 하면 Claude가 문항별 점수·피드백·예상 등급을 바로 줍니다.'));
+  if(sState!=='ok'&&ans.length)g.appendChild(el('p','mnote','🤖 버튼 → 채점 요청이 복사되고 Claude가 열려요. 입력칸이 비어 있으면 붙여넣기 → 보내기 하면 문항별 점수·피드백·예상 등급을 줍니다.'));
+  if(sState!=='ok'){var ak=el('details','akey');ak.appendChild(el('summary',null,apiKey()?'🔑 API 키로 바로 채점 — 켜짐':'🔑 API 키로 이 화면에서 바로 채점 (선택)'));
+    var ip=D.createElement('input');ip.type='password';ip.placeholder='sk-ant-…';ip.autocomplete='off';ip.value=apiKey();
+    var sv=el('button','btn','저장');sv.type='button';sv.onclick=function(){store.akey=ip.value.trim();save();gradeUI();ORDER.forEach(renderG);};
+    var rm=el('button','btn','지우기');rm.type='button';rm.onclick=function(){delete store.akey;save();gradeUI();ORDER.forEach(renderG);};
+    var rw=el('div','row');rw.appendChild(ip);rw.appendChild(sv);if(apiKey())rw.appendChild(rm);ak.appendChild(rw);
+    ak.appendChild(el('p','mnote','console.anthropic.com에서 만든 API 키를 넣으면 Claude Sonnet이 이 화면에서 문항별·최종 채점을 해요. 키는 이 폰 브라우저에만 저장되고 Anthropic에만 보내져요. 요금은 API 사용량으로 나가요 (1회 채점 대략 수십 원).'));
+    g.appendChild(ak);}
   var out=el('div','gout');g.appendChild(out);
   if(!F)return;var box=el('div','res');
   var L=el('div','lvl '+(/^(AH|AM|AL)$/.test(F.level)?'top':/^(IH|IM3)$/.test(F.level)?'mid':'low'));L.appendChild(el('b',null,F.level));
@@ -547,20 +577,52 @@ function txBox(k,si){var r=R[k],l=el('label','mtl');l.appendChild(el('span','lbl
   ta.setAttribute('autocapitalize','sentences');ta.setAttribute('autocorrect','off');ta.spellcheck=false;var tt;
   ta.addEventListener('input',function(){clearTimeout(tt);tt=setTimeout(function(){r.text=ta.value.trim();saveRun(si);renderMM(k);renderG(k);gradeUI();},500);});
   l.appendChild(ta);return l;}
-function boost(k,a,dl){var r=R[k];proc(r.blob).then(function(d){a.src=d.url;dl.href=d.url;dl.download=dl.download.replace(/\.(m4a|webm|wav)$/,'')+'.wav';r.m=d.m;renderMM(k);gradeUI();},function(){});}
+function boost(k,a,dl){var r=R[k];proc(r.blob).then(function(d){a.src=d.url;dl.href=d.url;dl.download=dl.download.replace(/\.(m4a|webm|wav)$/,'')+'.wav';r.m=d.m;NB[k]=d.blob;renderMM(k);gradeUI();},function(){});}
 var LV={AH:'200',AM:'180–190',AL:'160–170',IH:'140–150',IM3:'130',IM2:'120',IM1:'110',IL:'90–100',NH:'60–80',NM:'40–50',NL:'0–30'};
-try{$('optAsr').checked=!store.noAsr;if(!SR){$('optAsr').checked=false;$('optAsr').disabled=true;}
+try{$('optAsr').checked=!store.noAsr;if(!SR||IOS){$('optAsr').closest('label').hidden=true;$('optAsr').checked=false;$('optAsr').disabled=true;}
   $('optAsr').onchange=function(){store.noAsr=!this.checked;if(this.checked)delete store.asrOff;save();};}catch(e){}
 
-function copyForClaude(S,btn){
+function copyForClaude(S,btn,open){
   var T=['[TOEIC Speaking 실전 모의고사 채점 요청 · '+S.name+']',
     '아래는 내 녹음을 자동 받아쓰기한 답변과 녹음에서 잰 말한 시간·멈춤이야. ETS 공식 기준(Q1–10 0–3점, Q11 0–5점)으로 엄격하게 채점해 줘.',
     '형식: 맨 위 예상 등급(AH~NL)·점수대 → 문항별 표(점수 | 잘한 점 | 고칠 점: 내가 한 말→이렇게→이유 | 발음 확인 단어) → Q3–11은 내 답변을 AL 수준으로 고친 버전 → 강점·약점 → AL까지 연습 계획 3개. 받아쓰기 오류로 보이는 단어는 발음이 불분명했다는 뜻으로 봐 줘. 목표는 AL.',
-    ''].concat(ORDER.map(function(k){return itemBlock(S,k);})).join('\n\n');
-  function ok(){btn.textContent='✅ 복사됨 — Claude 채팅에 붙여넣기';setTimeout(function(){btn.textContent='📋 Claude 채점용 복사';},4000);}
+    ''].concat(ORDER.map(function(k){return itemBlock(S,k,true);})).join('\n\n');
+  if(open){try{window.open('https://claude.ai/new?q='+encodeURIComponent(T),'_blank');}catch(e){}}
+  var lb=btn.textContent;function ok(){btn.textContent='✅ 복사됨 — Claude에 붙여넣기';setTimeout(function(){btn.textContent=lb;},5000);}
   function fb(){var t=D.createElement('textarea');t.value=T;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';D.body.appendChild(t);t.select();t.setSelectionRange(0,T.length);
     var r=false;try{r=D.execCommand('copy');}catch(e){}t.remove();if(r)ok();else{btn.textContent='복사 실패 — 다시 눌러 주세요';}}
   try{if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(T).then(ok,fb);else fb();}catch(e){fb();}}
+
+/* ---------- Whisper: 녹음 파일을 폰에서 직접 받아쓰기 ---------- */
+var WH={w:null,cb:{},n:0,busy:false,msg:'',err:'',files:{}};
+var WCODE="import {pipeline,env} from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';"+
+  "env.allowLocalModels=false;env.backends.onnx.wasm.numThreads=1;let P=null;"+
+  "self.onmessage=async(e)=>{const m=e.data;try{if(!P)P=pipeline('automatic-speech-recognition',m.model,{progress_callback:(p)=>self.postMessage({t:'prog',p:{status:p.status,file:p.file,loaded:p.loaded,total:p.total}})});"+
+  "const asr=await P;const out=await asr(m.audio,{chunk_length_s:30,stride_length_s:5});self.postMessage({t:'done',id:m.id,text:((out&&out.text)||'').trim()});}"+
+  "catch(err){P=null;self.postMessage({t:'err',id:m.id,msg:String((err&&err.message)||err)});}};";
+function whWorker(){if(WH.w)return WH.w;
+  WH.w=new Worker(URL.createObjectURL(new Blob([WCODE],{type:'text/javascript'})),{type:'module'});
+  WH.w.onmessage=function(e){var m=e.data;if(m.t==='prog'){whProg(m.p);return;}var f=WH.cb[m.id];delete WH.cb[m.id];if(f)f(m);};
+  WH.w.onerror=function(){Object.keys(WH.cb).forEach(function(id){var f=WH.cb[id];delete WH.cb[id];f({t:'err',msg:'worker'});});try{WH.w.terminate();}catch(e){}WH.w=null;};
+  return WH.w;}
+function whProg(p){if(p.status==='progress'&&p.file&&p.total){WH.files[p.file]=[p.loaded||0,p.total];var L=0,T=0;Object.keys(WH.files).forEach(function(f){L+=WH.files[f][0];T+=WH.files[f][1];});
+    whMsg('음성인식 모델 다운로드 중… '+Math.round(L/1048576)+' / '+Math.round(T/1048576)+'MB (처음 한 번만)');}}
+function whMsg(t){WH.msg=t;var e=D.querySelector('#gradeBox .wstat');if(e)e.textContent=t;}
+function to16k(blob){return decode(blob).then(function(b){var O=window.OfflineAudioContext||window.webkitOfflineAudioContext,oc=new O(1,Math.max(1,Math.ceil(b.duration*16000)),16000),
+  sr=oc.createBufferSource();sr.buffer=b;sr.connect(oc.destination);sr.start(0);var p=oc.startRendering();
+  return (p&&p.then)?p:new Promise(function(res){oc.oncomplete=function(e){res(e.renderedBuffer);};});}).then(function(r){return new Float32Array(r.getChannelData(0));});}
+function transcribe(blob){return to16k(blob).then(function(a){return new Promise(function(res,rej){var id=++WH.n,w;try{w=whWorker();}catch(e){rej(e);return;}
+  var to=setTimeout(function(){if(WH.cb[id]){delete WH.cb[id];rej(new Error('timeout'));}},600000);
+  WH.cb[id]=function(m){clearTimeout(to);if(m.t==='done')res(m.text);else rej(new Error(m.msg));};w.postMessage({id:id,model:'Xenova/whisper-base.en',audio:a},[a.buffer]);});});}
+function whisperAll(S,si,go){if(WH.busy)return;var need=ORDER.filter(function(k){var r=R[k];return r&&r.blob&&r.blob.size&&!r.text;});if(!need.length){if(go)autoGo(S,si);return;}
+  WH.busy=true;WH.err='';whMsg('음성인식 준비 중…');gradeUI();var i=0;
+  (function nx(){if(i>=need.length){WH.busy=false;gradeUI();if(go)autoGo(S,si);return;}var k=need[i++],r=R[k];
+    whMsg('받아쓰는 중… '+k.toUpperCase()+' ('+i+'/'+need.length+')');
+    transcribe(NB[k]||r.blob).then(function(t){t=(t||'').replace(/\[[^\]]*\]|\([^)]*\)/g,' ').replace(/\s+/g,' ').trim();
+      if(t&&!r.text){r.text=t;r.tsrc='whisper';saveRun(si);var ta=D.querySelector('#rq_'+k+' .mtx');if(ta)ta.value=t;renderMM(k);renderG(k);}nx();},
+    function(e){WH.busy=false;WH.err='받아쓰기에 실패했어요 ('+(e&&e.message||'오류')+'). 와이파이에서 다시 누르거나, 각 문항 칸에 키보드 🎤로 다시 말해 주세요.';gradeUI();});})();}
+function autoGo(S,si){if(R._final||!ORDER.some(function(k){return R[k]&&R[k].text;}))return;if(sState==='wait'){AUTO={S:S,si:si};return;}gradeAll(S,si);}
+var NB={};
 })();
 </script>
 </body></html>
