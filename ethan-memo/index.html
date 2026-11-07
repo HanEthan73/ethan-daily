@@ -202,7 +202,8 @@ input[type=password]{background:var(--bg);border:1px solid var(--line);border-ra
 .wg-date span{color:var(--muted);font-size:12px}
 .wg-date em{margin-left:auto;font-style:normal;color:var(--muted);font-family:var(--f-mono);font-size:12px}
 .wg-day.now .wg-date b{color:var(--accent)}
-.wg-day.late .wg-date span{color:var(--warn)}
+.wg-day.past .wg-date span{color:var(--warn)}
+.wg-day .meta .late{display:none}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;z-index:30;max-width:90%}
 @media (prefers-reduced-motion:no-preference){.day,.chk,.tabs button{transition:background .15s,color .15s}}
 </style>
@@ -419,7 +420,7 @@ function widgetGroups(open,t){
     const diff=dayDiff(t,d);
     const rel=diff===0?'오늘':diff===-1?'어제':diff===1?'내일':diff<0?`${-diff}일 지남`:`${diff}일 후`;
     const list=g[d].sort(byTime).slice(0,12-shown);shown+=list.length;
-    box.append(h('div',{class:'wg-day'+(diff<0?' late':'')+(diff===0?' now':'')},
+    box.append(h('div',{class:'wg-day'+(diff<0?' past':'')+(diff===0?' now':'')},
       h('button',{class:'wg-date',onclick:()=>{location.hash='';goDate(d);}},h('b',{text:fmtDay(d)}),h('span',{text:rel}),h('em',{text:String(g[d].length)})),
       h('ul',{class:'list'},list.map(x=>itemRow(x)))));
   }
