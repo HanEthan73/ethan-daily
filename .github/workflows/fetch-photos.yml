@@ -32,7 +32,7 @@ jobs:
               i=$((i+1)); f="toeic/photos/cand/q${n}_$i.jpg"
               curl -sSL -A "$UA" -o "$f.tmp" "$t"
               if file "$f.tmp" | grep -qi image; then
-                convert "$f.tmp" -auto-orient -resize '1280x1280>' -strip -quality 80 "$f"
+                mv "$f.tmp" "$f"
                 jq --argjson it "$it" --arg f "$(basename "$f")" --arg q "$q" '. + [$it + {file:$f, q:$q}]' toeic/photos/cand/meta.json > m.tmp && mv m.tmp toeic/photos/cand/meta.json
                 echo "ok $f $(du -h "$f" | cut -f1)"
               else echo "fail $t"; fi
