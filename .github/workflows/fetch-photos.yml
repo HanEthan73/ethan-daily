@@ -1,0 +1,32 @@
+name: fetch-photos
+on:
+  push:
+    paths: ['toeic/photos/list.txt']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and resize
+        run: |
+          mkdir -p toeic/photos/raw
+          while read -r id; do
+            [ -z "$id" ] && continue
+            f="toeic/photos/raw/$id.jpg"
+            curl -sSL -A "Mozilla/5.0" -o "$f.tmp" "https://unsplash.com/photos/$id/download?force=true" || true
+            if file "$f.tmp" | grep -qi 'image'; then
+              convert "$f.tmp" -auto-orient -resize '1280x1280>' -strip -quality 80 "$f" && echo "ok $id $(du -h "$f" | cut -f1)"
+            else
+              echo "fail $id: $(file "$f.tmp")"
+            fi
+            rm -f "$f.tmp"
+          done < toeic/photos/list.txt
+      - name: Commit
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add toeic/photos/raw
+          git commit -m "Fetch candidate TOEIC photos (Unsplash License)" && git push || echo "nothing to commit"
