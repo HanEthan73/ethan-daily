@@ -1,0 +1,56 @@
+name: Haru
+options:
+  bundleIdPrefix: com.ethanhan
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""          # Xcode에서 Signing 팀 선택하면 자동으로 채워짐
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Haru:
+    type: application
+    platform: iOS
+    sources: [App, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ethanhan.haru
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: ETHAN MEMO
+        UILaunchScreen: {}
+        ITSAppUsesNonExemptEncryption: false
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.ethanhan.haru
+            CFBundleURLSchemes: [haru]
+    entitlements:
+      path: App/Haru.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.ethanhan.haru]
+    dependencies:
+      - target: HaruWidget
+  HaruWidget:
+    type: app-extension
+    platform: iOS
+    sources: [Widget, Shared]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ethanhan.haru.widget
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: Widget/Info.plist
+      properties:
+        CFBundleDisplayName: ETHAN MEMO 위젯
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    entitlements:
+      path: Widget/HaruWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.ethanhan.haru]
