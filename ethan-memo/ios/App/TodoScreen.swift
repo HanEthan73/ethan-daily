@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 import SwiftData
 import UIKit
 
@@ -9,6 +10,8 @@ struct TodoScreen: View {
     private var todos: [Item]
     @State private var editing: Item?
     @State private var newText = ""
+    @State private var newPhotos: [String] = []
+    @State private var picks: [PhotosPickerItem] = []
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -21,6 +24,20 @@ struct TodoScreen: View {
             List {
                 Section {
                     HStack {
+                        PhotosPicker(selection: $picks, maxSelectionCount: 10, matching: .images) {
+                            Image(systemName: "camera")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(Theme.hi)
+                                .frame(width: 38, height: 38)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.hiSoft))
+                                .overlay(alignment: .topTrailing) {
+                                    if !newPhotos.isEmpty {
+                                        Text("\(newPhotos.count)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                                            .padding(.horizontal, 5).background(Capsule().fill(Theme.todo)).offset(x: 5, y: -5)
+                                    }
+                                }
+                        }
+                        .buttonStyle(.borderless)
                         TextField("오늘 할 일 추가", text: $newText)
                             .font(.system(size: 15))
                             .focused($focused)
@@ -29,6 +46,9 @@ struct TodoScreen: View {
                         Button("추가", action: add).buttonStyle(.ink)
                     }
                     .rowSurface()
+                    if !newPhotos.isEmpty {
+                        PhotoEditor(ids: $newPhotos).rowSurface()
+                    }
                 } footer: {
                     if !dates.isEmpty {
                         HStack(spacing: 8) {
@@ -82,6 +102,16 @@ struct TodoScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .listRowSpacing(6)
+            .onChange(of: picks) { _, sel in
+                guard !sel.isEmpty else { return }
+                Task {
+                    for p in sel {
+                        if let d = try? await p.loadTransferable(type: Data.self), let id = PhotoStore.add(d) { newPhotos.append(id) }
+                    }
+                    picks = []
+                }
+            }
             .spaceGray()
             .navigationTitle("할 일 \(openCount)")
             .navigationBarTitleDisplayMode(.inline)
@@ -101,7 +131,10 @@ struct TodoScreen: View {
     private func add() {
         let t = newText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { focused = true; return }
-        ctx.insert(Item(kind: .todo, day: .now, text: t))
+        let item = Item(kind: .todo, day: .now, text: t)
+        item.photoIDs = newPhotos
+        ctx.insert(item)
+        newPhotos = []
         Store.save(ctx)
         newText = ""
         focused = true

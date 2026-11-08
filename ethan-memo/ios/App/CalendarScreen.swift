@@ -111,6 +111,7 @@ struct DayList: View {
             }
         }
         .listStyle(.insetGrouped)
+        .listRowSpacing(6)
         .spaceGray()
     }
 

@@ -763,6 +763,34 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
 .switch:checked{background:var(--neon)}
 .gic.gi-done{background:var(--neon)}
 .gic.gi-ai{background:var(--metal);color:#fff}
+
+/* ================= 포스트잇 카드 ================= */
+:root{--note-todo:#FFF3E3;--note-memo:#FFF9D9;--note-done:#F4F4F6;--note-late:#FFECEA;--note-sh:0 1px 0 rgba(0,0,0,.05),0 2px 0 rgba(0,0,0,.035),0 10px 18px -12px rgba(120,60,0,.35)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--note-todo:#35261A;--note-memo:#302A17;--note-done:#1F1F21;--note-late:#2E1C1B;--note-sh:inset 0 1px 0 rgba(255,255,255,.06),0 2px 0 rgba(0,0,0,.55),0 12px 22px -12px rgba(0,0,0,.9)}}
+:root[data-theme="dark"]{--note-todo:#35261A;--note-memo:#302A17;--note-done:#1F1F21;--note-late:#2E1C1B;--note-sh:inset 0 1px 0 rgba(255,255,255,.06),0 2px 0 rgba(0,0,0,.55),0 12px 22px -12px rgba(0,0,0,.9)}
+.sec.card{background:transparent;box-shadow:none;border:0;overflow:visible}
+.sec.card .sec-h{padding:4px 4px 8px}
+.sec .list{display:flex;flex-direction:column;gap:9px;padding:0 0 4px}
+.sec .list > .it{--nb:var(--note-todo);--nc:var(--neon);border:0 !important;border-radius:12px;background:var(--nb);box-shadow:var(--note-sh);overflow:hidden;position:relative;padding:12px 14px 12px 18px}
+.sec .list > .it.sw{padding:0}
+.sec .list > .it::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--nc);border-radius:0;z-index:2}
+.sec .list > .it.ev{--nb:color-mix(in srgb,var(--c) 15%,var(--surface));--nc:var(--c)}
+.sec .list > .it.memo{--nb:var(--note-memo);--nc:var(--c-yellow)}
+.sec .list > .it.done{--nb:var(--note-done);--nc:var(--line)}
+.sec .list > .it.is-late{--nb:var(--note-late);--nc:var(--warn)}
+.sec .list > .it .sw-fg{background:var(--nb);padding:13px 14px 13px 18px;box-shadow:none !important}
+.sec .list > .it .mk:not(.on){display:none}
+.sec .list > .it .mk.on{width:auto;margin-right:2px}
+.sec .list > .it .txt{font-size:15.5px;font-weight:600;line-height:1.4}
+.sec .list > .it.done .txt{font-weight:500}
+.sec .list > .fold{border:0;padding:2px 4px}
+.sec .list > .it.ev .txt{background:none;padding:0}
+.it.ev .time{min-width:auto;margin-right:2px}
+.cam-btn{flex:none;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;color:var(--hi);background:var(--hi-soft);position:relative}
+.cam-btn em{position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:9px;background:var(--neon);color:#fff;font:700 10.5px/17px var(--f-body);font-style:normal;text-align:center;padding:0 4px}
+.c-photos{display:flex;gap:8px;flex-wrap:wrap;padding-top:2px}
+.c-photos .thumb{display:block;width:54px;height:54px;border-radius:10px;overflow:hidden}
+.c-photos .thumb img{width:100%;height:100%;object-fit:cover}
 </style>
 </head>
 <body>
@@ -819,6 +847,7 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
       <div class="ephotos" id="ePhotos"></div>
     </div>
     <input type="file" id="ePhotoIn" accept="image/*" multiple hidden>
+    <input type="file" id="cPhotoIn" accept="image/*" multiple hidden>
     <div class="grp">
       <div class="grow"><span class="glbl"><i class="gic gi-cal"></i><span id="eDateLbl">날짜</span></span><button type="button" class="gval" id="eDateBtn">날짜</button></div>
       <div class="grow" id="eEndWrap"><span class="glbl"><i class="gic gi-end"></i>종료</span><button type="button" class="gval" id="eEndBtn">날짜</button></div>
@@ -1155,7 +1184,7 @@ function itemRow(x,opts={}){
       h('div',{class:'sw-fg'},c,body));
   }
   if(x.type==='event')return h('li',{class:'it ev hl-'+hl(x)},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body);
-  return h('li',{class:'it'},body);
+  return h('li',{class:'it memo'},body);
 }
 
 /* 완료한 할 일은 접어 두기 */
@@ -1170,6 +1199,15 @@ function section(type,label,items,extra){
     h('ul',{class:'list'},items));
 }
 
+/* ---------- 입력칸에서 사진 같이 추가 ---------- */
+const CAM='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+S.cPhotos=[];
+function camBtn(){const b=h('button',{type:'button',class:'cam-btn','aria-label':'사진 추가',onclick:()=>$('cPhotoIn').click()});b.innerHTML=CAM;
+  if(S.cPhotos.length)b.append(h('em',{text:String(S.cPhotos.length)}));return b;}
+function cPhotoRow(){if(!S.cPhotos.length)return null;
+  return h('div',{class:'c-photos'},S.cPhotos.map(id=>{const im=h('img',{alt:'사진'});phUrl(id).then(u=>{if(u)im.src=u;});
+    return h('div',{class:'eph'},h('span',{class:'thumb'},im),h('button',{type:'button',class:'eph-x','aria-label':'빼기',text:'×',onclick:()=>{S.cPhotos=S.cPhotos.filter(x=>x!==id);render();}}));}));}
+function takePhotos(){const a=S.cPhotos;S.cPhotos=[];return a;}
 function composer(){
   const inp=h('input',{type:'text',id:'cText',placeholder:PH[S.type],'aria-label':'내용',autocomplete:'off',enterkeyhint:'done'});
   const tm=h('input',{type:'time',id:'cTime','aria-label':'시간'});tm.hidden=S.type==='memo';
@@ -1179,10 +1217,10 @@ function composer(){
   const askBtn=null;
   const form=h('form',{class:'composer card',onsubmit:e=>{e.preventDefault();const v=inp.value.trim();if(!v){inp.focus();askAfter=false;return;}
     const id=uid();
-    put({id,type:S.type,date:S.sel,time:S.type==='memo'?'':tm.value,text:v,done:false,createdAt:Date.now()});
+    put({id,type:S.type,date:S.sel,time:S.type==='memo'?'':tm.value,text:v,done:false,createdAt:Date.now(),photos:takePhotos()});
     if(askAfter)ask(id);askAfter=false;
     setTimeout(()=>{const ni=$('cText');if(ni){ni.value='';ni.focus();}},0);}},
-    seg,h('div',{class:'c-row'},inp,tm,askBtn,h('button',{class:'primary',type:'submit',text:'추가'})));
+    seg,h('div',{class:'c-row'},camBtn(),inp,tm,askBtn,h('button',{class:'primary',type:'submit',text:'추가'})),cPhotoRow());
   return form;
 }
 
@@ -1224,9 +1262,9 @@ function renderTodos(){
       h('div',null,h('p',{class:'eyebrow',text:'날짜별'}),h('h2',null,'할 일')),
       h('p',{class:'counts',text:`남은 할 일 ${open}개`})),
     h('form',{class:'composer card',onsubmit:e=>{e.preventDefault();const v=inp.value.trim();if(!v){inp.focus();return;}
-      put({id:uid(),type:'todo',date:t,time:'',text:v,done:false,createdAt:Date.now()});
+      put({id:uid(),type:'todo',date:t,time:'',text:v,done:false,createdAt:Date.now(),photos:takePhotos()});
       setTimeout(()=>{const n=$('tText');if(n){n.value='';n.focus();}},0);}},
-      h('div',{class:'c-row'},inp,h('button',{class:'primary',type:'submit',text:'추가'})))];
+      h('div',{class:'c-row'},camBtn(),inp,h('button',{class:'primary',type:'submit',text:'추가'})),cPhotoRow())];
   const hasRem=[...S.items.keys()].some(k=>k.startsWith('rem-'));
   if(!hasRem&&!lsGet('ethanmemo.remdone'))kids.push(h('div',{class:'imp-banner'},
     h('div',{class:'imp-t'},h('b',{text:'미리알림 37개 옮기기'}),h('span',{text:'채팅의 코드를 복사한 뒤 누르세요'})),
@@ -1907,6 +1945,13 @@ $('ePhotoIn').addEventListener('change',async ev=>{
   const files=[...(ev.target.files||[])];ev.target.value='';if(!files.length||!S.edit)return;
   for(const f of files){try{const b=await shrink(f);const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);await phPut(id,b);
     if(S.edit){S.edit.photos=[...(S.edit.photos||[]),id];paintPhotos();}}catch(e){toast('사진을 넣지 못했습니다');}}
+});
+
+$('cPhotoIn').addEventListener('change',async ev=>{
+  const files=[...(ev.target.files||[])];ev.target.value='';if(!files.length)return;
+  const keepT=($('tText')||$('cText')||{}).value||'';
+  for(const f of files){try{const b=await shrink(f);const id='p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);await phPut(id,b);S.cPhotos.push(id);}catch(e){toast('사진을 넣지 못했습니다');}}
+  render();const n=$('tText')||$('cText');if(n&&keepT)n.value=keepT;toast(`사진 ${S.cPhotos.length}장 · 내용을 적고 ‘추가’를 누르세요`);
 });
 
 /* ---------- 공휴일: 공공데이터포털 특일 정보(매일 갱신되는 holidays.hyunbin.page) + 내장 표 ---------- */

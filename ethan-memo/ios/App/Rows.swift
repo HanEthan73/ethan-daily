@@ -37,7 +37,7 @@ struct ItemRow: View {
             leading
             VStack(alignment: .leading, spacing: 3) {
                 Text(WikiText.plain(item.text))
-                    .font(.system(size: 15, weight: item.done ? .regular : .medium))
+                    .font(.system(size: 15.5, weight: item.done ? .medium : .semibold))
                     .padding(.horizontal, item.kind == .event ? 2 : 0)
                     .background(alignment: .bottom) {
                         if item.kind == .event { Theme.hl(item.uid).b.frame(height: 9).clipShape(RoundedRectangle(cornerRadius: 2)) }
@@ -52,11 +52,13 @@ struct ItemRow: View {
             .contentShape(Rectangle())
             .onTapGesture(perform: onEdit)
         }
-        .padding(.vertical, 1)
+        .padding(.vertical, 6)
+        .padding(.leading, 4)
+        .listRowSeparator(.hidden)
+        .listRowBackground(note)
         .overlay(alignment: .leading) {
             if isLate { Rectangle().fill(Theme.warn).frame(width: 2).padding(.leading, -20) }
         }
-        .rowSurface()
         // ← 왼쪽으로 밀기: 완료 (초록) · 삭제
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if item.kind == .todo {
@@ -84,18 +86,39 @@ struct ItemRow: View {
         }
     }
 
+    /// 포스트잇 카드 바탕: 색 띠 + 음영
+    private var noteColors: (Color, Color) {
+        switch item.kind {
+        case .event: let h = Theme.hl(item.uid); return (h.b, h.c)
+        case .memo: return (Theme.noteMemo, Theme.memo)
+        case .todo:
+            if item.done { return (Theme.noteDone, Theme.line) }
+            if isLate { return (Theme.noteLate, Theme.warn) }
+            return (Theme.noteTodo, Theme.todo)
+        }
+    }
+
+    private var note: some View {
+        let (bg, strip) = noteColors
+        return RoundedRectangle(cornerRadius: 12)
+            .fill(Theme.surface)
+            .overlay(RoundedRectangle(cornerRadius: 12).fill(bg))
+            .overlay(alignment: .leading) { Rectangle().fill(strip).frame(width: 5) }
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.28), radius: 6, y: 3)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 2)
+    }
+
     @ViewBuilder private var leading: some View {
         switch item.kind {
         case .todo:
             Group {
                 if item.done {
                     Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.todo)
-                } else {
-                    Circle().stroke(isLate ? Theme.warn : Theme.todo, lineWidth: 2.5).frame(width: 9, height: 9)
-                        .shadow(color: (isLate ? Theme.warn : Theme.todo).opacity(0.7), radius: 3)
                 }
             }
-            .frame(width: 14)
+            .frame(width: item.done ? 14 : 0)
         case .event:
             Text(item.isMultiDay ? "기간" : (item.time.map(Fmt.time) ?? "종일"))
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))

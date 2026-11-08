@@ -68,6 +68,11 @@ enum Theme {
     static let memo = adaptive(rgb(0xC28A00), rgb(0xFFD60A))
     static let warn = adaptive(rgb(0xE5352B), rgb(0xFF453A))
     static let sun = warn
+    /// 포스트잇 바탕
+    static let noteTodo = adaptive(rgb(0xFFF3E3), rgb(0x35261A))
+    static let noteMemo = adaptive(rgb(0xFFF9D9), rgb(0x302A17))
+    static let noteDone = adaptive(rgb(0xF4F4F6), rgb(0x1F1F21))
+    static let noteLate = adaptive(rgb(0xFFECEA), rgb(0x2E1C1B))
     static let metalTop = adaptive(rgb(0xFFA83D), rgb(0xFFAE45))
     static let metalBottom = adaptive(rgb(0xF27500), rgb(0xF07400))
     static var metal: LinearGradient { LinearGradient(colors: [metalTop, metalBottom], startPoint: .top, endPoint: .bottom) }
