@@ -722,6 +722,30 @@ body{color:var(--ink)}
 .drow.event .t,.drow.event>span:not(.ic){background:linear-gradient(transparent 58%,var(--b) 58%)}
 .drow.done .ic{color:var(--c-green)}
 .it.ev .txt{width:fit-content;max-width:100%;display:inline-block}
+
+/* ================= 시그니처: 주황 ================= */
+:root{--hi:#E86F00;--hi-ink:#FFFFFF;--hi-soft:rgba(255,149,0,.14);--btn:#F27A00;--btn-ink:#fff;--accent:#F27A00;--accent-ink:#fff;
+  --metal:linear-gradient(180deg,#FFA83D 0%,#F27500 100%);--glow:rgba(242,117,0,.38);--today:#FF8A00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hi:#FFA526;--hi-ink:#FFFFFF;--hi-soft:rgba(255,159,10,.18);--btn:#FF9500;--btn-ink:#fff;--accent:#FF9500;--accent-ink:#fff;
+  --metal:linear-gradient(180deg,#FFAE45 0%,#F07400 100%);--glow:rgba(255,149,0,.30);--today:#FF9500}}
+:root[data-theme="dark"]{--hi:#FFA526;--hi-ink:#FFFFFF;--hi-soft:rgba(255,159,10,.18);--btn:#FF9500;--btn-ink:#fff;--accent:#FF9500;--accent-ink:#fff;
+  --metal:linear-gradient(180deg,#FFAE45 0%,#F07400 100%);--glow:rgba(255,149,0,.30);--today:#FF9500}
+.tabs button[aria-selected="true"]{color:var(--hi)}
+.badge{background:var(--hi-soft);color:var(--hi)}
+.group-today .datechip{background:var(--hi-soft);color:var(--hi)}
+.group-today .rel{color:var(--hi)}
+.pill{background:var(--hi-soft);color:var(--hi)}
+.nav-btn.strong,.primary{color:#fff}
+.sync{color:var(--ink)}
+input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
+.switch:checked{background:var(--sw-done)}
+.wl,a.url,.mchip{color:var(--hi)}
+.imp-banner{display:flex;align-items:center;gap:10px;padding:12px 12px 12px 14px;border-radius:14px;background:var(--metal);color:#fff;box-shadow:0 8px 22px -12px var(--glow)}
+.imp-t{flex:1;display:flex;flex-direction:column;min-width:0}
+.imp-t b{font-size:15px;font-weight:700}
+.imp-t span{font-size:12px;opacity:.9}
+.imp-go{background:#fff;color:#C25E00;font-weight:700;font-size:13.5px;padding:7px 14px;border-radius:999px}
+.imp-x{color:#fff;opacity:.85;font-size:20px;width:28px;height:28px}
 </style>
 </head>
 <body>
@@ -1186,6 +1210,11 @@ function renderTodos(){
       put({id:uid(),type:'todo',date:t,time:'',text:v,done:false,createdAt:Date.now()});
       setTimeout(()=>{const n=$('tText');if(n){n.value='';n.focus();}},0);}},
       h('div',{class:'c-row'},inp,h('button',{class:'primary',type:'submit',text:'추가'})))];
+  const hasRem=[...S.items.keys()].some(k=>k.startsWith('rem-'));
+  if(!hasRem&&!lsGet('ethanmemo.remdone'))kids.push(h('div',{class:'imp-banner'},
+    h('div',{class:'imp-t'},h('b',{text:'미리알림 37개 옮기기'}),h('span',{text:'채팅의 코드를 복사한 뒤 누르세요'})),
+    h('button',{type:'button',class:'imp-go',text:'붙여넣기',onclick:()=>$('bkCode').click()}),
+    h('button',{type:'button',class:'imp-x','aria-label':'닫기',text:'×',onclick:()=>{lsSet('ethanmemo.remdone','1');render();}})));
   if(dates.length)kids.push(h('p',{class:'swipe-hint'},h('span',{class:'sh-r',text:'← 밀면 완료'}),h('span',{class:'sh-l',text:'밀면 일정 등록 →'})));
   if(!dates.length)kids.push(h('div',{class:'card empty'},h('b',{text:'할 일이 없습니다'}),'위 입력칸에 적으면 오늘 날짜로 등록됩니다.'));
   for(const d of dates){
@@ -1359,7 +1388,7 @@ async function decodeImport(code){
 }
 async function importCode(code){
   try{const r=importData(await decodeImport(code),true);S.view='todo';render();
-    toast(r.add?`옮겼습니다 · 할 일 ${r.add}개 추가`:'이미 모두 들어와 있습니다');return true;}
+    lsSet('ethanmemo.remdone','1');toast(r.add?`옮겼습니다 · 할 일 ${r.add}개 추가`:'이미 모두 들어와 있습니다');return true;}
   catch(_){toast('가져오기 코드를 읽지 못했습니다. 링크 전체를 복사했는지 확인하세요.');return false;}
 }
 $('bkCode').onclick=async()=>{

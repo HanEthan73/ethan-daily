@@ -55,21 +55,21 @@ enum Theme {
     static func rgb(_ hex: UInt32, _ a: CGFloat = 1) -> UIColor {
         UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: a)
     }
-    static let hi = adaptive(rgb(0x2C2C2E), rgb(0xE5E5EA))
-    static let hiInk = adaptive(.white, rgb(0x111113))
-    static let hiSoft = adaptive(rgb(0x3C3C43, 0.09), rgb(0xEBEBF5, 0.12))
+    static let hi = adaptive(rgb(0xE86F00), rgb(0xFFA526))
+    static let hiInk = Color.white
+    static let hiSoft = adaptive(rgb(0xFF9500, 0.14), rgb(0xFF9F0A, 0.18))
     static let btn = hi
     static let bg = adaptive(rgb(0xF2F2F7), rgb(0x000000))
     static let surface = adaptive(rgb(0xFFFFFF), rgb(0x1C1C1E))
     static let line = adaptive(rgb(0xE3E3E8), rgb(0x38383A))
-    static let today = adaptive(rgb(0xFF3B30), rgb(0xFF453A))
+    static let today = adaptive(rgb(0xFF8A00), rgb(0xFF9500))
     static let event = adaptive(rgb(0x007AFF), rgb(0x0A84FF))
     static let todo = adaptive(rgb(0x1E9E4A), rgb(0x32D74B))
     static let memo = adaptive(rgb(0xC28A00), rgb(0xFFD60A))
     static let warn = adaptive(rgb(0xE5352B), rgb(0xFF453A))
     static let sun = warn
-    static let metalTop = adaptive(rgb(0x5A5A5F), rgb(0xF5F5F7))
-    static let metalBottom = adaptive(rgb(0x2C2C2E), rgb(0xC7C7CC))
+    static let metalTop = adaptive(rgb(0xFFA83D), rgb(0xFFAE45))
+    static let metalBottom = adaptive(rgb(0xF27500), rgb(0xF07400))
     static var metal: LinearGradient { LinearGradient(colors: [metalTop, metalBottom], startPoint: .top, endPoint: .bottom) }
     static let onInk = hiInk
     /// 밀기 색: ← 완료 = 초록, → 일정 등록 = 주황
