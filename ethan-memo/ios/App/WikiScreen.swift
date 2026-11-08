@@ -536,7 +536,7 @@ struct WikiDayView: View {
     }
 
     private func summarize(events: [Item], done: [Item], open: [Item], memos: [Item]) {
-        guard Keychain.read() != nil else { errorText = "설정 탭에서 Claude API 키를 먼저 입력하세요."; return }
+        let noKey = Keychain.read() == nil
         func line(_ x: Item, _ pre: String) -> String {
             var s = "\(pre) \(WikiText.plain(x.text))"
             if let t = x.time { s += " (\(Fmt.time(t)))" }
@@ -572,6 +572,7 @@ struct WikiDayView: View {
         \(record)
         \(oldPart)
         """
+        if noKey { ClaudeLink.open(prompt); return }
         busy = true
         Task {
             do {
@@ -740,10 +741,7 @@ struct WikiPageView: View {
     }
 
     private func decorate(_ p: WikiPage) {
-        guard Keychain.read() != nil else {
-            errorText = "설정 탭에서 Claude API 키를 먼저 입력하세요."
-            return
-        }
+        let noKey = Keychain.read() == nil
         let titles = pages.filter { $0.uid != p.uid }.prefix(200).map(\.title).joined(separator: ", ")
         let prompt = """
         다음은 개인 위키의 "\(p.title)" 페이지입니다. \(p.body.isEmpty ? "아직 비어 있으니, 이 제목으로 쓸모 있는 위키 초안을 써 주세요." : "내용을 보기 좋은 위키 문서로 정리해 주세요.")
@@ -759,6 +757,7 @@ struct WikiPageView: View {
         내용:
         \(p.body.isEmpty ? "(비어 있음)" : p.body)
         """
+        if noKey { ClaudeLink.open(prompt); return }
         busy = true
         Task {
             do {

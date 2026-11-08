@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 import Security
 import Observation
+import UIKit
 
 // MARK: - 질문 처리 상태
 
@@ -15,7 +16,8 @@ final class Asker {
     func ask(_ item: Item, ctx: ModelContext) {
         guard !busy.contains(item.uid) else { return }
         guard Keychain.read() != nil else {
-            lastError = "설정 탭에서 Claude API 키를 먼저 입력하세요. 키 없이 쓰려면 ‘Claude 앱으로’ 버튼으로 공유하면 됩니다."
+            // API 키 없이: Claude 앱(구독)으로 질문을 열고, 답은 복사해 와서 붙여넣기
+            ClaudeLink.open(Prompt.make(item))
             return
         }
         busy.insert(item.uid)
@@ -154,5 +156,15 @@ enum Keychain {
         guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
               let d = out as? Data, let s = String(data: d, encoding: .utf8), !s.isEmpty else { return nil }
         return s
+    }
+}
+
+
+/// API 키 없이 Claude 앱·웹(구독)으로 열기: 질문을 복사해 두고 claude.ai/new?q= 로 엶
+enum ClaudeLink {
+    @MainActor static func open(_ prompt: String) {
+        UIPasteboard.general.string = prompt
+        let q = String(prompt.prefix(6000)).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?#"))) ?? ""
+        if let url = URL(string: "https://claude.ai/new?q=" + q) { UIApplication.shared.open(url) }
     }
 }

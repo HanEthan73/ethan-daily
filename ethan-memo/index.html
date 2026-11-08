@@ -791,6 +791,21 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
 .c-photos{display:flex;gap:8px;flex-wrap:wrap;padding-top:2px}
 .c-photos .thumb{display:block;width:54px;height:54px;border-radius:10px;overflow:hidden}
 .c-photos .thumb img{width:100%;height:100%;object-fit:cover}
+
+/* 붙여넣기 바 */
+.paste-bar{position:fixed;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 16px;border-radius:16px;background:var(--metal);color:#fff;font-weight:650;font-size:14px;box-shadow:0 14px 30px -12px var(--glow);max-width:520px;margin:0 auto}
+.paste-bar span{flex:1;min-width:0}
+.paste-bar #pasteGo{background:#fff;color:#C25E00;font-weight:700;padding:7px 14px;border-radius:999px;font-size:13.5px}
+.paste-bar #pasteX{color:#fff;font-size:20px;width:28px;height:28px}
+/* 설정 버튼 줄 정리 */
+.es .lockrow{flex-wrap:wrap}
+.es .lockrow > span:first-child{flex:1 1 180px;min-width:0}
+.es .lockrow > span:last-child,.es .lockrow > button{flex:none}
+.es .lockrow > span:last-child{display:flex;gap:6px;flex-wrap:wrap}
+.es .lockrow button{white-space:nowrap;word-break:keep-all}
+.es .sync-box .lockrow{background:none;box-shadow:none;padding:0}
+.es .sync-box .f-col{background:none;box-shadow:none;padding:0}
+.es .hint b{color:var(--hi)}
 </style>
 </head>
 <body>
@@ -875,10 +890,10 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
       <button class="nav-btn strong" id="sSave" type="button">저장</button>
     </div>
     <p class="set-msg" id="setMsg" hidden></p>
-    <label class="f-col">Claude API 키
+    <label class="f-col">Claude API 키 (선택)
       <input type="password" id="sKey" placeholder="sk-ant-로 시작하는 키" autocomplete="off" autocapitalize="off" spellcheck="false">
     </label>
-    <p class="hint">console.anthropic.com에서 발급합니다. 키는 이 기기 안에만 저장되고, 사용료는 Claude 구독과 별도로 청구됩니다.</p>
+    <p class="hint"><b>비워 둬도 됩니다.</b> 키가 없으면 ‘Claude에게 묻기’가 Claude 앱(구독)으로 열리고, 답을 복사해 오면 붙여넣을 수 있습니다. 키를 넣으면 앱 안에서 바로 답이 옵니다(사용료 별도).</p>
     <label class="f-col">답변 모델
       <select id="sModel"></select>
     </label>
@@ -896,6 +911,7 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
   </div>
 </div>
 <div class="viewer" id="viewer" hidden><img id="viewImg" alt="사진"></div>
+<div class="paste-bar" id="pasteBar" hidden><span id="pasteLbl">Claude 답변 붙여넣기</span><button type="button" id="pasteGo">붙여넣기</button><button type="button" id="pasteX" aria-label="닫기">×</button></div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -922,6 +938,20 @@ const S={items:new Map(),view:'todo',sel:today(),month:(()=>{const d=new Date();
   type:'memo',mode:'wait',col:null,showDone:false,edit:null,sample:null,asking:new Map()};
 
 /* ---------- Claude에게 묻기 ---------- */
+/* ---------- API 키 없이: Claude 앱(구독)으로 열기 → 답을 복사해 오면 붙여넣기 ---------- */
+function openClaude(prompt,pending){
+  try{navigator.clipboard&&navigator.clipboard.writeText(prompt).catch(()=>{});}catch(_){}
+  S.pending=pending||null;
+  const url='https://claude.ai/new?q='+encodeURIComponent(prompt.length>6000?prompt.slice(0,6000):prompt);
+  const w=window.open(url,'_blank');if(!w)location.href=url;
+  if(pending)setTimeout(paintPaste,800);
+}
+function paintPaste(){const b=$('pasteBar');if(!b)return;b.hidden=!S.pending;if(S.pending)$('pasteLbl').textContent=S.pending.label;}
+async function doPaste(){const pd=S.pending;if(!pd)return;let t='';
+  try{t=await navigator.clipboard.readText();}catch(_){}
+  if(!t||!t.trim())t=prompt('Claude 답변을 붙여넣으세요')||'';
+  t=t.replace(/^```(?:markdown|md)?\s*\n/,'').replace(/\n```\s*$/,'').trim();
+  if(!t)return;S.pending=null;paintPaste();pd.apply(t);render();toast('붙여넣었습니다');}
 function askPrompt(x){
   const kind={memo:'메모해 둔 궁금증이나 생각',todo:'할 일로 적어 둔 것',event:'일정으로 잡아 둔 것'}[x.type]||'메모';
   const extra={memo:'질문이 아니라 메모라면 그 주제에서 알면 좋을 핵심과, 이어서 생각해 볼 질문 1개를 주세요.',
@@ -938,7 +968,7 @@ function askPrompt(x){
 ${x.text}`;}
 async function ask(id){
   const x=S.items.get(id);if(!x||!S.sample||S.asking.has(id))return;
-  if(!lsGet(KEY_LS)){openSettings('Claude에게 물으려면 API 키를 먼저 넣어 주세요.');return;}
+  if(!lsGet(KEY_LS)){openClaude(askPrompt(x),{label:'Claude 답변을 이 기록에 붙여넣기',apply:t=>{const y=S.items.get(id);if(y)put({...y,answer:t,answeredAt:Date.now()});}});return;}
   S.asking.set(id,'');render();
   try{
     const r=await S.sample(askPrompt(x),{cache:false,onText:({text})=>{S.asking.set(id,text);if(S.edit&&S.edit.id===id){$('eAns').hidden=false;$('eAnsText').textContent=text||'생각하는 중…';}}});
@@ -1327,7 +1357,6 @@ $('eDate').addEventListener('change',()=>{if($('eEnd').value<$('eDate').value)$(
 $('eEnd').addEventListener('change',()=>{if($('eEnd').value<$('eDate').value)$('eEnd').value=$('eDate').value;paintSheet();});
 function closeSheet(){$('sheetBg').hidden=true;S.edit=null;pick.for=null;}
 function saveEdit(askAfter){const e=S.edit;if(!e)return;const text=$('eText').value.trim();if(!text){$('eText').focus();return;}
-  if(askAfter&&!lsGet(KEY_LS)){openSettings('Claude에게 물으려면 API 키를 먼저 넣어 주세요.');return;}
   const done=e.type==='todo'?$('eDone').checked:false;
   const{example,isNew,...rest}=e;
   const date=$('eDate').value||e.date,en=$('eEnd').value;
@@ -1351,6 +1380,8 @@ function peek(n=0){if(peeked)return;const li=document.querySelector('#panel .it.
   at(500,'l',-92);at(1250,'l',0);at(1650,'r',92);at(2400,'r',0);setTimeout(()=>{delete li.dataset.dir;fg.style.transition='';},2800);}
 function autoGrow(t){if(!t)return;t.style.height='auto';t.style.height=Math.min(t.scrollHeight+2,window.innerHeight*.4)+'px';}
 ['eText','eNote'].forEach(k=>$(k).addEventListener('input',e=>autoGrow(e.target)));
+$('pasteGo').onclick=doPaste;$('pasteX').onclick=()=>{S.pending=null;paintPaste();};
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)paintPaste();});
 /* ---------- misc ---------- */
 let tt;function toast(m){const el=$('toast');el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2600);}
 $('prev').onclick=()=>shiftMonth(-1);
@@ -1647,7 +1678,6 @@ function renderWikiEdit(){
 }
 async function decorate(id){
   const pg=S.pages.get(id);if(!pg||S.wikiBusy)return;
-  if(!lsGet(KEY_LS)){openSettings('Claude로 꾸미려면 API 키를 먼저 넣어 주세요.');return;}
   const titles=[...S.pages.values()].filter(x=>x.id!==id).map(x=>x.title).slice(0,200).join(', ')||'(없음)';
   const prompt=`다음은 개인 위키의 "${pg.title}" 페이지입니다. ${pg.body.trim()?'내용을 보기 좋은 위키 문서로 정리해 주세요.':'아직 비어 있으니, 이 제목으로 쓸모 있는 위키 초안을 써 주세요.'}
 규칙:
@@ -1661,6 +1691,7 @@ async function decorate(id){
 
 내용:
 ${pg.body||'(비어 있음)'}`;
+  if(!lsGet(KEY_LS)){openClaude(prompt,{label:`Claude 답변을 ‘${pg.title}’에 붙여넣기`,apply:t=>{const q=S.pages.get(id);if(q){S.wikiUndo[id]=q.body;q.body=t;q.updatedAt=Date.now();savePages();}}});return;}
   S.wikiBusy=id;S.wikiStream='';render();
   try{
     const r=await callClaude(prompt,{maxTokens:4000,onText:({text})=>{S.wikiStream=text;const el=$('wbody');if(el&&S.view==='wiki'&&S.wikiId===id&&!S.wikiEdit)el.innerHTML=renderMd(text);}});
@@ -1876,7 +1907,6 @@ function renderDayPage(d){
 }
 async function summarizeDay(d){
   if(S.wikiBusy)return;
-  if(!lsGet(KEY_LS)){openSettings('Claude로 정리하려면 API 키를 먼저 넣어 주세요.');return;}
   const P=dayParts(d),dn=pageByTitle(d);
   const line=(x,pre)=>`${pre} ${plainLinks(x.text)}${x.time?` (${x.time})`:''}${x.endDate?` (${x.date}~${x.endDate})`:''}${x.note?`\n  상세: ${x.note.replace(/\n/g,'\n  ')}`:''}`;
   const ctx=[P.event.length&&'일정:\n'+P.event.map(x=>line(x,'-')).join('\n'),P.done.length&&'완료한 일:\n'+P.done.map(x=>line(x,'- [x]')).join('\n'),
@@ -1893,6 +1923,7 @@ async function summarizeDay(d){
 기록:
 ${ctx||'(기록 없음)'}
 ${dn&&dn.body.trim()?'\n기존 노트:\n'+dn.body:''}`;
+  if(!lsGet(KEY_LS)){openClaude(prompt,{label:`Claude 정리를 ${fmtDay(d)} 노트에 붙여넣기`,apply:t=>{const p=pageByTitle(d)||newPage(d);p.body=t;p.updatedAt=Date.now();savePages();}});return;}
   const key='day:'+d;S.wikiBusy=key;S.wikiStream='';render();
   try{
     const r=await callClaude(prompt,{maxTokens:3000,onText:({text})=>{S.wikiStream=text;const el=$('wbody');if(el&&S.view==='wiki'&&S.wikiDay===d)el.innerHTML=renderMd(text);}});

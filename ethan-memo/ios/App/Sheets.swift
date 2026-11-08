@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 // MARK: - 일정 등록 (달력 꾹 누르기·드래그, 할 일 왼쪽으로 밀기)
 
@@ -151,11 +152,17 @@ struct EditSheet: View {
                         else { Label(item.answer == nil ? "Claude에게 묻기" : "다시 묻기", systemImage: "sparkle") }
                     }
                     .disabled(asking)
-                    ShareLink(item: text) { Label("Claude 앱으로 보내기", systemImage: "square.and.arrow.up") }
+                    Button {
+                        if let t = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
+                            item.answer = t
+                            item.answeredAt = .now
+                            Store.save(ctx)
+                        }
+                    } label: { Label("Claude 답변 붙여넣기", systemImage: "doc.on.clipboard") }
                     if let a = item.answer {
                         Text(a).font(.subheadline).textSelection(.enabled)
                     }
-                } header: { Text("Claude") }
+                } header: { Text("Claude") } footer: { Text("API 키가 없으면 Claude 앱으로 열립니다. 답을 복사해 와서 ‘답변 붙여넣기’를 누르세요.") }
                 Section {
                     Button("삭제", role: .destructive) { confirmDelete = true }
                 }
