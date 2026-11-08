@@ -16,7 +16,8 @@ struct TodoScreen: View {
 
     var body: some View {
         let today = Fmt.cal.startOfDay(for: .now)
-        let groups = Dictionary(grouping: todos) { $0.day }
+        let pins = todos.filter { $0.pinned && !$0.done }.sorted { ($0.pinnedAt ?? .distantPast) > ($1.pinnedAt ?? .distantPast) }
+        let groups = Dictionary(grouping: todos.filter { !($0.pinned && !$0.done) }) { $0.day }
         let dates = groups.keys.sorted(by: >)
         let openCount = todos.filter { !$0.done }.count
 
@@ -69,6 +70,18 @@ struct TodoScreen: View {
                     Section {
                         Text("할 일이 없습니다. 위에 적으면 오늘 날짜로 등록됩니다.")
                             .font(.subheadline).foregroundStyle(.secondary).rowSurface()
+                    }
+                }
+                if !pins.isEmpty {
+                    Section {
+                        ForEach(pins) { item in ItemRow(item: item, showDate: true) { editing = item } }
+                    } header: {
+                        HStack {
+                            Text("📌 고정").font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.hi)
+                            Spacer()
+                            Text("\(pins.count)개").font(.system(size: 11.5)).foregroundStyle(.secondary)
+                        }
+                        .textCase(nil)
                     }
                 }
                 ForEach(dates, id: \.self) { d in

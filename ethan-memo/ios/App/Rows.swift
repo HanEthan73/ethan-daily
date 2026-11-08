@@ -36,14 +36,14 @@ struct ItemRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             leading
             VStack(alignment: .leading, spacing: 3) {
-                Text(WikiText.plain(item.text))
+                Text((item.pinned && !item.done ? "📌 " : "") + WikiText.plain(item.text))
                     .font(.system(size: 15.5, weight: item.done ? .medium : .semibold))
                     .padding(.horizontal, item.kind == .event ? 2 : 0)
                     .background(alignment: .bottom) {
                         if item.kind == .event { Theme.hl(item.uid).b.frame(height: 9).clipShape(RoundedRectangle(cornerRadius: 2)) }
                     }
                     .strikethrough(item.done, color: .secondary)
-                    .foregroundStyle(item.done ? .secondary : .primary)
+                    .foregroundStyle(item.done ? Theme.cardSub : Theme.cardInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 meta
                 linkChips
@@ -58,6 +58,16 @@ struct ItemRow: View {
         .listRowBackground(note)
         .overlay(alignment: .leading) {
             if isLate { Rectangle().fill(Theme.warn).frame(width: 2).padding(.leading, -20) }
+        }
+        .contextMenu {
+            if item.kind == .todo {
+                Button {
+                    item.pinned.toggle()
+                    item.pinnedAt = item.pinned ? .now : nil
+                    Store.save(ctx)
+                } label: { Label(item.pinned ? "고정 해제" : "맨 위에 고정", systemImage: item.pinned ? "pin.slash" : "pin") }
+            }
+            Button(action: onEdit) { Label("수정", systemImage: "pencil") }
         }
         // ← 왼쪽으로 밀기: 완료 (초록) · 삭제
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -99,15 +109,22 @@ struct ItemRow: View {
     }
 
     private var note: some View {
-        let (bg, strip) = noteColors
-        return RoundedRectangle(cornerRadius: 12)
-            .fill(Theme.surface)
-            .overlay(RoundedRectangle(cornerRadius: 12).fill(bg))
-            .overlay(alignment: .leading) { Rectangle().fill(strip).frame(width: 5) }
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.28), radius: 6, y: 3)
-            .padding(.vertical, 4)
-            .padding(.horizontal, 2)
+        let (_, strip) = noteColors
+        let shape = RoundedRectangle(cornerRadius: 14)
+        return ZStack {
+            shape.fill(Theme.cardLip).offset(y: 3)
+            shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
+                .overlay(alignment: .leading) {
+                    UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: 3, topTrailingRadius: 3)
+                        .fill(strip).frame(width: 4).padding(.vertical, 10)
+                }
+                .overlay(shape.stroke(Color.white.opacity(0.7), lineWidth: 0.5).mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center)))
+        }
+        .compositingGroup()
+        .shadow(color: .black.opacity(0.35), radius: 8, y: 6)
+        .opacity(item.done ? 0.82 : 1)
+        .padding(.top, 4).padding(.bottom, 7)
+        .padding(.horizontal, 2)
     }
 
     @ViewBuilder private var leading: some View {
@@ -122,7 +139,7 @@ struct ItemRow: View {
         case .event:
             Text(item.isMultiDay ? "기간" : (item.time.map(Fmt.time) ?? "종일"))
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(Theme.hl(item.uid).t)
+                .foregroundStyle(Theme.hl(item.uid).c)
                 .frame(width: 40, alignment: .leading)
         case .memo:
             Circle().fill(Theme.memo).frame(width: 6, height: 6).frame(width: 14)
@@ -153,13 +170,13 @@ struct ItemRow: View {
         if !parts.isEmpty || !marks.isEmpty {
             HStack(spacing: 7) {
                 ForEach(parts, id: \.self) { p in
-                    Text(p).foregroundStyle(p.hasSuffix("지남") ? Theme.warn : Color.secondary)
+                    Text(p).foregroundStyle(p.hasSuffix("지남") ? Theme.warn : Theme.cardSub)
                 }
                 ForEach(marks, id: \.self) { m in
                     Text(m).font(.system(size: 10))
                         .padding(.horizontal, 5).padding(.vertical, 1)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Theme.line))
-                        .foregroundStyle(.secondary)
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.black.opacity(0.15)))
+                        .foregroundStyle(Theme.cardSub)
                 }
             }
             .font(.system(size: 11.5))

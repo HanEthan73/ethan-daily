@@ -243,6 +243,7 @@ final class SyncService {
             "text": i.text, "note": i.note.isEmpty ? null : i.note, "photos": i.photoIDs,
             "done": i.done, "doneAt": i.doneAt.map(ms) ?? null, "createdAt": ms(i.createdAt),
             "updatedAt": i.updatedAt.map(ms) ?? null, "answer": i.answer ?? null, "answeredAt": i.answeredAt.map(ms) ?? null,
+            "pinned": i.pinned, "pinnedAt": i.pinnedAt.map(ms) ?? null,
         ]
     }
 
@@ -264,6 +265,8 @@ final class SyncService {
         i.updatedAt = Date(timeIntervalSince1970: stamp(r) / 1000)
         i.answer = r["answer"] as? String
         i.answeredAt = num(r["answeredAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
+        i.pinned = (r["pinned"] as? Bool) ?? false
+        i.pinnedAt = num(r["pinnedAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
     }
 
     /// 비교용 표준 형태 (필드·빈 값·숫자 표기를 맞춤)
@@ -274,7 +277,8 @@ final class SyncService {
             ["id": r["id"] as? String ?? "", "type": r["type"] as? String ?? "", "date": r["date"] as? String ?? "",
              "endDate": str(r["endDate"]), "time": str(r["time"]), "text": r["text"] as? String ?? "", "note": str(r["note"]),
              "photos": (r["photos"] as? [String]) ?? [], "done": (r["done"] as? Bool) ?? false, "doneAt": n(r["doneAt"]),
-             "createdAt": n(r["createdAt"]), "updatedAt": n(r["updatedAt"]), "answer": str(r["answer"]), "answeredAt": n(r["answeredAt"])]
+             "createdAt": n(r["createdAt"]), "updatedAt": n(r["updatedAt"]), "answer": str(r["answer"]), "answeredAt": n(r["answeredAt"]),
+             "pinned": (r["pinned"] as? Bool) ?? false, "pinnedAt": n(r["pinnedAt"])]
         }.sorted { ($0["id"] as! String) < ($1["id"] as! String) }
         let pages = ((doc["pages"] as? [[String: Any]]) ?? []).map { r -> [String: Any] in
             ["id": r["id"] as? String ?? "", "title": r["title"] as? String ?? "", "body": r["body"] as? String ?? "",

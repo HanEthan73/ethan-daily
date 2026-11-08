@@ -35,6 +35,9 @@ final class Item {
     var photoIDs: [String] = []
     /// 마지막 수정 시각 (동기화 병합 기준)
     var updatedAt: Date? = nil
+    /// 꾹 눌러 맨 위 고정
+    var pinned: Bool = false
+    var pinnedAt: Date? = nil
 
     init(kind: Kind, day: Date, endDay: Date? = nil, time: Date? = nil, text: String) {
         let start = Fmt.cal.startOfDay(for: day)
