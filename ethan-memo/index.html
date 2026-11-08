@@ -595,7 +595,7 @@ a.url{color:var(--hi)}
     <label class="f-col">답변 모델
       <select id="sModel"></select>
     </label>
-    <div class="lockrow"><span>백업<small id="bkState">다시 설치하거나 iOS 앱으로 옮길 때 사용</small></span><span style="display:flex;gap:6px"><button class="ghost" id="bkOut">내보내기</button><button class="ghost" id="bkIn">불러오기</button></span></div>
+    <div class="lockrow"><span>백업<small id="bkState">다시 설치하거나 iOS 앱으로 옮길 때 사용</small></span><span style="display:flex;gap:6px"><button class="ghost" id="bkOut">내보내기</button><button class="ghost" id="bkIn">불러오기</button><button class="ghost" id="bkCode">코드 붙여넣기</button></span></div>
     <input type="file" id="bkFile" accept="application/json,.json" hidden>
     <div class="lockrow"><span>Face ID 잠금<small id="lockState">앱을 열 때 Face ID로 본인 확인</small></span><button class="ghost" id="lockToggle">켜기</button></div>
     <div class="sync-box">
@@ -1106,18 +1106,42 @@ $('bkOut').onclick=async()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),5000);toast('백업 파일을 받았습니다');
 };
 $('bkIn').onclick=()=>$('bkFile').click();
+function importData(data,keep){
+  if(!data||!(Array.isArray(data.items)||Array.isArray(data.pages)))throw 0;
+  let add=0,upd=0,pn=0;
+  for(const b of (data.items||[])){if(!b||!b.id||!b.date||!b.text)continue;
+    if(S.items.has(b.id)){if(keep)continue;upd++;}else add++;
+    S.items.set(b.id,{id:b.id,type:['memo','todo','event'].includes(b.type)?b.type:'memo',date:b.date,endDate:b.endDate||'',time:b.time||'',text:b.text,
+      done:!!b.done,doneAt:b.doneAt||null,createdAt:b.createdAt||Date.now(),updatedAt:Date.now(),note:b.note||'',photos:Array.isArray(b.photos)?b.photos:[],answer:b.answer||undefined,answeredAt:b.answeredAt||undefined});}
+  for(const b of (data.pages||[])){if(!b||!b.id||!b.title)continue;if(keep&&S.pages.has(b.id))continue;pn++;S.pages.set(b.id,{id:b.id,title:String(b.title),body:String(b.body||''),createdAt:b.createdAt||Date.now(),updatedAt:b.updatedAt||Date.now()});}
+  savePages();saveLocal();render();
+  return {add,upd,pn};
+}
 $('bkFile').onchange=async e=>{
   const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
-  try{
-    const data=JSON.parse(await f.text());if(!data||!(Array.isArray(data.items)||Array.isArray(data.pages)))throw 0;data.items=data.items||[];
-    let add=0,upd=0;
-    for(const b of data.items){if(!b||!b.id||!b.date||!b.text)continue;
-      S.items.has(b.id)?upd++:add++;
-      S.items.set(b.id,{id:b.id,type:['memo','todo','event'].includes(b.type)?b.type:'memo',date:b.date,endDate:b.endDate||'',time:b.time||'',text:b.text,
-        done:!!b.done,doneAt:b.doneAt||null,createdAt:b.createdAt||Date.now(),updatedAt:Date.now(),note:b.note||'',photos:Array.isArray(b.photos)?b.photos:[],answer:b.answer||undefined,answeredAt:b.answeredAt||undefined});}
-    let pn=0;for(const b of (data.pages||[])){if(!b||!b.id||!b.title)continue;pn++;S.pages.set(b.id,{id:b.id,title:String(b.title),body:String(b.body||''),createdAt:b.createdAt||Date.now(),updatedAt:b.updatedAt||Date.now()});}
-    savePages();saveLocal();render();toast(`불러왔습니다 · 새 기록 ${add}개, 갱신 ${upd}개${pn?`, 위키 ${pn}쪽`:''}`);
-  }catch(_){toast('불러오지 못했습니다. ETHAN MEMO 백업 파일인지 확인하세요.');}
+  try{const r=importData(JSON.parse(await f.text()));toast(`불러왔습니다 · 새 기록 ${r.add}개, 갱신 ${r.upd}개${r.pn?`, 위키 ${r.pn}쪽`:''}`);}
+  catch(_){toast('불러오지 못했습니다. ETHAN MEMO 백업 파일인지 확인하세요.');}
+};
+/* ---------- 가져오기 코드: 링크(#import=…) 또는 복사한 코드 ---------- */
+async function decodeImport(code){
+  code=String(code||'').trim();const m=code.match(/import=([A-Za-z0-9_-]+)/);if(m)code=m[1];
+  code=code.replace(/[^A-Za-z0-9_-]/g,'');if(code.length<20)throw 0;
+  const b64=code.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-code.length%4)%4);
+  const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+  const txt=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  const c=JSON.parse(txt);
+  if(c&&Array.isArray(c.t))return {items:c.t.map(([id,text,at])=>({id:'rem-'+id,type:'todo',date:c.d,text,createdAt:at,done:false}))};
+  return c;
+}
+async function importCode(code){
+  try{const r=importData(await decodeImport(code),true);S.view='todo';render();
+    toast(r.add?`옮겼습니다 · 할 일 ${r.add}개 추가`:'이미 모두 들어와 있습니다');return true;}
+  catch(_){toast('가져오기 코드를 읽지 못했습니다. 링크 전체를 복사했는지 확인하세요.');return false;}
+}
+$('bkCode').onclick=async()=>{
+  let t='';try{t=await navigator.clipboard.readText();}catch(_){}
+  if(!/import=|^[A-Za-z0-9_-]{40,}$/.test((t||'').trim()))t=prompt('받은 가져오기 링크(또는 코드)를 붙여넣으세요')||'';
+  if(t.trim())importCode(t);
 };
 $('lockToggle').onclick=()=>{if(lockOn()){lsSet(LOCK_LS,'');paintLockRow();toast('Face ID 잠금을 껐습니다');}else enableLock();};
 $('unlockBtn').onclick=unlock;
@@ -1683,6 +1707,7 @@ const _sSave=$('sSave').onclick;
 $('sSave').onclick=()=>{const r=$('ghRepo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/$/,''),k=$('ghTok').value.trim();
   lsSet(GH_REPO,r);lsSet(GH_TOKEN,k);_sSave();if(Sync.on()){Sync.state='busy';paintSync();Sync.run();}else paintSync();};
 
+if(location.hash.startsWith('#import=')){const c=location.hash;history.replaceState(null,'',location.pathname+location.search);importCode(c);}
 fromHash();
 render();
 connect();
