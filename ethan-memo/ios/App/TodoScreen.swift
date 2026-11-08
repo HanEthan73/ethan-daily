@@ -33,10 +33,10 @@ struct TodoScreen: View {
                     if !dates.isEmpty {
                         HStack(spacing: 8) {
                             Spacer()
-                            Text("→ 밀면 완료").foregroundStyle(Theme.swipeDone)
+                            Text("← 밀면 완료").foregroundStyle(Theme.swipeDone)
                                 .padding(.horizontal, 9).padding(.vertical, 2)
                                 .background(Capsule().fill(Theme.swipeDone.opacity(0.14)))
-                            Text("← 밀면 일정 등록").foregroundStyle(Theme.swipeEvent)
+                            Text("밀면 일정 등록 →").foregroundStyle(Theme.swipeEvent)
                                 .padding(.horizontal, 9).padding(.vertical, 2)
                                 .background(Capsule().fill(Theme.swipeEvent.opacity(0.15)))
                             Spacer()

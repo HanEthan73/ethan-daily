@@ -182,7 +182,7 @@ struct WikiScreen: View {
 
     @ViewBuilder private func doneList(_ list: [Item]) -> some View {
         let g = Dictionary(grouping: list) { Fmt.cal.startOfDay(for: $0.doneAt ?? $0.day) }
-        if g.isEmpty { Section { empty("완료한 할 일이 아직 없습니다. 할 일을 오른쪽으로 밀면 완료됩니다.") } }
+        if g.isEmpty { Section { empty("완료한 할 일이 아직 없습니다. 할 일을 왼쪽으로 밀면 완료됩니다.") } }
         ForEach(g.keys.sorted(by: >), id: \.self) { d in
             Section {
                 ForEach((g[d] ?? []).sorted { ($0.doneAt ?? .distantPast) > ($1.doneAt ?? .distantPast) }) { x in

@@ -14,7 +14,7 @@ extension View {
     func rowSurface() -> some View { self.listRowBackground(Theme.surface) }
 }
 
-// MARK: - 한 줄 항목 (체크칸 없음: → 밀면 완료, ← 밀면 일정 등록)
+// MARK: - 한 줄 항목 (체크칸 없음: ← 밀면 완료, → 밀면 일정 등록)
 
 struct ItemRow: View {
     @Environment(\.modelContext) private var ctx
@@ -53,24 +53,24 @@ struct ItemRow: View {
             if isLate { Rectangle().fill(Theme.warn).frame(width: 2).padding(.leading, -20) }
         }
         .rowSurface()
-        // ← 왼쪽으로 밀기: 일정 등록 (할 일) · 삭제
+        // ← 왼쪽으로 밀기: 완료 (초록) · 삭제
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if item.kind == .todo {
-                Button { makeEvent = true } label: { Label("일정 등록", systemImage: "calendar.badge.plus") }
-                    .tint(Theme.swipeEvent)
+                Button { toggle() } label: {
+                    Label(item.done ? "되돌리기" : "완료", systemImage: item.done ? "arrow.uturn.backward" : "checkmark")
+                }
+                .tint(Theme.swipeDone)
             }
             Button(role: .destructive) {
                 ctx.delete(item)
                 Store.save(ctx)
             } label: { Label("삭제", systemImage: "trash") }
         }
-        // → 오른쪽으로 밀기: 완료
+        // → 오른쪽으로 밀기: 일정 등록 (주황)
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if item.kind == .todo {
-                Button { toggle() } label: {
-                    Label(item.done ? "되돌리기" : "완료", systemImage: item.done ? "arrow.uturn.backward" : "checkmark")
-                }
-                .tint(Theme.swipeDone)
+                Button { makeEvent = true } label: { Label("일정 등록", systemImage: "calendar.badge.plus") }
+                    .tint(Theme.swipeEvent)
             }
         }
         .sheet(isPresented: $makeEvent) {
