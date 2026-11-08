@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.25",
-"buildVersion": "25",
-"date": "2026-11-08T23:48:57Z",
-"localizedDescription": "ETHAN MEMO: wiki global search + photo gallery (web, iOS)",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=25",
-"size": 1055136,
+"version": "1.0.26",
+"buildVersion": "26",
+"date": "2026-11-08T23:52:59Z",
+"localizedDescription": "ETHAN MEMO: markdown in cards, 2-line calendar bars, multiline memo composer",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=26",
+"size": 1060110,
 "minOSVersion": "17.0"
         }
       ],
