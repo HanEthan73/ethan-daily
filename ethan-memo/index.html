@@ -11,8 +11,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ETHAN MEMO">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#E4E5E8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#151517" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -625,6 +625,103 @@ input:focus,textarea:focus,select:focus{outline:none;border:0;box-shadow:0 0 0 3
 .toast{border-radius:999px;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 10px 30px -10px rgba(0,0,0,.45)}
 /* 날짜 선택 칩 */
 .datechip{border-radius:8px}
+
+/* ================= 형광펜 (macOS 캘린더 느낌) ================= */
+:root{
+  --bg:#F2F2F7; --surface:#FFFFFF; --sunk:#EDEDF2; --ink:#1D1D1F; --muted:#6E6E73; --line:#E3E3E8; --sat:#6E6E73;
+  --hi:#2C2C2E; --hi-ink:#FFFFFF; --hi-soft:rgba(60,60,67,.09); --btn:#2C2C2E; --btn-ink:#FFFFFF; --accent:#2C2C2E; --accent-ink:#fff;
+  --metal:linear-gradient(180deg,#5A5A5F 0%,#2C2C2E 100%); --glow:rgba(0,0,0,.25);
+  --today:#FF3B30; --todo:#1E9E4A; --memo:#C28A00; --warn:#E5352B; --sun:#E5352B; --warn-soft:#FDE8E7;
+  --c-blue:#007AFF; --t-blue:#0A5BC4; --b-blue:rgba(0,122,255,.15);
+  --c-red:#FF3B30; --t-red:#C42B23; --b-red:rgba(255,59,48,.14);
+  --c-yellow:#FFCC00; --t-yellow:#8A6500; --b-yellow:rgba(255,204,0,.30);
+  --c-green:#34C759; --t-green:#1B7D3A; --b-green:rgba(52,199,89,.18);
+  --c-purple:#AF52DE; --t-purple:#8A33B5; --b-purple:rgba(175,82,222,.15);
+  --c-orange:#FF9500; --t-orange:#B05F00; --b-orange:rgba(255,149,0,.18);
+  --c-teal:#30B0C7; --t-teal:#13788A; --b-teal:rgba(48,176,199,.17);
+  --c-gray:#8E8E93; --t-gray:#48484A; --b-gray:rgba(142,142,147,.16);
+  --shadow:0 0 0 .5px rgba(0,0,0,.04),0 1px 3px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000000; --surface:#1C1C1E; --sunk:#2C2C2E; --ink:#F5F5F7; --muted:#98989D; --line:#38383A; --sat:#98989D;
+  --hi:#E5E5EA; --hi-ink:#111113; --hi-soft:rgba(235,235,245,.12); --btn:#E5E5EA; --btn-ink:#111113; --accent:#E5E5EA; --accent-ink:#111;
+  --metal:linear-gradient(180deg,#F5F5F7 0%,#C7C7CC 100%); --glow:rgba(255,255,255,.08);
+  --today:#FF453A; --todo:#32D74B; --memo:#FFD60A; --warn:#FF453A; --sun:#FF453A; --warn-soft:#3A1F1D;
+  --t-blue:#5EAEFF; --b-blue:rgba(10,132,255,.26); --t-red:#FF7A72; --b-red:rgba(255,69,58,.24);
+  --t-yellow:#FFD60A; --b-yellow:rgba(255,214,10,.20); --t-green:#4FE07A; --b-green:rgba(48,209,88,.22);
+  --t-purple:#D99BFF; --b-purple:rgba(191,90,242,.25); --t-orange:#FFB340; --b-orange:rgba(255,159,10,.22);
+  --t-teal:#64D2E6; --b-teal:rgba(100,210,255,.20); --t-gray:#C7C7CC; --b-gray:rgba(142,142,147,.24);
+  --shadow:0 0 0 .5px rgba(255,255,255,.06); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1C1C1E; --sunk:#2C2C2E; --ink:#F5F5F7; --muted:#98989D; --line:#38383A; --sat:#98989D;
+  --hi:#E5E5EA; --hi-ink:#111113; --hi-soft:rgba(235,235,245,.12); --btn:#E5E5EA; --btn-ink:#111113; --accent:#E5E5EA; --accent-ink:#111;
+  --metal:linear-gradient(180deg,#F5F5F7 0%,#C7C7CC 100%); --glow:rgba(255,255,255,.08);
+  --today:#FF453A; --todo:#32D74B; --memo:#FFD60A; --warn:#FF453A; --sun:#FF453A; --warn-soft:#3A1F1D;
+  --t-blue:#5EAEFF; --b-blue:rgba(10,132,255,.26); --t-red:#FF7A72; --b-red:rgba(255,69,58,.24);
+  --t-yellow:#FFD60A; --b-yellow:rgba(255,214,10,.20); --t-green:#4FE07A; --b-green:rgba(48,209,88,.22);
+  --t-purple:#D99BFF; --b-purple:rgba(191,90,242,.25); --t-orange:#FFB340; --b-orange:rgba(255,159,10,.22);
+  --t-teal:#64D2E6; --b-teal:rgba(100,210,255,.20); --t-gray:#C7C7CC; --b-gray:rgba(142,142,147,.24);
+  --shadow:0 0 0 .5px rgba(255,255,255,.06); color-scheme:dark}
+.hl-blue{--c:var(--c-blue);--t:var(--t-blue);--b:var(--b-blue)}
+.hl-red{--c:var(--c-red);--t:var(--t-red);--b:var(--b-red)}
+.hl-yellow{--c:var(--c-yellow);--t:var(--t-yellow);--b:var(--b-yellow)}
+.hl-green{--c:var(--c-green);--t:var(--t-green);--b:var(--b-green)}
+.hl-purple{--c:var(--c-purple);--t:var(--t-purple);--b:var(--b-purple)}
+.hl-orange{--c:var(--c-orange);--t:var(--t-orange);--b:var(--b-orange)}
+.hl-teal{--c:var(--c-teal);--t:var(--t-teal);--b:var(--b-teal)}
+.hl-gray{--c:var(--c-gray);--t:var(--t-gray);--b:var(--b-gray)}
+body{color:var(--ink)}
+.it .txt{font-size:15px;font-weight:500;color:var(--ink);line-height:1.42}
+.it.done .txt{color:var(--muted);font-weight:400}
+.meta{color:var(--muted)}
+/* 달력 */
+.day .n{font-family:var(--f-body);font-weight:500;font-size:14px;color:var(--ink)}
+.day.sun .n,.day.hol .n{color:var(--sun)}
+.day.sel .n{background:var(--ink);color:var(--bg);box-shadow:none;font-weight:700}
+.day.today .n{background:var(--today);color:#fff;box-shadow:none;font-weight:700}
+.day.today.sel .n{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--today)}
+.hname{font-weight:600}
+.bar{height:15px;line-height:15px;font-size:10px;font-weight:650;border-radius:4px;padding:0 4px 0 5px;background:var(--b,var(--b-blue));color:var(--t,var(--t-blue));border-left:2.5px solid var(--c,var(--c-blue));letter-spacing:-.01em}
+.bar.open-l{border-left-color:transparent}
+.d-todo{background:var(--c-green)} .d-memo{background:var(--c-yellow)} .d-event,.legend i.d-event{background:var(--c-blue)}
+/* 형광펜 칩 */
+.hlchip{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:6px;background:var(--b);color:var(--t);font-weight:650;font-size:12px;line-height:1.6}
+.hlchip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--c)}
+/* 목록: 일정 줄은 형광펜 바 */
+.it.ev{position:relative}
+.it.ev .time{color:var(--t);font-weight:650}
+.it.ev::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--c)}
+.it.ev .txt{background:linear-gradient(transparent 58%,var(--b) 58%);padding:0 2px;border-radius:2px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+/* 할 일 점: 초록, 지난 일 빨강 */
+.mk:not(.on)::before{width:8px;height:8px;background:transparent;box-shadow:inset 0 0 0 2px var(--c-green)}
+.mk.late:not(.on)::before{box-shadow:inset 0 0 0 2px var(--warn);background:var(--b-red)}
+.mk.on{color:var(--c-green)}
+/* 날짜 묶음 머리 */
+.datechip{background:var(--sunk);color:var(--ink);font-weight:650;font-family:var(--f-body)}
+.group-today .datechip{background:var(--b-red);color:var(--t-red)}
+.group-today .rel{color:var(--t-red);font-weight:650}
+.group-late .rel{color:var(--warn)}
+/* 일정 카드 (위키) */
+.ecard::before{background:var(--c,var(--c-blue));width:3px}
+.ecard .ttl{color:var(--ink)}
+.ecard .when span{color:var(--t,var(--muted));font-weight:600}
+/* 탭 숫자 배지 */
+.badge{background:var(--b-red);color:var(--t-red);font-weight:700}
+/* 하이라이트 강조: 지난 일 */
+.late{color:var(--warn);font-weight:650}
+.pill{background:var(--b-red);color:var(--t-red);font-weight:700}
+#monthLabel{font-family:var(--f-body);font-size:21px;font-weight:800;letter-spacing:-.02em}
+.sec.card,.card{overflow:hidden}
+.sec-h .c{font-family:var(--f-body);font-weight:600}
+.eyebrow{font-weight:600}
+.wstat b{font-family:var(--f-body);font-weight:800}
+.wstat:first-child b{color:var(--t-blue)}
+.wstat:nth-child(2) b{color:var(--t-green)}
+.wstat:nth-child(3) b{color:var(--t-yellow)}
+.drow.event .ic{color:var(--c)}
+.drow.event .t,.drow.event>span:not(.ic){background:linear-gradient(transparent 58%,var(--b) 58%)}
+.drow.done .ic{color:var(--c-green)}
+.it.ev .txt{width:fit-content;max-width:100%;display:inline-block}
 </style>
 </head>
 <body>
@@ -943,7 +1040,7 @@ function renderCal(){
     for(let i=cs;i<=ce;){
       const row=Math.floor(i/7),rowEnd=Math.min(ce,row*7+6);
       const c0=i%7,span=rowEnd-i+1,openL=i>s,openR=rowEnd<e;
-      const bar=h('button',{class:'bar'+(openL?' open-l':'')+(openR?' open-r':''),
+      const bar=h('button',{class:'bar hl-'+hl(ev)+(openL?' open-l':'')+(openR?' open-r':''),
         title:ev.endDate?`${ev.text} · ${fmtDay(ev.date)}–${fmtDay(ev.endDate)}`:`${ev.text} · ${fmtDay(ev.date)}${ev.time?' '+ev.time:''}`,
         style:`left:calc(${c0}*100%/7 + ${openL?0:3}px);width:calc(${span}*100%/7 - ${(openL?0:3)+(openR?0:3)}px);top:${row*ROW_H+BAR_TOP+lane*(BAR_H+1)}px`,
         onclick:()=>openSheet(ev.id)},(openL&&c0!==0)?'':label);
@@ -989,6 +1086,8 @@ function shiftMonth(n){S.month=new Date(S.month.getFullYear(),S.month.getMonth()
   box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
 })();
 
+const HL=['blue','red','yellow','green','purple','orange','teal'];
+function hl(x){const k=String(x.id||x.text||'');let n=0;for(let i=0;i<k.length;i++)n=(n*31+k.charCodeAt(i))>>>0;return HL[n%HL.length];}
 function itemRow(x,opts={}){
   const t=today();
   const openEdit=()=>openSheet(x.id);
@@ -1014,7 +1113,7 @@ function itemRow(x,opts={}){
       h('div',{class:'sw-bg','aria-hidden':'true'},h('span',{class:'sw-l',text:'＋ 일정 등록'}),h('span',{class:'sw-r',text:x.done?'되돌리기 ↺':'완료 ✓'})),
       h('div',{class:'sw-fg'},c,body));
   }
-  if(x.type==='event')return h('li',{class:'it'},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body);
+  if(x.type==='event')return h('li',{class:'it ev hl-'+hl(x)},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body);
   return h('li',{class:'it'},body);
 }
 
@@ -1582,7 +1681,7 @@ function noteBox(x){if(!x.note||!x.note.trim())return null;const b=h('div',{clas
 function drow(x,kind,extra){
   const ic={done:'✓',todo:'○',event:'◆',memo:'—'}[kind];
   return h('div',{class:'drow-wrap'},
-    h('button',{class:'drow '+kind,onclick:()=>openSheet(x.id)},
+    h('button',{class:'drow '+kind+(kind==='event'?' hl-'+hl(x):''),onclick:()=>openSheet(x.id)},
       h('span',{class:'ic',text:ic}),h('span',{class:'tx',text:plainLinks(x.text)}),extra?h('span',{class:'mt',text:extra}):null),
     thumbs(x.photos),noteBox(x));
 }
@@ -1638,7 +1737,7 @@ function renderWikiHome(){
     const past=ev.filter(x=>(x.endDate||x.date)<t).sort((a,b)=>b.date.localeCompare(a.date));
     if(!ev.length)kids.push(empty('일정이 없습니다','캘린더에서 날짜를 꾹 누르거나, 할 일을 오른쪽으로 밀어 일정을 만드세요.'));
     const card=x=>{const when=x.endDate?`${fmtDay(x.date)} – ${fmtDay(x.endDate)} · ${dayDiff(x.date,x.endDate)+1}일`:`${fmtDay(x.date)}${x.time?' · '+x.time:' · 종일'}`;
-      return h('article',{class:'ecard'},
+      return h('article',{class:'ecard hl-'+hl(x)},
         h('div',{class:'when'},h('span',{text:when}),h('em',{text:relDay(x.date)})),
         h('button',{class:'ttl',text:plainLinks(x.text),onclick:()=>openSheet(x.id)}),
         noteBox(x)||h('button',{class:'addnote',text:'+ 내용 쓰기',onclick:()=>openSheet(x.id,true)}));};

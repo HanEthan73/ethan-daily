@@ -63,12 +63,12 @@ struct TodoScreen: View {
                         HStack(spacing: 8) {
                             Text(Fmt.short(d))
                                 .font(.system(size: 12.5, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(diff == 0 ? Theme.hiInk : Color.primary)
+                                .foregroundStyle(diff == 0 ? Theme.today : Color.primary)
                                 .padding(.horizontal, 8).padding(.vertical, 2)
-                                .background(Capsule().fill(diff == 0 ? AnyShapeStyle(Theme.metal) : AnyShapeStyle(Theme.line.opacity(0.6))))
+                                .background(RoundedRectangle(cornerRadius: 6).fill(diff == 0 ? Theme.today.opacity(0.14) : Theme.line.opacity(0.6)))
                             Text(relative(diff))
                                 .font(.system(size: 11.5, weight: .medium))
-                                .foregroundStyle(diff < 0 && !open.isEmpty ? Theme.warn : diff == 0 ? Theme.hi : Color.secondary)
+                                .foregroundStyle(diff < 0 && !open.isEmpty ? Theme.warn : diff == 0 ? Theme.today : Color.secondary)
                             if let h = Holidays.shared.short(d) {
                                 Text(h).font(.system(size: 11)).foregroundStyle(Theme.sun)
                             }

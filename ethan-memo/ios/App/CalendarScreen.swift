@@ -142,7 +142,7 @@ struct MonthGrid: View {
 
     private let rowH: CGFloat = 76
     private let barTop: CGFloat = 41
-    private let barH: CGFloat = 13
+    private let barH: CGFloat = 15
     private let maxLanes = 2
 
     private var firstCell: Date {
@@ -170,6 +170,7 @@ struct MonthGrid: View {
     struct Seg: Identifiable {
         let id: String
         let title: String
+        let key: String
         let row: Int, start: Int, end: Int, lane: Int
         let openLeft: Bool, openRight: Bool
     }
@@ -196,7 +197,7 @@ struct MonthGrid: View {
             while i <= ce {
                 let row = i / 7
                 let rowEnd = min(ce, row * 7 + 6)
-                out.append(Seg(id: "\(ev.uid)-\(row)", title: ev.text, row: row,
+                out.append(Seg(id: "\(ev.uid)-\(row)", title: ev.text, key: ev.uid, row: row,
                                start: i % 7, end: rowEnd % 7, lane: lane,
                                openLeft: i > s, openRight: rowEnd < e))
                 i = rowEnd + 1
@@ -247,6 +248,7 @@ struct MonthGrid: View {
                     Text(s)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(i == 0 ? Theme.sun : Color.secondary)
+                        .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -276,20 +278,24 @@ struct MonthGrid: View {
                     }
                     // 3) 일정 막대
                     ForEach(bars) { b in
-                        Text(b.title)
-                            .font(.system(size: 9.5, weight: .semibold))
+                        let c = Theme.hl(b.key)
+                        Text(b.openLeft && b.start != 0 ? " " : b.title)
+                            .font(.system(size: 10, weight: .semibold))
                             .lineLimit(1)
-                            .padding(.horizontal, 4)
+                            .padding(.leading, 5).padding(.trailing, 3)
                             .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 2) - (b.openRight ? 0 : 2),
                                    height: barH, alignment: .leading)
-                            .foregroundStyle(Theme.hiInk)
+                            .foregroundStyle(c.t)
                             .background(
                                 UnevenRoundedRectangle(topLeadingRadius: b.openLeft ? 0 : 4,
                                                        bottomLeadingRadius: b.openLeft ? 0 : 4,
                                                        bottomTrailingRadius: b.openRight ? 0 : 4,
                                                        topTrailingRadius: b.openRight ? 0 : 4)
-                                    .fill(Theme.metal)
+                                    .fill(c.b)
                             )
+                            .overlay(alignment: .leading) {
+                                if !b.openLeft { Rectangle().fill(c.c).frame(width: 2.5) }
+                            }
                             .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 2),
                                     y: CGFloat(b.row) * rowH + barTop + CGFloat(b.lane) * (barH + 2))
                             .allowsHitTesting(false)
@@ -307,7 +313,7 @@ struct MonthGrid: View {
             .transition(.opacity)
 
             HStack(spacing: 12) {
-                legend(Theme.hi, "일정")
+                legend(Theme.event, "일정")
                 legend(Theme.todo, "할 일")
                 legend(Theme.memo, "메모")
                 Spacer()
@@ -403,10 +409,10 @@ struct DayCell: View {
         VStack(spacing: 1) {
             Text("\(Fmt.cal.component(.day, from: date))")
                 .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular).monospacedDigit())
-                .foregroundStyle(isSelected ? Theme.hiInk : red ? Theme.sun : column == 6 ? Color.secondary : Color.primary)
+                .foregroundStyle(isToday ? Color.white : isSelected ? Theme.bg : red ? Theme.sun : Color.primary)
                 .frame(width: 26, height: 26)
-                .background(Circle().fill(isSelected ? AnyShapeStyle(Theme.metal) : AnyShapeStyle(Color.clear)))
-                .overlay(Circle().stroke(isToday && !isSelected ? Theme.hi : Color.clear, lineWidth: 1.5))
+                .background(Circle().fill(isToday ? Theme.today : isSelected ? Color.primary : Color.clear))
+                .overlay(Circle().stroke(isToday && isSelected ? Theme.today : Color.clear, lineWidth: 1.5).padding(-3))
                 .padding(.top, 2)
             Text(holiday ?? " ")
                 .font(.system(size: 8.5, weight: .medium))

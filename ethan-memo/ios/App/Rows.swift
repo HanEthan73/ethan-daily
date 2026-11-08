@@ -37,7 +37,11 @@ struct ItemRow: View {
             leading
             VStack(alignment: .leading, spacing: 3) {
                 Text(WikiText.plain(item.text))
-                    .font(.system(size: 15))
+                    .font(.system(size: 15, weight: item.done ? .regular : .medium))
+                    .padding(.horizontal, item.kind == .event ? 2 : 0)
+                    .background(alignment: .bottom) {
+                        if item.kind == .event { Theme.hl(item.uid).b.frame(height: 9).clipShape(RoundedRectangle(cornerRadius: 2)) }
+                    }
                     .strikethrough(item.done, color: .secondary)
                     .foregroundStyle(item.done ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,14 +91,14 @@ struct ItemRow: View {
                 if item.done {
                     Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.todo)
                 } else {
-                    Circle().fill(isLate ? Theme.warn : Color.secondary.opacity(0.6)).frame(width: 6, height: 6)
+                    Circle().stroke(isLate ? Theme.warn : Theme.todo, lineWidth: 2).frame(width: 8, height: 8)
                 }
             }
             .frame(width: 14)
         case .event:
             Text(item.isMultiDay ? "기간" : (item.time.map(Fmt.time) ?? "종일"))
-                .font(.system(size: 12, design: .monospaced))
-                .foregroundStyle(Theme.hi)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Theme.hl(item.uid).t)
                 .frame(width: 40, alignment: .leading)
         case .memo:
             Circle().fill(Theme.memo).frame(width: 6, height: 6).frame(width: 14)
