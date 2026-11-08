@@ -845,6 +845,42 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
   box-shadow:0 2px 4px -1px rgba(180,80,0,.45),inset 0 1px 0 rgba(255,255,255,.35);-webkit-tap-highlight-color:transparent}
 .pinbadge svg{width:14px;height:14px;display:block}
 .swipe-hint .sh-p{color:var(--muted);background:var(--sunk)}
+
+/* ================= Obsidian 느낌: 납작한 버튼 · 얇은 선 · 조용한 핀 ================= */
+.primary,.nav-btn.strong{background:var(--hi);color:#fff;border:0;border-radius:6px;box-shadow:none !important;font-weight:600;letter-spacing:0}
+.primary:active,.nav-btn.strong:active{filter:brightness(.9)}
+.primary{min-height:34px;padding:0 14px;font-size:13px}
+.nav-btn.strong{padding:5px 13px;font-size:13.5px}
+.nav-btn{font-size:14px;font-weight:500}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:6px;box-shadow:none;color:var(--muted);font-weight:500}
+.ghost:hover{background:var(--sunk);color:var(--ink)}
+.cam-btn{width:34px;height:34px;border-radius:6px;background:transparent;border:1px solid var(--line);color:var(--muted);box-shadow:none}
+.cam-btn em{background:var(--hi);top:-6px;right:-6px}
+.c-row input,.c-row textarea{border-radius:6px}
+/* 위 탭: 밑줄 */
+.tabs{display:flex;gap:2px;background:none;border-radius:0;padding:0;border:0;border-bottom:1px solid var(--line);margin:4px 0 10px}
+.tabs button{flex:1;justify-content:center;background:none;border:0;border-bottom:2px solid transparent;border-radius:0;margin:0 0 -1px;padding:8px 0 9px;font-size:13.5px;font-weight:500;color:var(--muted);box-shadow:none}
+.tabs button[aria-selected="true"]{background:none;box-shadow:none;color:var(--ink);border-bottom-color:var(--hi)}
+.tabs button:hover{color:var(--ink)}
+.tabs .badge{background:var(--sunk);color:var(--muted);font-weight:600}
+/* 메모/할 일/일정 선택: 얇은 테두리 한 덩어리 */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:0;background:none;border:1px solid var(--line);border-radius:6px;padding:0;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:6px 0;font-size:13px;font-weight:500;color:var(--muted);background:none;box-shadow:none}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"],.seg button[aria-pressed=""]{background:var(--sunk);color:var(--ink);box-shadow:none}
+/* 밀기 안내: 알약 대신 한 줄 텍스트 */
+.swipe-hint{display:flex;justify-content:center;gap:0;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:2px 0 6px}
+.swipe-hint span{background:none !important;color:var(--muted) !important;padding:0 9px;border-radius:0;font-weight:500;font-size:11.5px}
+.swipe-hint span + span{border-left:1px solid var(--line)}
+/* 핀: 아이콘만 작고 조용하게 */
+.pinbadge{top:8px;right:9px;width:16px;height:16px;border-radius:3px;background:none;box-shadow:none;color:var(--hi);opacity:.8}
+.pinbadge:hover{opacity:1}
+.pinbadge svg{width:12px;height:12px;fill:currentColor;transform:rotate(35deg)}
+.sec .list > .it.pinned .sw-fg{padding-right:30px}
+.sec .list > .it.pinned:not(.sw){padding-right:30px}
+.pinsec .sec-h .pinhead{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:12.5px;color:var(--muted)}
+.pinsec .sec-h .pinhead svg{width:11px;height:11px;fill:var(--hi);transform:rotate(35deg)}
+.sec .list > .it .datechip{background:none;border:1px solid var(--card-line);border-radius:4px;padding:0 6px;font-size:10.5px;font-weight:500;color:var(--card-sub);line-height:17px}
 </style>
 </head>
 <body>
@@ -1244,7 +1280,7 @@ function togglePin(id){const x=S.items.get(id);if(!x)return;let on;
   if(inCal()){const d={...(x.dpin||{})};on=!d[S.sel];if(on)d[S.sel]=Date.now();else delete d[S.sel];put({...x,dpin:Object.keys(d).length?d:null});}
   else{on=!x.pinned;put({...x,pinned:on,pinnedAt:on?Date.now():null});}
   try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}
-  toast(on?(inCal()?`📌 ${fmtDay(S.sel)} 맨 위에 고정 · 다른 날짜엔 영향 없음`:'📌 맨 위에 고정했습니다 · 다시 꾹 누르면 해제'):'고정을 풀었습니다');}
+  toast(on?(inCal()?`${fmtDay(S.sel)} 맨 위에 고정했습니다 · 다른 날짜엔 영향 없음`:'맨 위에 고정했습니다 · 다시 꾹 누르면 해제'):'고정을 풀었습니다');}
 function pinBadge(x){const b=h('button',{class:'pinbadge',type:'button',title:'고정됨 · 눌러서 해제','aria-label':'고정 해제',onclick:e=>{e.stopPropagation();togglePin(x.id);}});b.innerHTML=PIN_SVG;return b;}
 function copyText(t){
   const done=()=>toast('📋 복사했습니다');
@@ -1371,7 +1407,7 @@ function renderTodos(){
   if(!dates.length)kids.push(h('div',{class:'card empty'},h('b',{text:'할 일이 없습니다'}),'위 입력칸에 적으면 오늘 날짜로 등록됩니다.'));
   const pins=todos.filter(x=>x.pinned&&!x.done).sort((a,b)=>(b.pinnedAt||0)-(a.pinnedAt||0));
   if(pins.length)kids.push(h('div',{class:'sec card pinsec'},
-    h('div',{class:'sec-h'},h('span',{class:'pinhead',text:'📌 고정'}),h('span',{class:'sp'}),h('span',{class:'c',text:`${pins.length}개`})),
+    h('div',{class:'sec-h'},(()=>{const e=h('span',{class:'pinhead'});e.innerHTML=PIN_SVG+'고정';return e;})(),h('span',{class:'sp'}),h('span',{class:'c',text:`${pins.length}개`})),
     h('ul',{class:'list'},pins.map(x=>itemRow(x,{withDate:true})))));
   for(const d of dates){
     const list=groups[d].filter(x=>!(x.pinned&&!x.done));

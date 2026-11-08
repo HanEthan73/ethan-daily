@@ -28,13 +28,14 @@ struct TodoScreen: View {
                         PhotosPicker(selection: $picks, maxSelectionCount: 10, matching: .images) {
                             Image(systemName: "camera")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Theme.hi)
-                                .frame(width: 38, height: 38)
-                                .background(RoundedRectangle(cornerRadius: 10).fill(Theme.hiSoft))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 36, height: 36)
+                                .background(RoundedRectangle(cornerRadius: 6).fill(Color.clear))
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.line, lineWidth: 1))
                                 .overlay(alignment: .topTrailing) {
                                     if !newPhotos.isEmpty {
                                         Text("\(newPhotos.count)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
-                                            .padding(.horizontal, 5).background(Capsule().fill(Theme.todo)).offset(x: 5, y: -5)
+                                            .padding(.horizontal, 5).background(Capsule().fill(Theme.hi)).offset(x: 5, y: -5)
                                     }
                                 }
                         }
@@ -52,23 +53,17 @@ struct TodoScreen: View {
                     }
                 } footer: {
                     if !dates.isEmpty {
-                        HStack(spacing: 8) {
+                        // 알약 대신 조용한 한 줄 안내
+                        HStack(spacing: 0) {
                             Spacer()
-                            Text("← 완료").foregroundStyle(Theme.swipeDone)
-                                .padding(.horizontal, 9).padding(.vertical, 2)
-                                .background(Capsule().fill(Theme.swipeDone.opacity(0.14)))
-                            Text("일정 등록 →").foregroundStyle(Theme.swipeEvent)
-                                .padding(.horizontal, 9).padding(.vertical, 2)
-                                .background(Capsule().fill(Theme.swipeEvent.opacity(0.15)))
-                            Text("꾹 = 고정").foregroundStyle(.secondary)
-                                .padding(.horizontal, 9).padding(.vertical, 2)
-                                .background(Capsule().fill(Color.secondary.opacity(0.14)))
-                            Text("두 번 탭 = 복사").foregroundStyle(.secondary)
-                                .padding(.horizontal, 9).padding(.vertical, 2)
-                                .background(Capsule().fill(Color.secondary.opacity(0.14)))
+                            ForEach(Array(["← 완료", "일정 등록 →", "꾹 = 고정", "두 번 탭 = 복사"].enumerated()), id: \.offset) { i, t in
+                                Text(t).padding(.horizontal, 8)
+                                if i < 3 { Rectangle().fill(Theme.line).frame(width: 1, height: 11) }
+                            }
                             Spacer()
                         }
-                        .font(.system(size: 11.5, weight: .semibold))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
                         .padding(.top, 4)
                     }
                 }
@@ -83,7 +78,10 @@ struct TodoScreen: View {
                         ForEach(pins) { item in ItemRow(item: item, showDate: true) { editing = item } }
                     } header: {
                         HStack {
-                            Text("📌 고정").font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.hi)
+                            HStack(spacing: 5) {
+                                Image(systemName: "pin.fill").font(.system(size: 10)).rotationEffect(.degrees(35)).foregroundStyle(Theme.hi)
+                                Text("고정").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(.secondary)
+                            }
                             Spacer()
                             Text("\(pins.count)개").font(.system(size: 11.5)).foregroundStyle(.secondary)
                         }

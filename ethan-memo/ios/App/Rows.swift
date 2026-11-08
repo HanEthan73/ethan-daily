@@ -64,7 +64,7 @@ struct ItemRow: View {
             .gesture(TapGesture(count: 2).onEnded { copyText() }
                 .exclusively(before: TapGesture().onEnded { onEdit() }))
         }
-        .padding(.trailing, isPinned ? 26 : 0)
+        .padding(.trailing, isPinned ? 18 : 0)
         .overlay {
             if copied {
                 Text("📋 복사했습니다").font(.system(size: 12.5, weight: .semibold))
@@ -151,12 +151,12 @@ struct ItemRow: View {
             .overlay(shape.strokeBorder(Theme.cardHi, lineWidth: 1).mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center)))
             .overlay(alignment: .topTrailing) {
                 if pinned {
-                    UnevenRoundedRectangle(bottomLeadingRadius: 6, bottomTrailingRadius: 6)
-                        .fill(LinearGradient(colors: [Color(red: 1, green: 0.65, blue: 0.15), Color(red: 0.94, green: 0.45, blue: 0)], startPoint: .top, endPoint: .bottom))
-                        .frame(width: 22, height: 27)
-                        .overlay(Image(systemName: "pin.fill").font(.system(size: 12, weight: .bold)).foregroundStyle(.white))
-                        .shadow(color: Color(red: 0.7, green: 0.3, blue: 0).opacity(0.4), radius: 2, y: 2)
-                        .padding(.trailing, 11)
+                    // 작고 조용한 핀 아이콘만
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 10.5))
+                        .rotationEffect(.degrees(35))
+                        .foregroundStyle(Theme.hi.opacity(0.85))
+                        .padding(.top, 7).padding(.trailing, 9)
                 }
             }
             .shadow(color: Theme.cardShadow, radius: 3.5, y: 2.5)

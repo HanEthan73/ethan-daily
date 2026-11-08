@@ -256,7 +256,7 @@ struct MonthGrid: View {
                 .font(.system(size: 13, weight: .semibold))
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .foregroundStyle(Theme.hi)
-                .background(Capsule().fill(Theme.hiSoft))
+                .background(RoundedRectangle(cornerRadius: 6).stroke(Theme.line, lineWidth: 1))
                 Button { shift(-1) } label: { Image(systemName: "chevron.left").frame(width: 30, height: 30) }
                 Button { shift(1) } label: { Image(systemName: "chevron.right").frame(width: 30, height: 30) }
             }
