@@ -7,7 +7,7 @@ enum Store {
     static let appGroup = "group.com.ethanhan.haru"
 
     static let container: ModelContainer = {
-        let schema = Schema([Item.self])
+        let schema = Schema([Item.self, WikiPage.self])
         // 1순위: 앱과 위젯이 공유하는 App Group 저장소
         if let c = try? ModelContainer(for: schema,
                                        configurations: ModelConfiguration(schema: schema, groupContainer: .identifier(appGroup))) {

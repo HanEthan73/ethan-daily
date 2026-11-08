@@ -7,6 +7,15 @@ struct BackupFile: Codable {
     var version: Int = 1
     var exportedAt: Double
     var items: [BackupItem]
+    var pages: [BackupPage]? = nil
+}
+
+struct BackupPage: Codable {
+    var id: String
+    var title: String
+    var body: String
+    var createdAt: Double?
+    var updatedAt: Double?
 }
 
 struct BackupItem: Codable {
@@ -50,7 +59,10 @@ enum Backup {
                        text: i.text, done: i.done, doneAt: ms(i.doneAt), createdAt: ms(i.createdAt),
                        answer: i.answer, answeredAt: ms(i.answeredAt))
         }
-        let file = BackupFile(exportedAt: Date().timeIntervalSince1970 * 1000, items: items)
+        let wiki = try ctx.fetch(FetchDescriptor<WikiPage>()).map {
+            BackupPage(id: $0.uid, title: $0.title, body: $0.body, createdAt: ms($0.createdAt), updatedAt: ms($0.updatedAt))
+        }
+        let file = BackupFile(exportedAt: Date().timeIntervalSince1970 * 1000, items: items, pages: wiki)
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try enc.encode(file)
@@ -101,6 +113,17 @@ enum Backup {
             item.createdAt = date(b.createdAt) ?? item.createdAt
             item.answer = b.answer
             item.answeredAt = date(b.answeredAt)
+        }
+        let existingPages = try ctx.fetch(FetchDescriptor<WikiPage>())
+        var pageById: [String: WikiPage] = [:]
+        for p in existingPages { pageById[p.uid] = p }
+        for b in file.pages ?? [] where !b.title.isEmpty {
+            let p: WikiPage
+            if let old = pageById[b.id] { p = old; updated += 1 } else { p = WikiPage(title: b.title); p.uid = b.id; ctx.insert(p); pageById[b.id] = p; added += 1 }
+            p.title = b.title
+            p.body = b.body
+            p.createdAt = date(b.createdAt) ?? p.createdAt
+            p.updatedAt = date(b.updatedAt) ?? .now
         }
         Store.save(ctx)
         return (added, updated)

@@ -21,11 +21,12 @@ struct ItemRow: View {
         HStack(alignment: .top, spacing: 12) {
             leading
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.text)
+                Text(WikiText.plain(item.text))
                     .strikethrough(item.done)
                     .foregroundStyle(item.done ? .secondary : .primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 meta
+                linkChips
                 answerBlock
             }
             .contentShape(Rectangle())
@@ -72,6 +73,23 @@ struct ItemRow: View {
             .frame(width: 44, alignment: .leading)
         case .memo:
             Circle().fill(Color.orange).frame(width: 7, height: 7).padding(.top, 7)
+        }
+    }
+
+    @ViewBuilder private var linkChips: some View {
+        let links = WikiText.links(in: item.text)
+        if !links.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(links, id: \.self) { t in
+                    Button { Router.shared.open(link: t) } label: {
+                        Text("↗ " + (WikiText.date(t).map(Fmt.short) ?? t))
+                            .font(.caption)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor.opacity(0.14)))
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
         }
     }
 
@@ -127,17 +145,6 @@ struct ItemRow: View {
             }
             .padding(10)
             .background(RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)))
-        } else {
-            HStack(spacing: 14) {
-                Button { asker.ask(item, ctx: ctx) } label: {
-                    Label("Claude에게 묻기", systemImage: "sparkle")
-                }
-                ShareLink(item: item.text) {
-                    Label("Claude 앱으로", systemImage: "square.and.arrow.up")
-                }
-            }
-            .font(.caption.weight(.medium))
-            .buttonStyle(.borderless)
         }
     }
 

@@ -89,7 +89,7 @@ struct ClaudeError: Error {
 }
 
 enum ClaudeClient {
-    static func ask(_ prompt: String) async throws -> String {
+    static func ask(_ prompt: String, maxTokens: Int = 1200) async throws -> String {
         guard let key = Keychain.read(), !key.isEmpty else {
             throw ClaudeError(message: "API 키가 없습니다. 설정 탭에서 입력하세요.")
         }
@@ -101,7 +101,7 @@ enum ClaudeClient {
         req.setValue("application/json", forHTTPHeaderField: "content-type")
         let body: [String: Any] = [
             "model": ClaudeModel.current.rawValue,
-            "max_tokens": 1200,
+            "max_tokens": maxTokens,
             "messages": [["role": "user", "content": prompt]]
         ]
         req.httpBody = try JSONSerialization.data(withJSONObject: body)

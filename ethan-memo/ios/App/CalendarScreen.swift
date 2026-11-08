@@ -15,6 +15,7 @@ struct CalendarScreen: View {
     @State private var selected = Fmt.cal.startOfDay(for: .now)
     @State private var editing: Item?
     @State private var rangeDraft: RangeDraft?
+    private var router = Router.shared
 
     private var dayItems: [Item] { items.filter { $0.covers(selected) } }
 
@@ -35,11 +36,22 @@ struct CalendarScreen: View {
             .navigationTitle("ETHAN MEMO")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $editing) { EditSheet(item: $0) }
+            .onAppear(perform: applyJump)
+            .onChange(of: router.jumpDate) { _, _ in applyJump() }
             .sheet(item: $rangeDraft) { d in
                 NewEventSheet(start: d.start, end: d.end)
                     .presentationDetents([.medium, .large])
             }
         }
+    }
+}
+
+extension CalendarScreen {
+    func applyJump() {
+        guard let d = router.jumpDate else { return }
+        router.jumpDate = nil
+        selected = Fmt.cal.startOfDay(for: d)
+        month = Fmt.startOfMonth(d)
     }
 }
 
