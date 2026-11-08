@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.19",
-"buildVersion": "19",
-"date": "2026-11-08T23:27:02Z",
-"localizedDescription": "ETHAN MEMO: tone-down opaque 3D cards (10px radius), pin badge, double-tap copy, photo viewer close button + swipe-down",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=19",
-"size": 991835,
+"version": "1.0.21",
+"buildVersion": "21",
+"date": "2026-11-08T23:32:14Z",
+"localizedDescription": "Fix DayList helpers placement for iOS build",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=21",
+"size": 1000620,
 "minOSVersion": "17.0"
         }
       ],
