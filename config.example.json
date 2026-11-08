@@ -1,0 +1,24 @@
+{
+  "accounts": [
+    {
+      "id": "gmail",
+      "type": "gmail",
+      "label": "Gmail",
+      "name": "한의성",
+      "email": "your.id@gmail.com",
+      "password": "여기에_구글_앱비밀번호_16자리"
+    },
+    {
+      "id": "naver",
+      "type": "naver",
+      "label": "네이버",
+      "name": "한의성",
+      "email": "your_id@naver.com",
+      "password": "여기에_네이버_애플리케이션_비밀번호"
+    }
+  ],
+  "initial_sync_count": 500,
+  "sync_interval_min": 5,
+  "host": "127.0.0.1",
+  "port": 5055
+}
