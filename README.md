@@ -2,6 +2,8 @@
 
 > **한 줄 요약** — 두 우체통(Gmail·네이버)을 클라우드 서랍 하나에 모으고, 아이폰 홈 화면 아이콘으로 열어서 "채용" 같은 색인 탭으로 관련 편지만 뽑아 보는 앱.
 
+[![Deploy to Koyeb](https://www.koyeb.com/static/images/deploy/button.svg)](https://app.koyeb.com/deploy?type=git&repository=github.com/HanEthan73/ethan-daily&branch=ethan-mail&name=ethan-mail&builder=dockerfile&instance_type=free&region=was&ports=8000;http;/)
+
 ## 1. 기능
 
 | 구분 | 내용 |
@@ -18,7 +20,7 @@
 
 | 단계 | 할 일 |
 |---|---|
-| ① 배포 | Koyeb 원클릭 배포 링크 → GitHub로 로그인(카드 등록) → **Deploy** |
+| ① 배포 | [Koyeb 원클릭 배포](https://app.koyeb.com/deploy?type=git&repository=github.com/HanEthan73/ethan-daily&branch=ethan-mail&name=ethan-mail&builder=dockerfile&instance_type=free&region=was&ports=8000;http;/) → GitHub로 로그인(카드 등록) → **Deploy** |
 | ② 열기 | 발급된 `https://○○○.koyeb.app` 을 Safari로 열기 |
 | ③ 계정 연결 | Gmail 주소·앱 비밀번호, 네이버 주소·애플리케이션 비밀번호 입력 → **연결하기** (최초 1회, 폰에 저장) |
 | ④ 홈 화면 | Safari 공유 → **홈 화면에 추가** |
