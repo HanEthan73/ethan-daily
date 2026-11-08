@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.23",
-"buildVersion": "23",
-"date": "2026-11-08T23:39:19Z",
-"localizedDescription": "ETHAN MEMO: calendar shows up to 4 event bars per day with adaptive row height",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=23",
-"size": 1001310,
+"version": "1.0.24",
+"buildVersion": "24",
+"date": "2026-11-08T23:42:17Z",
+"localizedDescription": "ETHAN MEMO: Obsidian-flat buttons/tabs/hints, subtle pin icon",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=24",
+"size": 1003688,
 "minOSVersion": "17.0"
         }
       ],
