@@ -64,18 +64,6 @@ struct DayList: View {
     @Binding var editing: Item?
 
     var body: some View {
-        // 이 날짜에 고정한 항목이 맨 위 (날짜마다 따로)
-        func pinFirst(_ a: Item, _ b: Item, _ fallback: Bool) -> Bool {
-            let pa = a.dayPinTime(day), pb = b.dayPinTime(day)
-            if (pa > 0) != (pb > 0) { return pa > 0 }
-            if pa > 0 && pb > 0 && pa != pb { return pa > pb }
-            return fallback
-        }
-        func evLess(_ a: Item, _ b: Item) -> Bool {
-            let ka: (Int, Int) = (a.isMultiDay ? 0 : 1, Fmt.minutes(a.time))
-            let kb: (Int, Int) = (b.isMultiDay ? 0 : 1, Fmt.minutes(b.time))
-            return ka < kb
-        }
         let events = items.filter { $0.kind == .event }
             .sorted { pinFirst($0, $1, evLess($0, $1)) }
         let todos = items.filter { $0.kind == .todo }
@@ -125,6 +113,20 @@ struct DayList: View {
         .listStyle(.insetGrouped)
         .listRowSpacing(6)
         .spaceGray()
+    }
+
+    /// 이 날짜에 고정한 항목이 맨 위 (날짜마다 따로)
+    private func pinFirst(_ a: Item, _ b: Item, _ fallback: Bool) -> Bool {
+        let pa = a.dayPinTime(day), pb = b.dayPinTime(day)
+        if (pa > 0) != (pb > 0) { return pa > 0 }
+        if pa > 0 && pb > 0 && pa != pb { return pa > pb }
+        return fallback
+    }
+
+    private func evLess(_ a: Item, _ b: Item) -> Bool {
+        let ka: (Int, Int) = (a.isMultiDay ? 0 : 1, Fmt.minutes(a.time))
+        let kb: (Int, Int) = (b.isMultiDay ? 0 : 1, Fmt.minutes(b.time))
+        return ka < kb
     }
 
     private func head(_ t: String, _ n: String, _ c: Color) -> some View {
