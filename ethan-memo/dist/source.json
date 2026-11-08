@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.16",
-"buildVersion": "16",
-"date": "2026-11-08T13:50:23Z",
-"localizedDescription": "ETHAN MEMO: sticky-note cards, add photos while adding to-dos",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=16",
-"size": 960931,
+"version": "1.0.17",
+"buildVersion": "17",
+"date": "2026-11-08T14:16:33Z",
+"localizedDescription": "ETHAN MEMO: Claude without API key (open claude.ai/new?q=, paste answer back), settings layout fix",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=17",
+"size": 965078,
 "minOSVersion": "17.0"
         }
       ],
