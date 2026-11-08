@@ -38,6 +38,8 @@ final class Item {
     /// 꾹 눌러 맨 위 고정
     var pinned: Bool = false
     var pinnedAt: Date? = nil
+    /// 캘린더 날짜별 고정: {"yyyy-MM-dd": 고정한 시각(ms)} JSON — 날짜마다 따로
+    var dpin: String = ""
 
     init(kind: Kind, day: Date, endDay: Date? = nil, time: Date? = nil, text: String) {
         let start = Fmt.cal.startOfDay(for: day)
@@ -70,5 +72,29 @@ final class Item {
     func covers(_ d: Date) -> Bool {
         let x = Fmt.cal.startOfDay(for: d)
         return x >= day && x <= lastDay
+    }
+}
+
+
+// MARK: - 날짜별 고정
+
+extension Item {
+    static func pinKey(_ d: Date) -> String { Fmt.string(Fmt.cal.startOfDay(for: d), "yyyy-MM-dd") }
+
+    var dayPinMap: [String: Double] {
+        guard !dpin.isEmpty, let data = dpin.data(using: .utf8),
+              let m = try? JSONSerialization.jsonObject(with: data) as? [String: Double] else { return [:] }
+        return m
+    }
+    func isPinned(on d: Date) -> Bool { dayPinMap[Item.pinKey(d)] != nil }
+    func dayPinTime(_ d: Date) -> Double { dayPinMap[Item.pinKey(d)] ?? 0 }
+
+    func toggleDayPin(_ d: Date) {
+        var m = dayPinMap
+        let k = Item.pinKey(d)
+        if m[k] != nil { m.removeValue(forKey: k) } else { m[k] = (Date().timeIntervalSince1970 * 1000).rounded() }
+        if m.isEmpty { dpin = "" }
+        else if let data = try? JSONSerialization.data(withJSONObject: m, options: [.sortedKeys]), let s = String(data: data, encoding: .utf8) { dpin = s }
+        updatedAt = .now
     }
 }

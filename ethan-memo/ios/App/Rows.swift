@@ -20,16 +20,25 @@ struct ItemRow: View {
     @Environment(\.modelContext) private var ctx
     let item: Item
     var showDate = false
+    /// 캘린더에서 쓸 때: 이 날짜에만 고정 (nil이면 할 일 탭의 전체 고정)
+    var pinDay: Date? = nil
     var onEdit: () -> Void
     private var asker = Asker.shared
     @State private var makeEvent = false
     @State private var copied = false
 
-    init(item: Item, showDate: Bool = false, onEdit: @escaping () -> Void) {
+    init(item: Item, showDate: Bool = false, pinDay: Date? = nil, onEdit: @escaping () -> Void) {
         self.item = item
         self.showDate = showDate
+        self.pinDay = pinDay
         self.onEdit = onEdit
     }
+
+    private var isPinned: Bool {
+        if let d = pinDay { return item.isPinned(on: d) }
+        return item.pinned && !item.done && item.kind == .todo
+    }
+    private var canPin: Bool { pinDay != nil || item.kind == .todo }
 
     private var isLate: Bool { item.kind == .todo && !item.done && Fmt.daysBetween(item.day, .now) > 0 }
 
@@ -55,7 +64,7 @@ struct ItemRow: View {
             .gesture(TapGesture(count: 2).onEnded { copyText() }
                 .exclusively(before: TapGesture().onEnded { onEdit() }))
         }
-        .padding(.trailing, item.pinned && !item.done ? 26 : 0)
+        .padding(.trailing, isPinned ? 26 : 0)
         .overlay {
             if copied {
                 Text("📋 복사했습니다").font(.system(size: 12.5, weight: .semibold))
@@ -73,12 +82,19 @@ struct ItemRow: View {
             if isLate { Rectangle().fill(Theme.warn).frame(width: 2).padding(.leading, -20) }
         }
         .contextMenu {
-            if item.kind == .todo {
+            if canPin {
                 Button {
-                    item.pinned.toggle()
-                    item.pinnedAt = item.pinned ? .now : nil
+                    if let d = pinDay { item.toggleDayPin(d) }
+                    else {
+                        item.pinned.toggle()
+                        item.pinnedAt = item.pinned ? .now : nil
+                        item.updatedAt = .now
+                    }
                     Store.save(ctx)
-                } label: { Label(item.pinned ? "고정 해제" : "맨 위에 고정", systemImage: item.pinned ? "pin.slash" : "pin") }
+                } label: {
+                    Label(isPinned ? "고정 해제" : (pinDay != nil ? "이 날짜 맨 위에 고정" : "맨 위에 고정"),
+                          systemImage: isPinned ? "pin.slash" : "pin")
+                }
             }
             Button(action: onEdit) { Label("수정", systemImage: "pencil") }
         }
@@ -124,7 +140,7 @@ struct ItemRow: View {
     private var note: some View {
         let (_, strip) = noteColors
         let shape = RoundedRectangle(cornerRadius: 10)
-        let pinned = item.pinned && !item.done && item.kind == .todo
+        let pinned = isPinned
         return shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
             .overlay(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 2).fill(strip).frame(width: 3).padding(.vertical, 9)

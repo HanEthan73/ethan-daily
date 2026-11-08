@@ -64,12 +64,24 @@ struct DayList: View {
     @Binding var editing: Item?
 
     var body: some View {
+        // 이 날짜에 고정한 항목이 맨 위 (날짜마다 따로)
+        func pinFirst(_ a: Item, _ b: Item, _ fallback: Bool) -> Bool {
+            let pa = a.dayPinTime(day), pb = b.dayPinTime(day)
+            if (pa > 0) != (pb > 0) { return pa > 0 }
+            if pa > 0 && pb > 0 && pa != pb { return pa > pb }
+            return fallback
+        }
+        func evLess(_ a: Item, _ b: Item) -> Bool {
+            let ka: (Int, Int) = (a.isMultiDay ? 0 : 1, Fmt.minutes(a.time))
+            let kb: (Int, Int) = (b.isMultiDay ? 0 : 1, Fmt.minutes(b.time))
+            return ka < kb
+        }
         let events = items.filter { $0.kind == .event }
-            .sorted { ($0.isMultiDay ? 0 : 1, Fmt.minutes($0.time)) < ($1.isMultiDay ? 0 : 1, Fmt.minutes($1.time)) }
+            .sorted { pinFirst($0, $1, evLess($0, $1)) }
         let todos = items.filter { $0.kind == .todo }
-        let open = todos.filter { !$0.done }.sorted { $0.createdAt > $1.createdAt }
+        let open = todos.filter { !$0.done }.sorted { pinFirst($0, $1, $0.createdAt > $1.createdAt) }
         let done = todos.filter(\.done).sorted { ($0.doneAt ?? .distantPast) > ($1.doneAt ?? .distantPast) }
-        let memos = items.filter { $0.kind == .memo }.sorted { $0.createdAt > $1.createdAt }
+        let memos = items.filter { $0.kind == .memo }.sorted { pinFirst($0, $1, $0.createdAt > $1.createdAt) }
 
         List {
             Section {
@@ -95,18 +107,18 @@ struct DayList: View {
             }
             if !events.isEmpty {
                 Section(header: head("일정", "\(events.count)", Theme.hi)) {
-                    ForEach(events) { item in ItemRow(item: item) { editing = item } }
+                    ForEach(events) { item in ItemRow(item: item, pinDay: day) { editing = item } }
                 }
             }
             if !todos.isEmpty {
                 Section(header: head("할 일", "\(done.count)/\(todos.count)", Theme.todo)) {
-                    ForEach(open) { item in ItemRow(item: item) { editing = item } }
+                    ForEach(open) { item in ItemRow(item: item, pinDay: day) { editing = item } }
                     DoneFold(items: done, editing: $editing)
                 }
             }
             if !memos.isEmpty {
                 Section(header: head("메모", "\(memos.count)", Theme.memo)) {
-                    ForEach(memos) { item in ItemRow(item: item) { editing = item } }
+                    ForEach(memos) { item in ItemRow(item: item, pinDay: day) { editing = item } }
                 }
             }
         }

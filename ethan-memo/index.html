@@ -836,6 +836,7 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
 .pinsec .sec-h .pinhead{font-weight:700;font-size:13.5px;color:var(--hi)}
 .sec .list > .it .txt{display:block;width:100%}
 .sec .list > .it.pinned .sw-fg{padding-right:40px}
+.sec .list > .it.pinned:not(.sw){padding-right:40px;position:relative}
 .pinbadge{position:absolute;top:-1px;right:11px;width:22px;height:27px;padding:0;border:0;cursor:pointer;
   background:linear-gradient(180deg,#FFA526,#F07400);border-radius:0 0 6px 6px;display:grid;place-items:center;
   box-shadow:0 2px 4px -1px rgba(180,80,0,.45),inset 0 1px 0 rgba(255,255,255,.35);-webkit-tap-highlight-color:transparent}
@@ -1223,9 +1224,17 @@ function shiftMonth(n){S.month=new Date(S.month.getFullYear(),S.month.getMonth()
 
 const HL=['blue','red','yellow','green','purple','orange','teal'];
 function hl(x){const k=String(x.id||x.text||'');let n=0;for(let i=0;i<k.length;i++)n=(n*31+k.charCodeAt(i))>>>0;return HL[n%HL.length];}
-function togglePin(id){const x=S.items.get(id);if(!x)return;const on=!x.pinned;
-  put({...x,pinned:on,pinnedAt:on?Date.now():null});try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}
-  toast(on?'📌 맨 위에 고정했습니다 · 다시 꾹 누르면 해제':'고정을 풀었습니다');}
+/* 고정: 할 일 탭은 전체 고정, 캘린더는 "그 날짜만" 고정 (날짜마다 따로) */
+const inCal=()=>S.view==='cal';
+function pinHere(x){return inCal()?!!(x.dpin&&x.dpin[S.sel]):!!(x.pinned&&!x.done);}
+function pinTs(x){return inCal()?((x.dpin&&x.dpin[S.sel])||0):(x.pinnedAt||0);}
+const byPin=(a,b)=>(pinHere(b)-pinHere(a))||(pinTs(b)-pinTs(a));
+function togglePin(id){const x=S.items.get(id);if(!x)return;let on;
+  if(inCal()){const d={...(x.dpin||{})};on=!d[S.sel];if(on)d[S.sel]=Date.now();else delete d[S.sel];put({...x,dpin:Object.keys(d).length?d:null});}
+  else{on=!x.pinned;put({...x,pinned:on,pinnedAt:on?Date.now():null});}
+  try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}
+  toast(on?(inCal()?`📌 ${fmtDay(S.sel)} 맨 위에 고정 · 다른 날짜엔 영향 없음`:'📌 맨 위에 고정했습니다 · 다시 꾹 누르면 해제'):'고정을 풀었습니다');}
+function pinBadge(x){const b=h('button',{class:'pinbadge',type:'button',title:'고정됨 · 눌러서 해제','aria-label':'고정 해제',onclick:e=>{e.stopPropagation();togglePin(x.id);}});b.innerHTML=PIN_SVG;return b;}
 function copyText(t){
   const done=()=>toast('📋 복사했습니다');
   const fb=()=>{try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();done();}catch(_){toast('복사하지 못했습니다');}};
@@ -1256,12 +1265,12 @@ function itemRow(x,opts={}){
     meta.length?h('div',{class:'meta'},meta):null,thumbs(x.photos),ans);
   if(x.type==='todo'){
     const c=h('span',{class:'mk'+(x.done?' on':'')+(!x.done&&x.date<t?' late':''),'aria-label':x.done?'완료됨':'할 일',text:x.done?'✓':''});
-    return h('li',{class:'it sw'+(x.done?' done':'')+(!x.done&&x.date<t?' is-late':'')+(x.pinned&&!x.done?' pinned':''),'data-id':x.id,oncontextmenu:e=>e.preventDefault()},
+    return h('li',{class:'it sw'+(x.done?' done':'')+(!x.done&&x.date<t?' is-late':'')+(pinHere(x)?' pinned':''),'data-id':x.id,oncontextmenu:e=>e.preventDefault()},
       h('div',{class:'sw-bg','aria-hidden':'true'},h('span',{class:'sw-l',text:'＋ 일정 등록'}),h('span',{class:'sw-r',text:x.done?'되돌리기 ↺':'완료 ✓'})),
-      h('div',{class:'sw-fg'},c,body,x.pinned&&!x.done?(()=>{const b=h('button',{class:'pinbadge',type:'button',title:'고정됨 · 눌러서 해제','aria-label':'고정 해제',onclick:e=>{e.stopPropagation();togglePin(x.id);}});b.innerHTML=PIN_SVG;return b;})():null));
+      h('div',{class:'sw-fg'},c,body,pinHere(x)?pinBadge(x):null));
   }
-  if(x.type==='event')return h('li',{class:'it ev hl-'+hl(x)},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body);
-  return h('li',{class:'it memo'},body);
+  if(x.type==='event')return h('li',{class:'it ev hl-'+hl(x)+(pinHere(x)?' pinned':''),'data-id':x.id},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body,pinHere(x)?pinBadge(x):null);
+  return h('li',{class:'it memo'+(pinHere(x)?' pinned':''),'data-id':x.id},body,pinHere(x)?pinBadge(x):null);
 }
 
 /* 완료한 할 일은 접어 두기 */
@@ -1304,9 +1313,9 @@ function composer(){
 function renderDay(){
   const prev=$('cText'),keep=prev?{v:prev.value,f:document.activeElement===prev,t:$('cTime').value}:null;
   const p=$('panel'),d=pd(S.sel),t=today(),items=ofDate(S.sel);
-  const ev=items.filter(x=>x.type==='event').sort(byTime);
+  const ev=items.filter(x=>x.type==='event').sort(byTime).sort(byPin);
   const td=items.filter(x=>x.type==='todo').sort((a,b)=>(a.done-b.done)||byTime(a,b));
-  const me=items.filter(x=>x.type==='memo').sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  const me=items.filter(x=>x.type==='memo').sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)).sort(byPin);
   const openTd=td.filter(x=>!x.done).length;
   const rel=S.sel===t?'오늘':Math.round((d-pd(t))/864e5)===1?'내일':Math.round((d-pd(t))/864e5)===-1?'어제':null;
   const counts=[ev.length&&`일정 ${ev.length}`,td.length&&`할 일 ${td.length-openTd}/${td.length} 완료`,me.length&&`메모 ${me.length}`].filter(Boolean).join(' · ');
@@ -1318,7 +1327,7 @@ function renderDay(){
     composer()];
   if(!items.length)kids.push(h('div',{class:'card empty'},h('b',{text:'이 날은 아직 비어 있습니다'}),'위 입력칸에서 메모·할 일·일정을 골라 추가하세요.'));
   if(ev.length)kids.push(section('event','일정',ev.map(x=>itemRow(x))));
-  if(td.length){const o=td.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),dn=td.filter(x=>x.done);
+  if(td.length){const o=td.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).sort(byPin),dn=td.filter(x=>x.done);
     kids.push(section('todo','할 일',[...o.map(x=>itemRow(x)),...foldRow('d:'+S.sel,dn)]));}
   if(me.length)kids.push(section('memo','메모',me.map(x=>itemRow(x))));
   p.replaceChildren(...kids);
@@ -1415,7 +1424,7 @@ function saveEdit(askAfter){const e=S.edit;if(!e)return;const text=$('eText').va
   const endDate=e.type==='event'&&en&&en>date?en:'';
   put({...rest,text,note:$('eNote').value.replace(/\s+$/,''),photos:e.photos||[],date,endDate,time:e.type==='memo'?'':$('eTime').value,done,doneAt:done?(e.doneAt||Date.now()):null});
   if(askAfter){S.edit={...S.items.get(rest.id)};paintSheet();ask(rest.id);return;}
-  closeSheet();if(isNew)toast(endDate?`${fmtDay(date)} – ${fmtDay(endDate)} 일정을 등록했습니다`:'등록했습니다');}
+  closeSheet();if(isNew)toast(e.type==='event'?(endDate?`📅 ${fmtDay(date)} – ${fmtDay(endDate)} 일정을 캘린더에 등록했습니다`:`📅 ${fmtDay(date)} 일정을 캘린더에 등록했습니다`):'등록했습니다');}
 $('eSave').onclick=()=>saveEdit(false);
 $('eAsk').onclick=()=>saveEdit(true);
 if(navigator.share){$('eShare').hidden=false;$('eShare').onclick=()=>{const t=$('eText').value.trim();if(t)navigator.share({text:t}).catch(()=>{});};}
@@ -1561,6 +1570,17 @@ $('setBg').addEventListener('click',e=>{if(e.target===$('setBg'))closeSettings()
     else openNew({type:'event',date:x.date<today()?today():x.date,endDate:'',time:x.time||'',text:plainLinks(x.text)});};
   panel.addEventListener('pointerup',end);panel.addEventListener('pointercancel',end);
   panel.addEventListener('click',e=>{if(swJust&&e.target.closest('.sw-fg')){e.stopPropagation();e.preventDefault();}},true);
+})();
+/* 일정·메모도 꾹 눌러 고정 (캘린더: 그 날짜만) */
+(function(){
+  const panel=$('panel');let lp=null,lpJust=false;
+  panel.addEventListener('pointerdown',e=>{const li=e.target.closest('.it[data-id]:not(.sw)');if(!li||e.button>0||e.target.closest('.pinbadge'))return;
+    const st={x:e.clientX,y:e.clientY};clearTimeout(lp&&lp.t);
+    lp={st,li,t:setTimeout(()=>{lpJust=true;setTimeout(()=>lpJust=false,500);const id=li.dataset.id;lp=null;togglePin(id);},480)};});
+  panel.addEventListener('pointermove',e=>{if(lp&&(Math.abs(e.clientX-lp.st.x)>8||Math.abs(e.clientY-lp.st.y)>8)){clearTimeout(lp.t);lp=null;}});
+  const stop=()=>{if(lp){clearTimeout(lp.t);lp=null;}};panel.addEventListener('pointerup',stop);panel.addEventListener('pointercancel',stop);
+  panel.addEventListener('contextmenu',e=>{if(e.target.closest('.it[data-id]:not(.sw)'))e.preventDefault();});
+  panel.addEventListener('click',e=>{if(lpJust&&e.target.closest('.it')){e.stopPropagation();e.preventDefault();}},true);
 })();
 /* ---------- 위키: [[링크]]로 연결되고 마크다운이 자동으로 꾸며지는 노트 ---------- */
 const WLS='ethanmemo.wiki.v1';

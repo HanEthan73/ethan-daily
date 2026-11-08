@@ -244,6 +244,7 @@ final class SyncService {
             "done": i.done, "doneAt": i.doneAt.map(ms) ?? null, "createdAt": ms(i.createdAt),
             "updatedAt": i.updatedAt.map(ms) ?? null, "answer": i.answer ?? null, "answeredAt": i.answeredAt.map(ms) ?? null,
             "pinned": i.pinned, "pinnedAt": i.pinnedAt.map(ms) ?? null,
+            "dpin": (i.dayPinMap.isEmpty ? null as Any : i.dayPinMap as Any),
         ]
     }
 
@@ -267,6 +268,18 @@ final class SyncService {
         i.answeredAt = num(r["answeredAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
         i.pinned = (r["pinned"] as? Bool) ?? false
         i.pinnedAt = num(r["pinnedAt"]).map { Date(timeIntervalSince1970: $0 / 1000) }
+        if let m = r["dpin"] as? [String: Any], !m.isEmpty {
+            var o: [String: Double] = [:]
+            for (k, v) in m { if let d = num(v) { o[k] = d.rounded() } }
+            if !o.isEmpty, let data = try? JSONSerialization.data(withJSONObject: o, options: [.sortedKeys]), let s = String(data: data, encoding: .utf8) { i.dpin = s } else { i.dpin = "" }
+        } else { i.dpin = "" }
+    }
+
+    private static func dpinCanon(_ v: Any?, _ n: (Any?) -> Any) -> Any {
+        guard let m = v as? [String: Any], !m.isEmpty else { return NSNull() }
+        var o: [String: Any] = [:]
+        for (k, x) in m { o[k] = n(x) }
+        return o
     }
 
     /// 비교용 표준 형태 (필드·빈 값·숫자 표기를 맞춤)
@@ -278,7 +291,8 @@ final class SyncService {
              "endDate": str(r["endDate"]), "time": str(r["time"]), "text": r["text"] as? String ?? "", "note": str(r["note"]),
              "photos": (r["photos"] as? [String]) ?? [], "done": (r["done"] as? Bool) ?? false, "doneAt": n(r["doneAt"]),
              "createdAt": n(r["createdAt"]), "updatedAt": n(r["updatedAt"]), "answer": str(r["answer"]), "answeredAt": n(r["answeredAt"]),
-             "pinned": (r["pinned"] as? Bool) ?? false, "pinnedAt": n(r["pinnedAt"])]
+             "pinned": (r["pinned"] as? Bool) ?? false, "pinnedAt": n(r["pinnedAt"]),
+             "dpin": dpinCanon(r["dpin"], n)]
         }.sorted { ($0["id"] as! String) < ($1["id"] as! String) }
         let pages = ((doc["pages"] as? [[String: Any]]) ?? []).map { r -> [String: Any] in
             ["id": r["id"] as? String ?? "", "title": r["title"] as? String ?? "", "body": r["body"] as? String ?? "",
