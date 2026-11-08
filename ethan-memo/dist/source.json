@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.12",
-"buildVersion": "12",
-"date": "2026-11-08T13:22:23Z",
-"localizedDescription": "ETHAN MEMO: iOS-style edit/settings sheets, segmented tabs, swap swipe (left=done, right=event), swipe peek",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=12",
-"size": 941337,
+"version": "1.0.13",
+"buildVersion": "13",
+"date": "2026-11-08T13:28:30Z",
+"localizedDescription": "ETHAN MEMO: macOS Calendar-style highlighter colors, higher contrast, red today",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=13",
+"size": 948437,
 "minOSVersion": "17.0"
         }
       ],
