@@ -33,15 +33,36 @@ struct RootView: View {
                 .tabItem { Label("설정", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }
-        .tint(Color.primary)
+        .tint(Theme.hi)
         // 위젯의 목록 버튼(haru://todo)으로 열면 할 일 탭으로
         .onOpenURL { url in
+            if url.host == "import" {
+                let ctx = Store.container.mainContext
+                _ = try? Backup.importCode(url.absoluteString, into: ctx)
+                router.tab = .todo
+                return
+            }
             if url.host == "todo" { router.tab = .todo }
             if url.host == "calendar" { router.tab = .calendar }
             if url.host == "wiki" { router.tab = .wiki }
         }
         .onChange(of: phase) { _, p in
             if p == .background { Store.refreshWidgets() }
+            if p == .active {
+                SyncService.shared.schedule(0.3)
+                Task { await Holidays.shared.refresh() }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Store.changed)) { _ in
+            SyncService.shared.schedule()
+        }
+        .task {
+            await Holidays.shared.refresh()
+            // 열려 있는 동안 1분마다 다른 기기 변경 사항 받기
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000_000)
+                if phase == .active { await SyncService.shared.run() }
+            }
         }
         .alert("Claude 연결 오류",
                isPresented: Binding(get: { asker.lastError != nil }, set: { if !$0 { asker.lastError = nil } })) {

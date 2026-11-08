@@ -21,9 +21,8 @@ struct ToggleTodoIntent: AppIntent {
         if let item = try ctx.fetch(fd).first {
             item.done.toggle()
             item.doneAt = item.done ? .now : nil
-            try ctx.save()
+            Store.save(ctx)
         }
-        WidgetCenter.shared.reloadAllTimelines()
         return .result()
     }
 }

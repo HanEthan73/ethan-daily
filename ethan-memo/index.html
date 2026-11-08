@@ -11,31 +11,34 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ETHAN MEMO">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#E8E9EC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1B1C1F" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#E4E5E8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151517" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: 데스크톱 = 왼쪽 월간 캘린더 / 오른쪽 선택한 날의 기록. 모바일 = 위아래로 쌓고, 탭으로 할 일 모아보기 */
 :root{
-  --bg:#E8E9EC; --surface:#F3F4F6; --sunk:#DFE0E4; --ink:#1D1E22; --muted:#686B74; --line:#D2D4D9;
-  --accent:#6A4DE8; --accent-ink:#FFFFFF; --event:#6A4DE8; --todo:#13906A; --memo:#B07A1E;
-  --sun:#D9483B; --sat:#686B74; --warn:#D9483B; --warn-soft:#F7E4E1; --btn:#6A4DE8; --btn-ink:#FFFFFF;
-  --hi:#6A4DE8; --hi-ink:#FFFFFF; --hi-soft:rgba(106,77,232,.12); --glow:rgba(106,77,232,.0);
+  --bg:#E4E5E8; --surface:#F5F5F7; --sunk:#DCDDE1; --ink:#1C1C1E; --muted:#6E6E73; --line:#D1D1D6;
+  --accent:#45464B; --accent-ink:#FFFFFF; --event:#45464B; --todo:#248A3D; --memo:#A27B3C;
+  --sun:#E0352B; --sat:#6E6E73; --warn:#E0352B; --warn-soft:#F9E3E1; --btn:#45464B; --btn-ink:#FFFFFF;
+  --hi:#45464B; --hi-ink:#FFFFFF; --hi-soft:rgba(69,70,75,.10); --glow:rgba(20,20,24,.28);
+  --metal:linear-gradient(180deg,#76777D 0%,#4B4C51 55%,#3A3B3F 100%); --sw-done:#2FB463; --sw-ev:#FF9500;
   --f-body:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Segoe UI",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   --r:14px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#1B1C1F; --surface:#222327; --sunk:#2A2B30; --ink:#E1E2E7; --muted:#8A8C94; --line:#323439;
-  --accent:#9D85FF; --accent-ink:#15131F; --event:#9D85FF; --todo:#5FD3A6; --memo:#E8B05C;
-  --sun:#FF7A6B; --sat:#8A8C94; --warn:#FF7A6B; --warn-soft:#3B2724; --btn:#8B6CFF; --btn-ink:#FFFFFF;
-  --hi:#9D85FF; --hi-ink:#15131F; --hi-soft:rgba(157,133,255,.15); --glow:rgba(139,108,255,.35); color-scheme:dark}}
+  --bg:#151517; --surface:#1E1E21; --sunk:#29292D; --ink:#F2F2F7; --muted:#8E8E93; --line:#2F2F33;
+  --accent:#D1D1D6; --accent-ink:#151517; --event:#C7C7CC; --todo:#30D158; --memo:#D8B878;
+  --sun:#FF453A; --sat:#8E8E93; --warn:#FF453A; --warn-soft:#3A2321; --btn:#D1D1D6; --btn-ink:#151517;
+  --hi:#D1D1D6; --hi-ink:#151517; --hi-soft:rgba(209,209,214,.12); --glow:rgba(255,255,255,.10);
+  --metal:linear-gradient(180deg,#F2F2F5 0%,#C9C9CF 55%,#A4A4AA 100%); --sw-done:#2FB463; --sw-ev:#FF9F0A; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#1B1C1F; --surface:#222327; --sunk:#2A2B30; --ink:#E1E2E7; --muted:#8A8C94; --line:#323439;
-  --accent:#9D85FF; --accent-ink:#15131F; --event:#9D85FF; --todo:#5FD3A6; --memo:#E8B05C;
-  --sun:#FF7A6B; --sat:#8A8C94; --warn:#FF7A6B; --warn-soft:#3B2724; --btn:#8B6CFF; --btn-ink:#FFFFFF;
-  --hi:#9D85FF; --hi-ink:#15131F; --hi-soft:rgba(157,133,255,.15); --glow:rgba(139,108,255,.35); color-scheme:dark}
+  --bg:#151517; --surface:#1E1E21; --sunk:#29292D; --ink:#F2F2F7; --muted:#8E8E93; --line:#2F2F33;
+  --accent:#D1D1D6; --accent-ink:#151517; --event:#C7C7CC; --todo:#30D158; --memo:#D8B878;
+  --sun:#FF453A; --sat:#8E8E93; --warn:#FF453A; --warn-soft:#3A2321; --btn:#D1D1D6; --btn-ink:#151517;
+  --hi:#D1D1D6; --hi-ink:#151517; --hi-soft:rgba(209,209,214,.12); --glow:rgba(255,255,255,.10);
+  --metal:linear-gradient(180deg,#F2F2F5 0%,#C9C9CF 55%,#A4A4AA 100%); --sw-done:#2FB463; --sw-ev:#FF9F0A; color-scheme:dark}
 
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 [hidden]{display:none!important}
@@ -501,8 +504,8 @@ a.url{color:var(--hi)}
 .it.sw{border-left:0}
 .it.sw.is-late .sw-fg{box-shadow:inset 2px 0 0 var(--warn)}
 .done .txt{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 50%,transparent)}
-.sw[data-dir="r"] .sw-bg{background:linear-gradient(90deg,var(--todo),color-mix(in srgb,var(--todo) 60%,var(--surface)))}
-.sw[data-dir="l"] .sw-bg{background:linear-gradient(270deg,var(--hi),color-mix(in srgb,var(--hi) 60%,var(--surface)))}
+.sw[data-dir="r"] .sw-bg{background:var(--sw-done)}
+.sw[data-dir="l"] .sw-bg{background:var(--sw-ev)}
 .sw-bg{color:#fff}
 .drow.done .ic{color:var(--todo)}
 .drow.event .ic{color:var(--hi)}
@@ -513,6 +516,23 @@ a.url{color:var(--hi)}
 .dsec.past .ecard::before{background:var(--line)}
 .d-event{background:var(--hi)}
 .legend i.d-event{background:var(--hi)}
+
+/* ---- Space Gray (애플 알루미늄) 마감 ---- */
+.primary{background:var(--metal);color:var(--btn-ink);border:0;box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 16px -8px var(--glow)}
+.mark{background:var(--metal);box-shadow:0 1px 0 rgba(255,255,255,.25) inset}
+.day.sel .n{background:var(--metal);color:var(--hi-ink);box-shadow:0 4px 12px -5px var(--glow)}
+.group-today .datechip,.pill,.mc-d.edge,.mc-d.on,.wg-btn{background:var(--metal);color:var(--hi-ink)}
+.bar{background:var(--metal);color:var(--hi-ink)}
+.sw-bg{color:#fff;font-weight:700;letter-spacing:.01em}
+.sw-bg span{opacity:.9;transition:opacity .15s,transform .15s;display:inline-flex;align-items:center;gap:6px}
+.sw.arm .sw-l,.sw.arm .sw-r{opacity:1;transform:scale(1.08)}
+.sw[data-dir="r"] .sw-r,.sw[data-dir="l"] .sw-l{opacity:0}
+.sw[data-dir="r"] .sw-fg{box-shadow:inset 3px 0 0 var(--sw-done)}
+.sw[data-dir="l"] .sw-fg{box-shadow:inset -3px 0 0 var(--sw-ev)}
+.swipe-hint{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.swipe-hint span{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-weight:600;font-size:11.5px}
+.swipe-hint .sh-r{color:var(--sw-done);background:color-mix(in srgb,var(--sw-done) 13%,transparent)}
+.swipe-hint .sh-l{color:var(--sw-ev);background:color-mix(in srgb,var(--sw-ev) 14%,transparent)}
 </style>
 </head>
 <body>
@@ -896,7 +916,7 @@ function itemRow(x,opts={}){
   if(x.type==='todo'){
     const c=h('span',{class:'mk'+(x.done?' on':'')+(!x.done&&x.date<t?' late':''),'aria-label':x.done?'완료됨':'할 일',text:x.done?'✓':''});
     return h('li',{class:'it sw'+(x.done?' done':'')+(!x.done&&x.date<t?' is-late':''),'data-id':x.id},
-      h('div',{class:'sw-bg','aria-hidden':'true'},h('span',{class:'sw-l',text:x.done?'되돌리기':'완료'}),h('span',{class:'sw-r',text:'일정 등록'})),
+      h('div',{class:'sw-bg','aria-hidden':'true'},h('span',{class:'sw-l',text:x.done?'↺ 되돌리기':'✓ 완료'}),h('span',{class:'sw-r',text:'일정 등록 ＋'})),
       h('div',{class:'sw-fg'},c,body));
   }
   if(x.type==='event')return h('li',{class:'it'},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body);
@@ -972,7 +992,7 @@ function renderTodos(){
       put({id:uid(),type:'todo',date:t,time:'',text:v,done:false,createdAt:Date.now()});
       setTimeout(()=>{const n=$('tText');if(n){n.value='';n.focus();}},0);}},
       h('div',{class:'c-row'},inp,h('button',{class:'primary',type:'submit',text:'추가'})))];
-  if(dates.length)kids.push(h('p',{class:'swipe-hint',text:'오른쪽으로 밀어 완료 →   ← 왼쪽으로 밀어 일정 등록'}));
+  if(dates.length)kids.push(h('p',{class:'swipe-hint'},h('span',{class:'sh-r',text:'→ 밀면 완료'}),h('span',{class:'sh-l',text:'← 밀면 일정 등록'})));
   if(!dates.length)kids.push(h('div',{class:'card empty'},h('b',{text:'할 일이 없습니다'}),'위 입력칸에 적으면 오늘 날짜로 등록됩니다.'));
   for(const d of dates){
     const list=groups[d];

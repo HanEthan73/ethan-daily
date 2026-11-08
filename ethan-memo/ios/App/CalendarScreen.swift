@@ -28,8 +28,9 @@ struct CalendarScreen: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.bottom, 8)
+                .background(Theme.bg)
 
-                Divider()
+                Rectangle().fill(Theme.line).frame(height: 0.5)
 
                 DayList(day: selected, items: dayItems, editing: $editing)
             }
@@ -66,46 +67,65 @@ struct DayList: View {
         let events = items.filter { $0.kind == .event }
             .sorted { ($0.isMultiDay ? 0 : 1, Fmt.minutes($0.time)) < ($1.isMultiDay ? 0 : 1, Fmt.minutes($1.time)) }
         let todos = items.filter { $0.kind == .todo }
-            .sorted { ($0.done ? 1 : 0, Fmt.minutes($0.time)) < ($1.done ? 1 : 0, Fmt.minutes($1.time)) }
-        let memos = items.filter { $0.kind == .memo }.sorted { $0.createdAt < $1.createdAt }
+        let open = todos.filter { !$0.done }.sorted { $0.createdAt > $1.createdAt }
+        let done = todos.filter(\.done).sorted { ($0.doneAt ?? .distantPast) > ($1.doneAt ?? .distantPast) }
+        let memos = items.filter { $0.kind == .memo }.sorted { $0.createdAt > $1.createdAt }
 
         List {
             Section {
                 Composer(day: day)
             } header: {
-                Text(Fmt.string(day, "M월 d일 EEEE"))
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(.primary)
-                    .textCase(nil)
+                HStack(spacing: 8) {
+                    Text(Fmt.string(day, "M월 d일 EEEE"))
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.primary)
+                    if let h = Holidays.shared.name(day) {
+                        Text(h).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.sun)
+                    }
+                }
+                .textCase(nil)
             }
             if items.isEmpty {
                 Section {
-                    Text("이 날은 아직 비어 있습니다. 위에서 추가하거나, 달력에서 여러 날을 드래그해 일정을 만드세요.")
+                    Text("이 날은 비어 있습니다. 위에서 추가하거나, 달력을 꾹 누른 채 끌어 일정을 만드세요.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .rowSurface()
                 }
             }
             if !events.isEmpty {
-                Section("일정 \(events.count)") {
+                Section(header: head("일정", "\(events.count)", Theme.hi)) {
                     ForEach(events) { item in ItemRow(item: item) { editing = item } }
                 }
             }
             if !todos.isEmpty {
-                Section("할 일 \(todos.filter(\.done).count)/\(todos.count)") {
-                    ForEach(todos) { item in ItemRow(item: item) { editing = item } }
+                Section(header: head("할 일", "\(done.count)/\(todos.count)", Theme.todo)) {
+                    ForEach(open) { item in ItemRow(item: item) { editing = item } }
+                    DoneFold(items: done, editing: $editing)
                 }
             }
             if !memos.isEmpty {
-                Section("메모 \(memos.count)") {
+                Section(header: head("메모", "\(memos.count)", Theme.memo)) {
                     ForEach(memos) { item in ItemRow(item: item) { editing = item } }
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .spaceGray()
+    }
+
+    private func head(_ t: String, _ n: String, _ c: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle().fill(c).frame(width: 6, height: 6)
+            Text(t).font(.system(size: 12, weight: .semibold))
+            Text(n).font(.system(size: 11.5).monospacedDigit()).foregroundStyle(.secondary)
+        }
+        .textCase(nil)
     }
 }
 
-// MARK: - 월간 달력 (탭 = 날짜 선택, 드래그 = 기간 일정 등록)
+// MARK: - 월간 달력
+// 탭 = 날짜 선택 · 꾹 누르기(0.38초) = 그날 일정 · 꾹 누른 채 끌기 = 기간 일정 · 좌우로 밀기 = 달 바꾸기
 
 struct MonthGrid: View {
     @Binding var month: Date
@@ -115,10 +135,13 @@ struct MonthGrid: View {
 
     @State private var dragFrom: Int?
     @State private var dragTo: Int?
+    @State private var selecting = false
+    @State private var moved = false
+    @State private var began = false
     @State private var pressTask: DispatchWorkItem?
-    @State private var longPressed = false
 
-    private let rowH: CGFloat = 70
+    private let rowH: CGFloat = 76
+    private let barTop: CGFloat = 41
     private let barH: CGFloat = 13
     private let maxLanes = 2
 
@@ -135,7 +158,7 @@ struct MonthGrid: View {
     }
     private var days: [Date] { (0..<(weeks * 7)).map { Fmt.addDays(firstCell, $0) } }
 
-    /// 하루짜리 항목 → 점
+    /// 할 일·메모 → 점
     private var dots: [Date: Set<Kind>] {
         var m: [Date: Set<Kind>] = [:]
         for i in items where i.kind != .event && !(i.kind == .todo && i.done) {
@@ -151,16 +174,16 @@ struct MonthGrid: View {
         let openLeft: Bool, openRight: Bool
     }
 
-    /// 여러 날 일정 → 주(週) 단위로 잘린 이어진 막대
+    /// 일정 → 주 단위로 잘린 이어진 막대 (하루 일정도 막대)
     private var bars: [Seg] {
         let n = weeks * 7
         let first = firstCell
-        let multi = items.filter { $0.kind == .event }.sorted {
+        let evs = items.filter { $0.kind == .event }.sorted {
             ($0.day, -Fmt.daysBetween($0.day, $0.lastDay), Fmt.minutes($0.time), $0.createdAt) < ($1.day, -Fmt.daysBetween($1.day, $1.lastDay), Fmt.minutes($1.time), $1.createdAt)
         }
         var laneEnds: [Int] = []
         var out: [Seg] = []
-        for ev in multi {
+        for ev in evs {
             let s = Fmt.daysBetween(first, ev.day)
             let e = Fmt.daysBetween(first, ev.lastDay)
             if e < 0 || s >= n { continue }
@@ -182,9 +205,9 @@ struct MonthGrid: View {
         return out
     }
 
-    /// 드래그 중인 범위 → 주 단위 하이라이트(이어진 모양)
+    /// 선택 중인 범위 → 주 단위 하이라이트
     private var dragSegs: [(row: Int, start: Int, end: Int)] {
-        guard let a = dragFrom, let b = dragTo, a != b else { return [] }
+        guard selecting, let a = dragFrom, let b = dragTo else { return [] }
         let lo = min(a, b), hi = max(a, b)
         var out: [(row: Int, start: Int, end: Int)] = []
         var i = lo
@@ -200,25 +223,29 @@ struct MonthGrid: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack(spacing: 4) {
-                Text(Fmt.string(month, "yyyy년 M월"))
-                    .font(.title3.weight(.semibold).monospacedDigit())
+                Text(Fmt.string(month, "yyyy. M"))
+                    .font(.system(size: 20, weight: .bold, design: .monospaced))
+                Text("월").font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
                 Button("오늘") {
                     let t = Fmt.cal.startOfDay(for: .now)
                     selected = t
-                    month = Fmt.startOfMonth(t)
+                    withAnimation(.snappy) { month = Fmt.startOfMonth(t) }
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                Button { shift(-1) } label: { Image(systemName: "chevron.left").frame(width: 32, height: 32) }
-                Button { shift(1) } label: { Image(systemName: "chevron.right").frame(width: 32, height: 32) }
+                .font(.system(size: 13, weight: .semibold))
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .foregroundStyle(Theme.hi)
+                .background(Capsule().fill(Theme.hiSoft))
+                Button { shift(-1) } label: { Image(systemName: "chevron.left").frame(width: 30, height: 30) }
+                Button { shift(1) } label: { Image(systemName: "chevron.right").frame(width: 30, height: 30) }
             }
+            .tint(.secondary)
             .padding(.top, 6)
 
             HStack(spacing: 0) {
                 ForEach(Array(["일", "월", "화", "수", "목", "금", "토"].enumerated()), id: \.offset) { i, s in
                     Text(s)
-                        .font(.caption)
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(i == 0 ? Theme.sun : Color.secondary)
                         .frame(maxWidth: .infinity)
                 }
@@ -227,10 +254,11 @@ struct MonthGrid: View {
             GeometryReader { geo in
                 let w = geo.size.width / 7
                 ZStack(alignment: .topLeading) {
-                    // 1) 드래그 범위
+                    // 1) 선택 범위
                     ForEach(Array(dragSegs.enumerated()), id: \.offset) { _, seg in
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.primary.opacity(0.12))
+                            .fill(Theme.hiSoft)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hi.opacity(0.6), lineWidth: 1))
                             .frame(width: CGFloat(seg.end - seg.start + 1) * w - 2, height: rowH - 4)
                             .offset(x: CGFloat(seg.start) * w + 1, y: CGFloat(seg.row) * rowH + 2)
                     }
@@ -240,12 +268,13 @@ struct MonthGrid: View {
                                 inMonth: Fmt.cal.isDate(d, equalTo: month, toGranularity: .month),
                                 isToday: Fmt.cal.isDateInToday(d),
                                 isSelected: Fmt.cal.isDate(d, inSameDayAs: selected),
+                                holiday: Holidays.shared.short(d),
                                 kinds: dots[d] ?? [],
                                 column: i % 7)
                             .frame(width: w, height: rowH)
                             .offset(x: CGFloat(i % 7) * w, y: CGFloat(i / 7) * rowH)
                     }
-                    // 3) 여러 날 일정 막대
+                    // 3) 일정 막대
                     ForEach(bars) { b in
                         Text(b.title)
                             .font(.system(size: 9.5, weight: .semibold))
@@ -253,90 +282,96 @@ struct MonthGrid: View {
                             .padding(.horizontal, 4)
                             .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 2) - (b.openRight ? 0 : 2),
                                    height: barH, alignment: .leading)
-                            .foregroundStyle(Theme.onInk)
+                            .foregroundStyle(Theme.hiInk)
                             .background(
                                 UnevenRoundedRectangle(topLeadingRadius: b.openLeft ? 0 : 4,
                                                        bottomLeadingRadius: b.openLeft ? 0 : 4,
                                                        bottomTrailingRadius: b.openRight ? 0 : 4,
                                                        topTrailingRadius: b.openRight ? 0 : 4)
-                                    .fill(Theme.event)
+                                    .fill(Theme.metal)
                             )
                             .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 2),
-                                    y: CGFloat(b.row) * rowH + 33 + CGFloat(b.lane) * (barH + 1))
+                                    y: CGFloat(b.row) * rowH + barTop + CGFloat(b.lane) * (barH + 2))
                             .allowsHitTesting(false)
                     }
                 }
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
-                        .onChanged { v in
-                            if longPressed { return }
-                            let idx = index(at: v.location, w: w)
-                            if dragFrom == nil {
-                                let start = index(at: v.startLocation, w: w)
-                                dragFrom = start
-                                // 꾹 누르기(0.45초) → 그날 하루 일정 등록
-                                let task = DispatchWorkItem {
-                                    guard dragFrom == start, dragTo == nil || dragTo == start else { return }
-                                    longPressed = true
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    let d = days[start]
-                                    selected = d
-                                    onRange(d, d)
-                                }
-                                pressTask = task
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: task)
-                            }
-                            if dragTo != idx {
-                                dragTo = idx
-                                if dragFrom != idx {
-                                    pressTask?.cancel()
-                                    UISelectionFeedbackGenerator().selectionChanged()
-                                }
-                            }
-                        }
-                        .onEnded { v in
-                            pressTask?.cancel()
-                            pressTask = nil
-                            if longPressed {
-                                longPressed = false
-                                dragFrom = nil
-                                dragTo = nil
-                                return
-                            }
-                            let a = dragFrom ?? index(at: v.startLocation, w: w)
-                            let b = index(at: v.location, w: w)
-                            dragFrom = nil
-                            dragTo = nil
-                            let all = days
-                            if a == b {
-                                let d = all[a]
-                                selected = d
-                                if !Fmt.cal.isDate(d, equalTo: month, toGranularity: .month) { month = Fmt.startOfMonth(d) }
-                            } else {
-                                let s = all[min(a, b)], e = all[max(a, b)]
-                                selected = s
-                                onRange(s, e)
-                            }
-                        }
+                        .onChanged { v in changed(v, w: w) }
+                        .onEnded { v in ended(v, w: w) }
                 )
             }
             .frame(height: CGFloat(weeks) * rowH)
+            .id(month)
+            .transition(.opacity)
 
-            HStack(spacing: 14) {
-                legend(.event, "일정")
-                legend(.todo, "할 일")
-                legend(.memo, "메모")
+            HStack(spacing: 12) {
+                legend(Theme.hi, "일정")
+                legend(Theme.todo, "할 일")
+                legend(Theme.memo, "메모")
                 Spacer()
-                Text("꾹 누르기·드래그로 일정").font(.caption2).foregroundStyle(.secondary)
+                Text("꾹 눌러 일정 · 끌어서 기간 · 좌우로 달").font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
-            .font(.caption)
+            .font(.system(size: 11))
             .foregroundStyle(.secondary)
         }
     }
 
-    private func legend(_ k: Kind, _ s: String) -> some View {
-        HStack(spacing: 4) { Circle().fill(k.color).frame(width: 6, height: 6); Text(s) }
+    // MARK: 손동작
+
+    private func changed(_ v: DragGesture.Value, w: CGFloat) {
+        if !began {
+            began = true
+            moved = false
+            let start = index(at: v.startLocation, w: w)
+            let task = DispatchWorkItem {
+                guard began, !moved else { return }
+                selecting = true
+                dragFrom = start
+                dragTo = start
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            }
+            pressTask = task
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.38, execute: task)
+        }
+        if selecting {
+            let idx = index(at: v.location, w: w)
+            if dragTo != idx {
+                dragTo = idx
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+        } else if hypot(v.translation.width, v.translation.height) > 10 {
+            moved = true
+            pressTask?.cancel()
+        }
+    }
+
+    private func ended(_ v: DragGesture.Value, w: CGFloat) {
+        pressTask?.cancel()
+        pressTask = nil
+        defer { began = false; moved = false; selecting = false; dragFrom = nil; dragTo = nil }
+        let all = days
+        if selecting, let a = dragFrom, let b = dragTo {
+            let s = all[min(a, b)], e = all[max(a, b)]
+            selected = s
+            onRange(s, e)
+            return
+        }
+        if moved {
+            let dx = v.translation.width, dy = v.translation.height
+            if abs(dx) > 45 && abs(dx) > abs(dy) * 1.2 { shift(dx < 0 ? 1 : -1) }
+            return
+        }
+        let d = all[index(at: v.location, w: w)]
+        selected = d
+        if !Fmt.cal.isDate(d, equalTo: month, toGranularity: .month) {
+            withAnimation(.snappy) { month = Fmt.startOfMonth(d) }
+        }
+    }
+
+    private func legend(_ c: Color, _ s: String) -> some View {
+        HStack(spacing: 4) { Circle().fill(c).frame(width: 6, height: 6); Text(s) }
     }
 
     private func index(at p: CGPoint, w: CGFloat) -> Int {
@@ -346,7 +381,10 @@ struct MonthGrid: View {
     }
 
     private func shift(_ n: Int) {
-        month = Fmt.cal.date(byAdding: .month, value: n, to: month) ?? month
+        UISelectionFeedbackGenerator().selectionChanged()
+        withAnimation(.snappy) {
+            month = Fmt.cal.date(byAdding: .month, value: n, to: month) ?? month
+        }
     }
 }
 
@@ -355,28 +393,37 @@ struct DayCell: View {
     let inMonth: Bool
     let isToday: Bool
     let isSelected: Bool
+    let holiday: String?
     let kinds: Set<Kind>
     let column: Int
 
+    private var red: Bool { column == 0 || holiday != nil }
+
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 1) {
             Text("\(Fmt.cal.component(.day, from: date))")
-                .font(.callout.monospacedDigit())
-                .fontWeight(isToday || isSelected ? .semibold : .regular)
-                .foregroundStyle(isSelected ? Theme.onInk : column == 0 ? Theme.sun : column == 6 ? Color.secondary : Color.primary)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(isSelected ? Color.primary : Color.clear))
-                .overlay(Circle().stroke(isToday && !isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
+                .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular).monospacedDigit())
+                .foregroundStyle(isSelected ? Theme.hiInk : red ? Theme.sun : column == 6 ? Color.secondary : Color.primary)
+                .frame(width: 26, height: 26)
+                .background(Circle().fill(isSelected ? AnyShapeStyle(Theme.metal) : AnyShapeStyle(Color.clear)))
+                .overlay(Circle().stroke(isToday && !isSelected ? Theme.hi : Color.clear, lineWidth: 1.5))
                 .padding(.top, 2)
+            Text(holiday ?? " ")
+                .font(.system(size: 8.5, weight: .medium))
+                .foregroundStyle(Theme.sun)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(height: 10)
             Spacer(minLength: 0)
             HStack(spacing: 3) {
-                ForEach([Kind.event, .todo, .memo].filter { kinds.contains($0) }) { k in
+                ForEach([Kind.todo, .memo].filter { kinds.contains($0) }) { k in
                     Circle().fill(k.color).frame(width: 5, height: 5)
                 }
             }
             .frame(height: 5)
-            .padding(.bottom, 3)
+            .padding(.bottom, 4)
         }
-        .opacity(inMonth ? 1 : 0.35)
+        .frame(maxWidth: .infinity)
+        .opacity(inMonth ? 1 : 0.32)
     }
 }

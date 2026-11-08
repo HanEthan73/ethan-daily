@@ -29,6 +29,12 @@ final class Item {
     var createdAt: Date
     var answer: String?
     var answeredAt: Date?
+    /// 상세 내용(마크다운)
+    var note: String = ""
+    /// 사진 파일 ID 목록 (PhotoStore)
+    var photoIDs: [String] = []
+    /// 마지막 수정 시각 (동기화 병합 기준)
+    var updatedAt: Date? = nil
 
     init(kind: Kind, day: Date, endDay: Date? = nil, time: Date? = nil, text: String) {
         let start = Fmt.cal.startOfDay(for: day)
@@ -46,6 +52,7 @@ final class Item {
         self.done = false
         self.doneAt = nil
         self.createdAt = .now
+        self.updatedAt = .now
     }
 
     var kind: Kind {

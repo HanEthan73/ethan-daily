@@ -25,7 +25,7 @@ final class Asker {
                 let answer = try await ClaudeClient.ask(prompt)
                 item.answer = answer
                 item.answeredAt = .now
-                try? ctx.save()
+                Store.save(ctx)
             } catch {
                 lastError = (error as? ClaudeError)?.message ?? error.localizedDescription
             }
@@ -131,23 +131,23 @@ enum ClaudeClient {
 // MARK: - API 키 보관 (기기 Keychain)
 
 enum Keychain {
-    private static let base: [String: Any] = [
-        kSecClass as String: kSecClassGenericPassword,
-        kSecAttrService as String: "haru.claude",
-        kSecAttrAccount as String: "apiKey"
-    ]
+    private static func base(_ account: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: "haru.claude",
+         kSecAttrAccount as String: account]
+    }
 
-    static func save(_ value: String) {
-        SecItemDelete(base as CFDictionary)
+    static func save(_ value: String, account: String = "apiKey") {
+        SecItemDelete(base(account) as CFDictionary)
         guard !value.isEmpty else { return }
-        var add = base
+        var add = base(account)
         add[kSecValueData as String] = Data(value.utf8)
         add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         SecItemAdd(add as CFDictionary, nil)
     }
 
-    static func read() -> String? {
-        var q = base
+    static func read(account: String = "apiKey") -> String? {
+        var q = base(account)
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne
         var out: AnyObject?

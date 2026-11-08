@@ -30,6 +30,9 @@ struct BackupItem: Codable {
     var createdAt: Double?
     var answer: String?
     var answeredAt: Double?
+    var note: String? = nil
+    var photos: [String]? = nil
+    var updatedAt: Double? = nil
 }
 
 enum Backup {
@@ -57,7 +60,8 @@ enum Backup {
                        endDate: i.endDay.map { dayFmt.string(from: $0) },
                        time: i.time.map { timeFmt.string(from: $0) },
                        text: i.text, done: i.done, doneAt: ms(i.doneAt), createdAt: ms(i.createdAt),
-                       answer: i.answer, answeredAt: ms(i.answeredAt))
+                       answer: i.answer, answeredAt: ms(i.answeredAt),
+                       note: i.note.isEmpty ? nil : i.note, photos: i.photoIDs, updatedAt: ms(i.updatedAt))
         }
         let wiki = try ctx.fetch(FetchDescriptor<WikiPage>()).map {
             BackupPage(id: $0.uid, title: $0.title, body: $0.body, createdAt: ms($0.createdAt), updatedAt: ms($0.updatedAt))
@@ -79,6 +83,36 @@ enum Backup {
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         let data = try Data(contentsOf: url)
         let file = try JSONDecoder().decode(BackupFile.self, from: data)
+        return try merge(file, into: ctx, keep: false)
+    }
+
+    /// 가져오기 링크(#import=…) 또는 코드 → 기록 추가 (이미 있는 것은 건드리지 않음)
+    @discardableResult
+    static func importCode(_ raw: String, into ctx: ModelContext) throws -> Int {
+        var code = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let r = code.range(of: "import=") { code = String(code[r.upperBound...]) }
+        code = String(code.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_" })
+        var b64 = code.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        b64 += String(repeating: "=", count: (4 - b64.count % 4) % 4)
+        guard code.count > 20, let z = Data(base64Encoded: b64),
+              let raw = try? (z as NSData).decompressed(using: .zlib) as Data,
+              let j = try? JSONSerialization.jsonObject(with: raw) as? [String: Any] else { throw CocoaError(.fileReadCorruptFile) }
+        var items: [BackupItem] = []
+        if let t = j["t"] as? [[Any]], let d = j["d"] as? String {
+            for row in t where row.count >= 2 {
+                guard let id = row[0] as? String, let text = row[1] as? String else { continue }
+                let at = (row.count > 2 ? row[2] as? NSNumber : nil)?.doubleValue
+                items.append(BackupItem(id: "rem-" + id, type: "todo", date: d, text: text, done: false, createdAt: at))
+            }
+        } else {
+            let file = try JSONDecoder().decode(BackupFile.self, from: raw)
+            items = file.items
+        }
+        let r = try merge(BackupFile(exportedAt: Date().timeIntervalSince1970 * 1000, items: items), into: ctx, keep: true)
+        return r.added
+    }
+
+    static func merge(_ file: BackupFile, into ctx: ModelContext, keep: Bool) throws -> (added: Int, updated: Int) {
         let existing = try ctx.fetch(FetchDescriptor<Item>())
         var byId: [String: Item] = [:]
         for i in existing { byId[i.uid] = i }
@@ -94,6 +128,7 @@ enum Backup {
             }
             let item: Item
             if let old = byId[b.id] {
+                if keep { continue }
                 item = old
                 updated += 1
             } else {
@@ -113,6 +148,8 @@ enum Backup {
             item.createdAt = date(b.createdAt) ?? item.createdAt
             item.answer = b.answer
             item.answeredAt = date(b.answeredAt)
+            item.note = b.note ?? ""
+            item.photoIDs = b.photos ?? []
         }
         let existingPages = try ctx.fetch(FetchDescriptor<WikiPage>())
         var pageById: [String: WikiPage] = [:]

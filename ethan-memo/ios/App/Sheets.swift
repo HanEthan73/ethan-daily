@@ -1,12 +1,13 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - 달력 드래그로 연 기간 일정 등록
+// MARK: - 일정 등록 (달력 꾹 누르기·드래그, 할 일 왼쪽으로 밀기)
 
 struct NewEventSheet: View {
     @Environment(\.modelContext) private var ctx
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
+    @State private var note = ""
     @State private var start: Date
     @State private var end: Date
     @State private var hasTime = false
@@ -23,8 +24,8 @@ struct NewEventSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("일정 제목 (예: 부산 출장)", text: $title)
-                        .focused($focused)
+                    TextField("일정 제목 (예: 부산 출장)", text: $title).focused($focused)
+                    TextField("상세 내용 (선택)", text: $note, axis: .vertical).lineLimit(2...8).font(.subheadline)
                 }
                 Section {
                     DatePicker("시작", selection: $start, displayedComponents: .date)
@@ -37,6 +38,7 @@ struct NewEventSheet: View {
                     Text("\(Fmt.short(start)) – \(Fmt.short(end)) · \(Fmt.daysBetween(start, end) + 1)일")
                 }
             }
+            .spaceGray()
             .navigationTitle("일정 등록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -55,13 +57,14 @@ struct NewEventSheet: View {
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
         let item = Item(kind: .event, day: start, endDay: end, time: hasTime ? time : nil, text: t)
+        item.note = note
         ctx.insert(item)
         Store.save(ctx)
         dismiss()
     }
 }
 
-// MARK: - 수정
+// MARK: - 수정 (상세 노트 · 사진 · 달력에서 날짜 고르기 · Claude)
 
 struct EditSheet: View {
     @Environment(\.modelContext) private var ctx
@@ -70,17 +73,22 @@ struct EditSheet: View {
 
     @State private var kind: Kind
     @State private var text: String
+    @State private var note: String
+    @State private var photos: [String]
     @State private var day: Date
     @State private var end: Date
     @State private var hasTime: Bool
     @State private var time: Date
     @State private var done: Bool
     @State private var confirmDelete = false
+    @State private var pickEnd = false
 
     init(item: Item) {
         self.item = item
         _kind = State(initialValue: item.kind)
         _text = State(initialValue: item.text)
+        _note = State(initialValue: item.note)
+        _photos = State(initialValue: item.photoIDs)
         _day = State(initialValue: item.day)
         _end = State(initialValue: item.lastDay)
         _hasTime = State(initialValue: item.time != nil)
@@ -96,13 +104,32 @@ struct EditSheet: View {
                         ForEach(Kind.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
-                    TextField("내용", text: $text, axis: .vertical)
-                        .lineLimit(2...10)
+                    TextField("제목", text: $text, axis: .vertical)
+                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(1...4)
+                    TextField("상세 내용 (선택) · ## 소제목  - 목록  - [ ] 체크  [[링크]]", text: $note, axis: .vertical)
+                        .font(.system(size: 14))
+                        .lineLimit(3...14)
+                    PhotoEditor(ids: $photos)
                 }
                 Section {
-                    DatePicker(kind == .event ? "시작" : "날짜", selection: $day, displayedComponents: .date)
+                    // 달력에서 눌러 고르기
                     if kind == .event {
-                        DatePicker("종료", selection: $end, in: day..., displayedComponents: .date)
+                        Picker("", selection: $pickEnd) {
+                            Text("시작 \(Fmt.short(day))").tag(false)
+                            Text("종료 \(Fmt.short(end))").tag(true)
+                        }
+                        .pickerStyle(.segmented)
+                        if pickEnd {
+                            DatePicker("종료", selection: $end, in: day..., displayedComponents: .date).datePickerStyle(.graphical)
+                        } else {
+                            DatePicker("시작", selection: $day, displayedComponents: .date).datePickerStyle(.graphical)
+                        }
+                    } else {
+                        DatePicker("날짜", selection: $day, displayedComponents: .date).datePickerStyle(.graphical)
+                    }
+                    if let h = Holidays.shared.name(day) {
+                        Label(h, systemImage: "flag").font(.footnote).foregroundStyle(Theme.sun)
                     }
                     if kind != .memo {
                         Toggle("시간 지정", isOn: $hasTime)
@@ -133,13 +160,18 @@ struct EditSheet: View {
                     Button("삭제", role: .destructive) { confirmDelete = true }
                 }
             }
+            .spaceGray()
             .navigationTitle("\(kind.label) 수정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("저장") { save(close: true) } }
             }
-            .onChange(of: day) { _, d in if end < d { end = d } }
+            .onChange(of: day) { _, d in
+                if end < d { end = d }
+                if kind == .event && !pickEnd { pickEnd = true }
+            }
+            .onChange(of: end) { _, _ in if kind == .event { pickEnd = false } }
             .confirmationDialog("이 기록을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("삭제", role: .destructive) {
                     ctx.delete(item)
@@ -155,6 +187,8 @@ struct EditSheet: View {
         guard !t.isEmpty else { return }
         item.kind = kind
         item.text = t
+        item.note = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.photoIDs = photos
         item.day = Fmt.cal.startOfDay(for: day)
         let e = Fmt.cal.startOfDay(for: end)
         item.endDay = (kind == .event && e > item.day) ? e : nil

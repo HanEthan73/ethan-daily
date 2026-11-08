@@ -47,19 +47,33 @@ extension Kind {
     }
 }
 
-/// 블랙·그레이 톤
+/// 스페이스 그레이 (애플 알루미늄) — 라이트: 스페이스 그레이 포인트, 다크: 실버 포인트
 enum Theme {
     static func adaptive(_ light: UIColor, _ dark: UIColor) -> Color {
         Color(UIColor { $0.userInterfaceStyle == .dark ? dark : light })
     }
-    static let event = adaptive(UIColor(white: 0.23, alpha: 1), UIColor(white: 0.79, alpha: 1))
-    static let todo = adaptive(UIColor(red: 0.37, green: 0.42, blue: 0.40, alpha: 1), UIColor(red: 0.62, green: 0.68, blue: 0.65, alpha: 1))
-    static let memo = adaptive(UIColor(red: 0.55, green: 0.50, blue: 0.42, alpha: 1), UIColor(red: 0.73, green: 0.68, blue: 0.60, alpha: 1))
-    static let warn = adaptive(UIColor(red: 0.71, green: 0.33, blue: 0.16, alpha: 1), UIColor(red: 0.88, green: 0.55, blue: 0.39, alpha: 1))
-    static let sun = adaptive(UIColor(red: 0.76, green: 0.27, blue: 0.25, alpha: 1), UIColor(red: 0.88, green: 0.48, blue: 0.45, alpha: 1))
-    /// 검정(라이트)·흰색(다크) 바탕 위 글자색
-    static let onInk = Color(UIColor.systemBackground)
-    /// 밀기 버튼 배경 (흰 글자가 잘 보이는 중간 톤)
-    static let swipeDone = Color(red: 0.36, green: 0.44, blue: 0.40)
-    static let swipeEvent = Color(white: 0.33)
+    static func rgb(_ hex: UInt32, _ a: CGFloat = 1) -> UIColor {
+        UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: a)
+    }
+    static let hi = adaptive(rgb(0x45464B), rgb(0xD1D1D6))
+    static let hiInk = adaptive(.white, rgb(0x151517))
+    static let hiSoft = adaptive(rgb(0x45464B, 0.10), rgb(0xD1D1D6, 0.12))
+    static let btn = hi
+    static let bg = adaptive(rgb(0xE4E5E8), rgb(0x151517))
+    static let surface = adaptive(rgb(0xF5F5F7), rgb(0x1E1E21))
+    static let line = adaptive(rgb(0xD1D1D6), rgb(0x2F2F33))
+    static let event = hi
+    static let todo = adaptive(rgb(0x248A3D), rgb(0x30D158))
+    static let memo = adaptive(rgb(0xA27B3C), rgb(0xD8B878))
+    static let warn = adaptive(rgb(0xE0352B), rgb(0xFF453A))
+    static let sun = warn
+    /// 알루미늄 금속 느낌 그라데이션 (버튼·선택한 날·일정 막대)
+    static let metalTop = adaptive(rgb(0x76777D), rgb(0xF2F2F5))
+    static let metalBottom = adaptive(rgb(0x3A3B3F), rgb(0xA4A4AA))
+    static var metal: LinearGradient { LinearGradient(colors: [metalTop, metalBottom], startPoint: .top, endPoint: .bottom) }
+    /// 진한 바탕 위 글자색 (호환용)
+    static let onInk = hiInk
+    /// 밀기 색: → 완료 = 초록, ← 일정 등록 = 주황
+    static let swipeDone = Color(rgb(0x2FB463))
+    static let swipeEvent = Color(rgb(0xFF9500))
 }

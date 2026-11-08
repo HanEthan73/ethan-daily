@@ -111,7 +111,8 @@ struct TodoWidgetView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(entry.total)")
-                        .font(.system(size: family == .systemSmall ? 28 : 34, weight: .bold, design: .rounded))
+                        .font(.system(size: family == .systemSmall ? 28 : 34, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Theme.hi)
                         .monospacedDigit()
                     Text(subtitle)
                         .font(.caption.weight(.semibold))
@@ -122,9 +123,9 @@ struct TodoWidgetView: View {
                     Link(destination: URL(string: "haru://todo")!) {
                         Image(systemName: "list.bullet")
                             .font(.headline)
-                            .foregroundStyle(Theme.onInk)
+                            .foregroundStyle(Theme.hiInk)
                             .frame(width: 38, height: 38)
-                            .background(Circle().fill(Color.primary))
+                            .background(Circle().fill(Theme.hi))
                     }
                 }
             }
@@ -142,7 +143,7 @@ struct TodoWidgetView: View {
                             HStack(spacing: 6) {
                                 Text(Fmt.string(d, "M/d (E)"))
                                     .font(.caption.weight(.semibold).monospacedDigit())
-                                    .foregroundStyle(Color.primary)
+                                    .foregroundStyle(Theme.hi)
                                 Text(relative(d))
                                     .font(.caption2)
                                     .foregroundStyle(d < Fmt.cal.startOfDay(for: .now) ? Theme.warn : Color.secondary)

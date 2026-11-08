@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
+import UIKit
 
 struct SettingsScreen: View {
     @Environment(\.modelContext) private var ctx
@@ -12,6 +13,12 @@ struct SettingsScreen: View {
     @AppStorage("claudeModel") private var model = ClaudeModel.sonnet.rawValue
     @State private var testState: String?
     @State private var testing = false
+    @State private var repo = SyncService.shared.repo
+    @State private var ghToken = ""
+    @State private var hasToken = Keychain.read(account: "ghToken") != nil
+    @State private var pasting = false
+    @State private var pasteText = ""
+    private var sync = SyncService.shared
 
     var body: some View {
         NavigationStack {
@@ -74,6 +81,49 @@ struct SettingsScreen: View {
                 }
 
                 Section {
+                    HStack {
+                        Circle().fill(syncColor).frame(width: 7, height: 7)
+                        Text(syncText).font(.subheadline)
+                        Spacer()
+                        Button("지금 동기화") { Task { await sync.run() } }
+                            .buttonStyle(.ink)
+                            .disabled(!sync.on || sync.state == .busy)
+                    }
+                    TextField("HanEthan73/ethan-memo-data", text: $repo)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onSubmit { sync.repo = repo; repo = sync.repo; sync.schedule(0.2) }
+                    SecureField(hasToken ? "토큰 저장됨 · 바꾸려면 새로 입력" : "github_pat_로 시작하는 토큰", text: $ghToken)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    HStack {
+                        Button("저장하고 연결") {
+                            sync.repo = repo
+                            repo = sync.repo
+                            let t = ghToken.trimmingCharacters(in: .whitespacesAndNewlines)
+                            if !t.isEmpty { Keychain.save(t, account: "ghToken") }
+                            ghToken = ""
+                            hasToken = Keychain.read(account: "ghToken") != nil
+                            Task { await sync.run() }
+                        }
+                        .disabled(repo.trimmingCharacters(in: .whitespaces).isEmpty || (ghToken.isEmpty && !hasToken))
+                        Spacer()
+                        if hasToken {
+                            Button("연결 끊기", role: .destructive) {
+                                Keychain.save("", account: "ghToken")
+                                hasToken = false
+                                sync.state = .off
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                } header: {
+                    Text("PC·웹과 동기화")
+                } footer: {
+                    Text("비공개 저장소 하나와, 그 저장소에만 ‘Contents 읽기·쓰기’ 권한을 준 토큰을 넣으세요. 웹(PC) 버전 ⚙에도 같은 값을 넣으면 할 일·일정·위키·사진이 양쪽에 똑같이 보입니다. 토큰은 이 아이폰의 Keychain에만 저장됩니다.")
+                }
+
+                Section {
                     Button {
                         do { exportURL = try Backup.export(ctx); backupMsg = nil }
                         catch { backupMsg = "백업 파일을 만들지 못했습니다: \(error.localizedDescription)" }
@@ -85,6 +135,12 @@ struct SettingsScreen: View {
                     }
                     Button { importing = true } label: {
                         Label("백업에서 불러오기", systemImage: "square.and.arrow.down")
+                    }
+                    Button {
+                        if let c = UIPasteboard.general.string, c.contains("import=") { runImport(c) }
+                        else { pasteText = ""; pasting = true }
+                    } label: {
+                        Label("가져오기 링크·코드 붙여넣기", systemImage: "doc.on.clipboard")
                     }
                     if let m = backupMsg {
                         Text(m).font(.footnote).foregroundStyle(.secondary)
@@ -114,7 +170,44 @@ struct SettingsScreen: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .spaceGray()
             .navigationTitle("설정")
+            .navigationBarTitleDisplayMode(.inline)
+            .alert("가져오기 링크 붙여넣기", isPresented: $pasting) {
+                TextField("https://…#import=…", text: $pasteText)
+                Button("가져오기") { runImport(pasteText) }
+                Button("취소", role: .cancel) {}
+            }
+        }
+    }
+
+    private func runImport(_ code: String) {
+        do {
+            let n = try Backup.importCode(code, into: ctx)
+            backupMsg = n > 0 ? "옮겼습니다: 할 일 \(n)개 추가" : "이미 모두 들어와 있습니다"
+            Router.shared.tab = .todo
+        } catch {
+            backupMsg = "가져오기 코드를 읽지 못했습니다. 링크 전체를 복사했는지 확인하세요."
+        }
+    }
+
+    private var syncColor: Color {
+        switch sync.state {
+        case .ok: return Theme.todo
+        case .busy: return Theme.memo
+        case .err: return Theme.warn
+        case .off: return sync.on ? Theme.hi : Color.secondary
+        }
+    }
+
+    private var syncText: String {
+        if !sync.on { return "꺼짐 · 이 아이폰에만 저장" }
+        switch sync.state {
+        case .busy: return "동기화 중…"
+        case .err: return sync.error.isEmpty ? "동기화 오류" : sync.error
+        default:
+            if let l = sync.last { return "동기화됨 · " + Fmt.string(l, "M/d HH:mm") }
+            return "연결됨"
         }
     }
 }
