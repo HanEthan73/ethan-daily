@@ -45,6 +45,11 @@ EXAMPLE_PATH = os.path.join(BASE, "config.example.json")
 ENV = os.environ
 CLOUD = bool(ENV.get("PORT"))                 # Koyeb·Render 등은 PORT를 넣어 줌
 APP_PASSWORD = ENV.get("APP_PASSWORD", "")
+# 앱 안에서 계정 연결(setup) 시, 이 Gmail(해시)로 로그인에 성공해야만 연결 허용 → 남이 서버를 못 씀
+OWNER_EMAIL_SHA256 = ENV.get("OWNER_EMAIL_SHA256",
+                             "9c3818fb57a04e75c8bb726e0183f6c3bc9f19e646ce1e36080b1645dec6ab27")
+BOOT_ID = os.urandom(8).hex()                  # 서버가 재시작되면 세션 무효 → 폰이 자동 재연결
+MODE = "setup"                                 # setup: 앱에서 계정 입력 / env: 환경변수·config.json
 TEXT_LIMIT = 400_000                           # 본문은 앞 400KB까지만 받고, 큰 첨부는 열 때 받음
 
 PRESETS = {
@@ -67,7 +72,7 @@ DB_PATH = os.path.join(BASE, "mail.db")
 app = Flask(__name__, static_folder=os.path.join(BASE, "static"), static_url_path="/static")
 app.config.update(
     MAX_CONTENT_LENGTH=30 * 1024 * 1024,
-    SECRET_KEY=ENV.get("SECRET_KEY") or hashlib.sha256(("ethan-mail:" + APP_PASSWORD).encode()).hexdigest(),
+    SECRET_KEY=ENV.get("SECRET_KEY") or os.urandom(32).hex(),
     PERMANENT_SESSION_LIFETIME=timedelta(days=180),
     SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_SECURE=CLOUD,
 )
@@ -98,7 +103,16 @@ def load_config():
         CFG["initial_sync_count"] = int(ENV["INITIAL_SYNC_COUNT"])
     if ENV.get("SYNC_INTERVAL_MIN"):
         CFG["sync_interval_min"] = int(ENV["SYNC_INTERVAL_MIN"])
-    for a in CFG.get("accounts", []):
+    set_accounts(CFG.get("accounts", []))
+    global MODE
+    MODE = "env" if any(a["configured"] for a in ACCOUNTS.values()) else "setup"
+    if MODE == "setup":
+        ACCOUNTS.clear()
+
+
+def set_accounts(lst):
+    ACCOUNTS.clear()
+    for a in lst:
         acc = dict(PRESETS.get(a.get("type", ""), {}))
         acc.update(a)
         acc.setdefault("id", a.get("type") or a["email"])
@@ -130,6 +144,7 @@ CREATE TABLE IF NOT EXISTS messages(
 CREATE INDEX IF NOT EXISTS idx_msg_date ON messages(date_ts DESC);
 CREATE VIRTUAL TABLE IF NOT EXISTS mail_idx USING fts5(
   alltext, subject, sender, recipients, tokenize='trigram');
+CREATE TABLE IF NOT EXISTS acc_meta(account TEXT PRIMARY KEY, email TEXT);
 CREATE TABLE IF NOT EXISTS sync_state(
   account TEXT, folder TEXT, mailbox TEXT, uidvalidity INTEGER, last_uid INTEGER,
   PRIMARY KEY(account, folder));
@@ -174,18 +189,93 @@ def client_ip():
 @app.before_request
 def guard():
     p = request.path
-    if p in ("/login", "/healthz", "/manifest.webmanifest") or p.startswith("/static/"):
+    if p in ("/", "/login", "/logout", "/healthz", "/manifest.webmanifest", "/api/setup") or p.startswith("/static/"):
         return None
-    if not APP_PASSWORD:
-        if CLOUD and not DEMO:
+    if DEMO and not APP_PASSWORD:
+        return None
+    if MODE == "env" and not APP_PASSWORD:
+        if CLOUD:
             return Response("APP_PASSWORD 환경변수(앱 접속 비밀번호)를 설정한 뒤 다시 배포하세요.", 503,
                             mimetype="text/plain; charset=utf-8")
-        return None
-    if session.get("ok"):
+        return None                                   # 내 PC 로컬 실행
+    if session.get("ok") and session.get("boot") == BOOT_ID and (MODE == "env" or ACCOUNTS):
         return None
     if p.startswith("/api/"):
-        return jsonify(error="로그인이 필요합니다"), 401
+        return jsonify(error="계정 연결이 필요합니다", need="login" if MODE == "env" else "setup"), 401
     return redirect("/login")
+
+
+def _norm(e):
+    return (e or "").strip().lower()
+
+
+def _test_login(acc, out, key):
+    try:
+        M = imap_connect(acc)
+        M.logout()
+        out[key] = None
+    except imaplib.IMAP4.error as e:
+        out[key] = f"로그인 실패 — 주소·앱 비밀번호와 IMAP 사용 설정을 확인하세요 ({e})"
+    except Exception as e:
+        out[key] = f"접속 실패: {type(e).__name__}: {e}"
+
+
+@app.post("/api/setup")
+def api_setup():
+    """앱 첫 화면에서 메일 계정 연결. 폰이 저장해 두었다가 서버 재시작 때 자동으로 다시 보냄."""
+    if MODE != "setup":
+        return jsonify(ok=False, error="이 서버는 환경변수로 계정이 설정되어 있습니다"), 400
+    ip = client_ip()
+    n, until = FAILS.get(ip, (0, 0))
+    if until > time.time():
+        return jsonify(ok=False, error="실패가 많아 15분간 잠겼습니다"), 429
+    d = request.get_json(force=True) or {}
+    name = (d.get("name") or "").strip()
+    lst = []
+    for a in d.get("accounts", []):
+        t, e, pw = a.get("type"), _norm(a.get("email")), (a.get("password") or "").replace(" ", "")
+        if t in PRESETS and e and pw:
+            lst.append({"id": t, "type": t, "email": e, "password": pw, "name": name})
+    if not lst:
+        return jsonify(ok=False, error="메일 주소와 앱 비밀번호를 입력하세요"), 400
+    if OWNER_EMAIL_SHA256 and not any(hashlib.sha256(a["email"].encode()).hexdigest() == OWNER_EMAIL_SHA256 for a in lst):
+        FAILS[ip] = (n + 1, time.time() + 900 if n + 1 >= 8 else 0)
+        return jsonify(ok=False, error="이 서버의 주인 Gmail 계정이 아닙니다"), 403
+    same = ACCOUNTS and len(lst) == len(ACCOUNTS) and all(
+        a["id"] in ACCOUNTS and ACCOUNTS[a["id"]]["email"] == a["email"]
+        and hmac.compare_digest(ACCOUNTS[a["id"]]["password"], a["password"]) for a in lst)
+    if not same:                                   # 처음 연결하거나 바뀐 경우에만 실제 로그인 확인
+        errs, ths = {}, []
+        for a in lst:
+            acc = dict(PRESETS[a["type"]]); acc.update(a)
+            th = threading.Thread(target=_test_login, args=(acc, errs, a["id"]))
+            th.start(); ths.append(th)
+        for th in ths:
+            th.join(40)
+        bad = {k: v for k, v in errs.items() if v}
+        owner_ok = any(errs.get(a["id"]) is None and hashlib.sha256(a["email"].encode()).hexdigest() == OWNER_EMAIL_SHA256
+                       for a in lst) if OWNER_EMAIL_SHA256 else True
+        if bad or not owner_ok:
+            FAILS[ip] = (n + 1, time.time() + 900 if n + 1 >= 8 else 0)
+            return jsonify(ok=False, error="연결 실패", errors=bad), 401
+        db = connect()                              # 계정 주소가 바뀌었으면 그 계정의 옛 메일 캐시 삭제
+        for a in lst:
+            row = db.execute("SELECT email FROM acc_meta WHERE account=?", (a["id"],)).fetchone()
+            if row and row[0] != a["email"]:
+                ids = [r[0] for r in db.execute("SELECT id FROM messages WHERE account=?", (a["id"],))]
+                db.executemany("DELETE FROM mail_idx WHERE rowid=?", [(i,) for i in ids])
+                db.execute("DELETE FROM messages WHERE account=?", (a["id"],))
+                db.execute("DELETE FROM sync_state WHERE account=?", (a["id"],))
+            db.execute("INSERT OR REPLACE INTO acc_meta VALUES(?,?)", (a["id"], a["email"]))
+        db.commit(); db.close()
+        set_accounts(lst)
+        SYNC["errors"].clear()
+        threading.Thread(target=run_sync, daemon=True).start()
+    FAILS.pop(ip, None)
+    session.permanent = True
+    session["ok"] = True
+    session["boot"] = BOOT_ID
+    return jsonify(ok=True)
 
 
 LOGIN_HTML = """<!doctype html><html lang="ko"><head><meta charset="utf-8">
@@ -218,6 +308,7 @@ def login():
         FAILS.pop(ip, None)
         session.permanent = True
         session["ok"] = True
+        session["boot"] = BOOT_ID
         return redirect("/")
     time.sleep(1)
     n += 1
@@ -584,6 +675,8 @@ def run_sync():
     if DEMO:
         SYNC["last"] = int(time.time())
         return
+    if not ACCOUNTS and MODE == "setup":
+        return
     if not SYNC_LOCK.acquire(blocking=False):
         return
     SYNC["running"] = True
@@ -601,7 +694,7 @@ def run_sync():
                 SYNC["errors"][acc["id"]] = f"로그인/IMAP 오류: {e} — IMAP 사용 설정과 앱 비밀번호를 확인하세요"
             except Exception as e:
                 SYNC["errors"][acc["id"]] = f"{type(e).__name__}: {e}"
-        if not ACCOUNTS:
+        if not ACCOUNTS and MODE == "env":
             SYNC["errors"]["_"] = "등록된 메일 계정이 없습니다 (GMAIL_EMAIL / NAVER_EMAIL 환경변수 확인)"
         SYNC["new"] = total
         SYNC["last"] = int(time.time())
@@ -733,7 +826,7 @@ def index():
 @app.get("/api/status")
 def api_status():
     return jsonify(running=SYNC["running"], last=SYNC["last"], errors=SYNC["errors"], new=SYNC["new"],
-                   progress=SYNC["progress"], demo=DEMO, auth=bool(APP_PASSWORD),
+                   progress=SYNC["progress"], demo=DEMO, mode=MODE,
                    accounts=[{"id": a["id"], "label": a["label"], "email": a.get("email", ""),
                               "type": a.get("type", ""), "color": a["color"],
                               "configured": a["configured"]} for a in ACCOUNTS.values()])
