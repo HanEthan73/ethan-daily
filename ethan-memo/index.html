@@ -19,20 +19,23 @@
 /* Layout: 데스크톱 = 왼쪽 월간 캘린더 / 오른쪽 선택한 날의 기록. 모바일 = 위아래로 쌓고, 탭으로 할 일 모아보기 */
 :root{
   --bg:#E8E9EC; --surface:#F3F4F6; --sunk:#DFE0E4; --ink:#1D1E22; --muted:#686B74; --line:#D2D4D9;
-  --accent:#2A2C31; --accent-ink:#F3F4F6; --event:#4A4D55; --todo:#5B6A63; --memo:#8A7C68;
-  --sun:#C2453F; --sat:#686B74; --warn:#B4532A; --warn-soft:#F2E5DE; --btn:#2A2C31; --btn-ink:#F3F4F6;
+  --accent:#6A4DE8; --accent-ink:#FFFFFF; --event:#6A4DE8; --todo:#13906A; --memo:#B07A1E;
+  --sun:#D9483B; --sat:#686B74; --warn:#D9483B; --warn-soft:#F7E4E1; --btn:#6A4DE8; --btn-ink:#FFFFFF;
+  --hi:#6A4DE8; --hi-ink:#FFFFFF; --hi-soft:rgba(106,77,232,.12); --glow:rgba(106,77,232,.0);
   --f-body:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Segoe UI",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
   --r:14px;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#1B1C1F; --surface:#222327; --sunk:#2A2B30; --ink:#DCDDE2; --muted:#8A8C94; --line:#323439;
-  --accent:#C9CBD2; --accent-ink:#1B1C1F; --event:#A6A9B2; --todo:#8DA398; --memo:#B4A58B;
-  --sun:#E0716A; --sat:#8A8C94; --warn:#E08B63; --warn-soft:#3A2A23; --btn:#3A3C43; --btn-ink:#ECEDF1; color-scheme:dark}}
+  --bg:#1B1C1F; --surface:#222327; --sunk:#2A2B30; --ink:#E1E2E7; --muted:#8A8C94; --line:#323439;
+  --accent:#9D85FF; --accent-ink:#15131F; --event:#9D85FF; --todo:#5FD3A6; --memo:#E8B05C;
+  --sun:#FF7A6B; --sat:#8A8C94; --warn:#FF7A6B; --warn-soft:#3B2724; --btn:#8B6CFF; --btn-ink:#FFFFFF;
+  --hi:#9D85FF; --hi-ink:#15131F; --hi-soft:rgba(157,133,255,.15); --glow:rgba(139,108,255,.35); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#1B1C1F; --surface:#222327; --sunk:#2A2B30; --ink:#DCDDE2; --muted:#8A8C94; --line:#323439;
-  --accent:#C9CBD2; --accent-ink:#1B1C1F; --event:#A6A9B2; --todo:#8DA398; --memo:#B4A58B;
-  --sun:#E0716A; --sat:#8A8C94; --warn:#E08B63; --warn-soft:#3A2A23; --btn:#3A3C43; --btn-ink:#ECEDF1; color-scheme:dark}
+  --bg:#1B1C1F; --surface:#222327; --sunk:#2A2B30; --ink:#E1E2E7; --muted:#8A8C94; --line:#323439;
+  --accent:#9D85FF; --accent-ink:#15131F; --event:#9D85FF; --todo:#5FD3A6; --memo:#E8B05C;
+  --sun:#FF7A6B; --sat:#8A8C94; --warn:#FF7A6B; --warn-soft:#3B2724; --btn:#8B6CFF; --btn-ink:#FFFFFF;
+  --hi:#9D85FF; --hi-ink:#15131F; --hi-soft:rgba(157,133,255,.15); --glow:rgba(139,108,255,.35); color-scheme:dark}
 
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 [hidden]{display:none!important}
@@ -366,9 +369,8 @@ input[type=text],input[type=date],input[type=time],input[type=password],textarea
 .day.hol .n{color:var(--sun)}
 .day.sel .n{color:var(--accent-ink)}
 .hname{margin-top:auto;font-size:8.5px;line-height:10px;color:var(--sun);max-width:100%;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dots{margin-top:2px}
-.hname+.dots{margin-top:1px}
-.day:not(:has(.hname)) .dots{margin-top:auto}
+.dots{margin-top:3px;order:1}
+.hname{order:2}
 .bar{height:13px;font-size:9.5px;line-height:13px;border-radius:3px}
 .legend{font-size:11px;gap:10px;flex-wrap:wrap}
 .days.slide-l{animation:mSlideL .22s ease}
@@ -459,6 +461,58 @@ input[type=text],input[type=date],input[type=time],input[type=password],textarea
 .chip{font-size:12px}
 .wiki-actions .primary,.wiki-actions .ghost{min-height:34px}
 .toast{font-size:12.5px}
+
+/* ===== 모던 · 바이올렛 포인트 ===== */
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--hi)}
+.badge{background:var(--hi-soft);color:var(--hi)}
+.primary{background:var(--btn);color:var(--btn-ink);box-shadow:0 6px 18px -8px var(--glow)}
+.primary:hover{filter:brightness(1.08)}
+.mark{background:linear-gradient(135deg,var(--hi),color-mix(in srgb,var(--hi) 45%,var(--memo)))}
+.mark::after{background:var(--surface)}
+.group-today .datechip{background:var(--hi);color:var(--hi-ink)}
+.group-today .rel{color:var(--hi)}
+.pill{background:var(--hi);color:var(--hi-ink)}
+.day.today .n{box-shadow:inset 0 0 0 1.5px var(--hi)}
+.day.sel .n{background:var(--hi);color:var(--hi-ink);box-shadow:0 4px 12px -4px var(--glow)}
+.day.rng,.day.rng:hover{background:var(--hi-soft)}
+.day.press{background:var(--hi-soft)}
+.bar{background:var(--event);color:var(--hi-ink)}
+.mc-d.edge,.mc-d.on{background:var(--hi);color:var(--hi-ink)}
+.mc-d.mid{background:var(--hi-soft)}
+.datebtn.on{border-color:var(--hi);box-shadow:0 0 0 3px var(--hi-soft)}
+input:focus,textarea:focus{border-color:var(--hi)}
+.wseg button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--hi)}
+.wstat:first-child b{color:var(--hi)}
+.wstat:nth-child(2) b{color:var(--todo)}
+.wstat:nth-child(3) b{color:var(--memo)}
+.sync[data-s="db"]::before{background:var(--todo);box-shadow:0 0 6px var(--todo)}
+.wg-btn{background:var(--hi);color:var(--hi-ink)}
+.wg-sub{color:var(--hi)}
+.wl{color:var(--hi);border-bottom-color:color-mix(in srgb,var(--hi) 45%,transparent)}
+a.url{color:var(--hi)}
+.tag{color:var(--todo)}
+.mchip{background:var(--hi-soft);color:var(--hi)}
+.toc a:hover{color:var(--hi)}
+.wiki-body blockquote{border-left-color:var(--hi);background:var(--hi-soft)}
+/* 체크칸 없는 할 일 줄: 밀어서 완료 */
+.mk{flex:none;width:14px;height:20px;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--todo)}
+.mk:not(.on)::before{content:"";width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--muted) 70%,transparent)}
+.mk.late:not(.on)::before{background:var(--warn);box-shadow:0 0 6px color-mix(in srgb,var(--warn) 60%,transparent)}
+.it.sw{border-left:0}
+.it.sw.is-late .sw-fg{box-shadow:inset 2px 0 0 var(--warn)}
+.done .txt{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 50%,transparent)}
+.sw[data-dir="r"] .sw-bg{background:linear-gradient(90deg,var(--todo),color-mix(in srgb,var(--todo) 60%,var(--surface)))}
+.sw[data-dir="l"] .sw-bg{background:linear-gradient(270deg,var(--hi),color-mix(in srgb,var(--hi) 60%,var(--surface)))}
+.sw-bg{color:#fff}
+.drow.done .ic{color:var(--todo)}
+.drow.event .ic{color:var(--hi)}
+.dsec.past .dhead span{color:var(--warn)}
+.ecard .ttl{color:var(--ink)}
+.ecard{position:relative;padding-left:12px}
+.ecard::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--hi)}
+.dsec.past .ecard::before{background:var(--line)}
+.d-event{background:var(--hi)}
+.legend i.d-event{background:var(--hi)}
 </style>
 </head>
 <body>
@@ -731,7 +785,7 @@ function renderWidget(){
 function fromHash(){if(location.hash==='#widget')S.view='widget';else if(S.view==='widget')S.view='cal';}
 window.addEventListener('hashchange',()=>{fromHash();render();});
 
-const ROW_H=80,BAR_TOP=32,BAR_H=13,MAX_LANES=2;
+const ROW_H=80,BAR_TOP=38,BAR_H=13,MAX_LANES=2;
 const dayDiff=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
 let CAL={days:[],weeks:0};
 function renderCal(){
@@ -840,10 +894,8 @@ function itemRow(x,opts={}){
     h('button',{class:'txt',style:'text-align:left',onclick:openEdit,title:'눌러서 수정',text:plainLinks(x.text)}),
     meta.length?h('div',{class:'meta'},meta):null,thumbs(x.photos),ans);
   if(x.type==='todo'){
-    const c=h('button',{class:'chk','aria-label':x.done?'완료 취소':'완료로 표시','aria-pressed':!!x.done,
-      onclick:()=>put({...x,done:!x.done,doneAt:!x.done?Date.now():null})});
-    c.innerHTML=CHECK;
-    return h('li',{class:'it sw'+(x.done?' done':''),'data-id':x.id},
+    const c=h('span',{class:'mk'+(x.done?' on':'')+(!x.done&&x.date<t?' late':''),'aria-label':x.done?'완료됨':'할 일',text:x.done?'✓':''});
+    return h('li',{class:'it sw'+(x.done?' done':'')+(!x.done&&x.date<t?' is-late':''),'data-id':x.id},
       h('div',{class:'sw-bg','aria-hidden':'true'},h('span',{class:'sw-l',text:x.done?'되돌리기':'완료'}),h('span',{class:'sw-r',text:'일정 등록'})),
       h('div',{class:'sw-fg'},c,body));
   }
@@ -920,7 +972,7 @@ function renderTodos(){
       put({id:uid(),type:'todo',date:t,time:'',text:v,done:false,createdAt:Date.now()});
       setTimeout(()=>{const n=$('tText');if(n){n.value='';n.focus();}},0);}},
       h('div',{class:'c-row'},inp,h('button',{class:'primary',type:'submit',text:'추가'})))];
-  if(dates.length)kids.push(h('p',{class:'swipe-hint',text:'→ 오른쪽으로 밀면 완료 · ← 왼쪽으로 밀면 일정 등록'}));
+  if(dates.length)kids.push(h('p',{class:'swipe-hint',text:'오른쪽으로 밀어 완료 →   ← 왼쪽으로 밀어 일정 등록'}));
   if(!dates.length)kids.push(h('div',{class:'card empty'},h('b',{text:'할 일이 없습니다'}),'위 입력칸에 적으면 오늘 날짜로 등록됩니다.'));
   for(const d of dates){
     const list=groups[d];
