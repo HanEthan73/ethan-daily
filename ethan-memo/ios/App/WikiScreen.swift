@@ -7,7 +7,7 @@ enum WikiRoute: Hashable {
 }
 
 enum WikiMode: String, CaseIterable, Identifiable {
-    case byDate = "날짜별", done = "완료", open = "남은 일", events = "일정", notes = "노트"
+    case byDate = "날짜별", done = "완료", open = "남은 일", events = "일정", photos = "사진", notes = "노트"
     var id: String { rawValue }
 }
 
@@ -31,6 +31,8 @@ struct WikiScreen: View {
     @State private var q = ""
     @State private var tag: String?
     @State private var editing: Item?
+    @State private var search = ""
+    @State private var viewer: PhotoRef?
     @AppStorage("wikiMode") private var modeRaw = WikiMode.byDate.rawValue
     private var router = Router.shared
 
@@ -70,12 +72,31 @@ struct WikiScreen: View {
                     .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0))
                     .listRowBackground(Color.clear)
                 }
+                if mode == .photos {
+                    photoGrid
+                } else if !searchKey.isEmpty {
+                    searchResults
+                } else {
                 switch mode {
+                case .photos: EmptyView()
                 case .byDate: byDate
                 case .done: doneList(todos.filter(\.done))
                 case .open: openList(todos.filter { !$0.done })
                 case .events: eventList(items.filter { $0.kind == .event })
                 case .notes: noteList
+                }
+                }
+            }
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .always),
+                        prompt: mode == .photos ? "사진 검색 (제목·내용·날짜)" : "기록·노트 전체 검색")
+            .fullScreenCover(item: $viewer) { ref in
+                PhotoViewer(image: PhotoStore.image(ref.id),
+                            caption: "\(Fmt.short(ref.item.day)) · \(WikiText.plain(ref.item.text).prefix(24))  ›") {
+                    viewer = nil
+                } onCaption: {
+                    let it = ref.item
+                    viewer = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { editing = it }
                 }
             }
             .listStyle(.insetGrouped)
@@ -94,6 +115,108 @@ struct WikiScreen: View {
             .onAppear(perform: handleRequest)
             .onChange(of: router.wikiTitle) { _, _ in handleRequest() }
             .onChange(of: router.wikiDay) { _, _ in handleRequest() }
+        }
+    }
+
+    // MARK: 전체 검색 (기록 · 노트)
+
+    private var searchKey: String { search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+
+    private func hl(_ text: String, _ key: String) -> AttributedString {
+        var a = AttributedString(text)
+        if let r = a.range(of: key, options: .caseInsensitive) {
+            a[r].backgroundColor = Theme.hi.opacity(0.3)
+        }
+        return a
+    }
+
+    private func around(_ text: String, _ key: String, w: Int = 34) -> String {
+        let t = text.replacingOccurrences(of: "\n", with: " ")
+        guard let r = t.range(of: key, options: .caseInsensitive) else { return String(t.prefix(w * 2)) }
+        let s = t.index(r.lowerBound, offsetBy: -w, limitedBy: t.startIndex) ?? t.startIndex
+        let e = t.index(r.upperBound, offsetBy: w, limitedBy: t.endIndex) ?? t.endIndex
+        return (s > t.startIndex ? "…" : "") + t[s..<e] + (e < t.endIndex ? "…" : "")
+    }
+
+    @ViewBuilder private var searchResults: some View {
+        let k = searchKey
+        let hitItems = items.filter { x in
+            [WikiText.plain(x.text), x.note, x.answer ?? "", Fmt.ymd(x.day)].contains { $0.lowercased().contains(k) }
+        }.sorted { $0.day > $1.day }
+        let hitPages = pages.filter { $0.title.lowercased().contains(k) || $0.body.lowercased().contains(k) }
+        if hitItems.isEmpty && hitPages.isEmpty {
+            Section { empty("‘\(search)’ 가 들어간 기록이나 노트가 없습니다.") }
+        }
+        if !hitPages.isEmpty {
+            Section("노트 \(hitPages.count)") {
+                ForEach(hitPages.prefix(30)) { p in
+                    Button {
+                        if let d = WikiText.date(p.title) { path.append(.day(d)) } else { path.append(.page(p.uid)) }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(hl(p.title, k)).font(.system(size: 15, weight: .semibold))
+                            Text(hl(around(p.body, k), k)).font(.system(size: 12.5)).foregroundStyle(.secondary).lineLimit(2)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        if !hitItems.isEmpty {
+            Section("기록 \(hitItems.count)") {
+                ForEach(hitItems.prefix(80)) { x in
+                    Button { editing = x } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(hl(WikiText.plain(x.text), k)).font(.system(size: 15, weight: .semibold))
+                            if !x.note.isEmpty, x.note.lowercased().contains(k) {
+                                Text(hl(around(x.note, k), k)).font(.system(size: 12.5)).foregroundStyle(.secondary).lineLimit(2)
+                            }
+                            Text("\(Fmt.short(x.day)) · \(x.kind == .todo ? "할 일" : x.kind == .event ? "일정" : "메모")\(x.photoIDs.isEmpty ? "" : " · 사진 \(x.photoIDs.count)")")
+                                .font(.system(size: 11)).foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: 사진 모아보기
+
+    private var photoRefs: [PhotoRef] {
+        let k = searchKey
+        var seen = Set<String>()
+        var out: [PhotoRef] = []
+        for x in items.sorted(by: { $0.day > $1.day }) where !x.photoIDs.isEmpty {
+            if !k.isEmpty, ![WikiText.plain(x.text), x.note, x.answer ?? "", Fmt.ymd(x.day)].contains(where: { $0.lowercased().contains(k) }) { continue }
+            for id in x.photoIDs where seen.insert(id).inserted { out.append(PhotoRef(id: id, item: x)) }
+        }
+        return out
+    }
+
+    @ViewBuilder private var photoGrid: some View {
+        let refs = photoRefs
+        if refs.isEmpty {
+            Section { empty(searchKey.isEmpty ? "아직 사진이 없습니다. 할 일·메모·일정에 사진을 붙이면 여기에 모입니다." : "찾는 사진이 없습니다.") }
+        } else {
+            let groups = Dictionary(grouping: refs) { Fmt.string($0.item.day, "yyyy년 M월") }
+            let keys = groups.keys.sorted { (groups[$0]![0].item.day) > (groups[$1]![0].item.day) }
+            ForEach(keys, id: \.self) { key in
+                Section {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 3), spacing: 3) {
+                        ForEach(groups[key]!) { ref in
+                            Button { viewer = ref } label: {
+                                PhotoSquare(id: ref.id, label: Fmt.short(ref.item.day))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    .listRowBackground(Color.clear)
+                } header: {
+                    Text("\(key) · \(groups[key]!.count)장").font(.system(size: 12, weight: .semibold)).textCase(nil)
+                }
+            }
         }
     }
 

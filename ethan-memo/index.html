@@ -881,6 +881,30 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
 .pinsec .sec-h .pinhead{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:12.5px;color:var(--muted)}
 .pinsec .sec-h .pinhead svg{width:11px;height:11px;fill:var(--hi);transform:rotate(35deg)}
 .sec .list > .it .datechip{background:none;border:1px solid var(--card-line);border-radius:4px;padding:0 6px;font-size:10.5px;font-weight:500;color:var(--card-sub);line-height:17px}
+
+/* ===== 위키 검색 · 사진 모아보기 (납작한 옵시디언 느낌) ===== */
+.wsearch{position:relative;margin:10px 0 4px}
+.wsearch .wsi{position:absolute;left:11px;top:50%;transform:translateY(-52%);font-size:17px;color:var(--muted);pointer-events:none}
+.wsearch input{width:100%;height:38px;padding:0 12px 0 34px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font-size:14px;appearance:none;-webkit-appearance:none}
+.wsearch input:focus{outline:none;border-color:var(--hi);box-shadow:0 0 0 3px var(--hi-soft)}
+.wsearch input::-webkit-search-cancel-button{opacity:.6}
+.wsum{font-size:11.5px;color:var(--muted);margin:10px 2px 4px}
+.srow{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;padding:9px 12px;margin:0 0 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.srow:hover{background:var(--sunk)}
+.srow b{font-size:14px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.srow b i{width:7px;height:7px;border-radius:50%;flex:none}
+.srow span{font-size:12.5px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+.srow span em{font-style:normal;font-weight:600;color:var(--hi)}
+.srow small{font-size:11px;color:var(--muted)}
+mark{background:color-mix(in srgb,var(--hi) 30%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+.gsec{margin:12px 0 4px}
+.ggrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+@media (min-width:560px){.ggrid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.gcell{position:relative;aspect-ratio:1;border-radius:6px;overflow:hidden;background:var(--sunk);padding:0;border:1px solid var(--line)}
+.gcell img{width:100%;height:100%;object-fit:cover;display:block}
+.gcell .gcap{position:absolute;left:0;right:0;bottom:0;padding:10px 6px 3px;font-size:10.5px;font-weight:600;color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.gcell.missing::after{content:"🖼";position:absolute;inset:0;display:grid;place-items:center;opacity:.35}
+.vcap{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:calc(100% - 32px);padding:8px 14px;border:0;border-radius:6px;background:rgba(60,60,66,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 </style>
 </head>
 <body>
@@ -985,7 +1009,7 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
     <div class="grp"><button type="button" class="grow gdel" id="sClear">Claude API 키 삭제</button></div>
   </div>
 </div>
-<div class="viewer" id="viewer" hidden><button type="button" class="vclose" id="viewClose" aria-label="사진 닫기"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="viewImg" alt="사진" draggable="false"></div>
+<div class="viewer" id="viewer" hidden><button type="button" class="vclose" id="viewClose" aria-label="사진 닫기"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img id="viewImg" alt="사진" draggable="false"><button type="button" class="vcap" id="viewCap" hidden></button></div>
 <div class="paste-bar" id="pasteBar" hidden><span id="pasteLbl">Claude 답변 붙여넣기</span><button type="button" id="pasteGo">붙여넣기</button><button type="button" id="pasteX" aria-label="닫기">×</button></div>
 <div class="toast" id="toast" hidden></div>
 
@@ -1927,19 +1951,77 @@ function wikiHead(){
   const doneWeek=todos.filter(x=>x.done&&doneDay(x)>=wk).length;
   const upcoming=all().filter(x=>x.type==='event'&&(x.endDate||x.date)>=t).length;
   const notes=[...S.pages.values()].filter(p=>!isDateRef(p.title)).length;
-  const modes=[['day','날짜별'],['done','완료'],['todo','남은 일'],['event','일정'],['note',`노트${notes?' '+notes:''}`]];
+  const nPh=all().reduce((n,x)=>n+((x.photos&&x.photos.length)||0),0);
+  const modes=[['day','날짜별'],['done','완료'],['todo','남은 일'],['event','일정'],['photo',`사진${nPh?' '+nPh:''}`],['note',`노트${notes?' '+notes:''}`]];
   return [
     h('div',{class:'day-head'},h('div',null,h('p',{class:'eyebrow',text:'기록'}),h('h2',null,'위키'))),
     h('div',{class:'wstats'},
       h('button',{class:'wstat',onclick:()=>{S.wikiMode='todo';render();}},h('b',{text:String(open.length)}),h('span',{text:'남은 할 일'})),
       h('button',{class:'wstat',onclick:()=>{S.wikiMode='done';render();}},h('b',{text:String(doneWeek)}),h('span',{text:'최근 7일 완료'})),
       h('button',{class:'wstat',onclick:()=>{S.wikiMode='event';render();}},h('b',{text:String(upcoming)}),h('span',{text:'다가오는 일정'}))),
-    h('div',{class:'wseg',role:'tablist'},modes.map(([k,l])=>h('button',{role:'tab','aria-selected':S.wikiMode===k,onclick:()=>{S.wikiMode=k;S.wikiDays=21;render();}},l)))];
+    h('div',{class:'wseg',role:'tablist'},modes.map(([k,l])=>h('button',{role:'tab','aria-selected':S.wikiMode===k,onclick:()=>{S.wikiMode=k;S.wikiDays=21;render();}},l))),
+    ...(S.wikiMode==='note'?[]:[wikiSearchBox(),h('div',{id:'wsres'})])];
+}
+/* ---------- 위키 검색 (기록 · 노트 · 사진 설명) + 사진 모아보기 ---------- */
+S.wikiS='';
+function wikiSearchBox(){
+  const inp=h('input',{type:'search',id:'wsearch',placeholder:S.wikiMode==='photo'?'사진 검색 (기록 제목·내용·날짜)':'기록·노트 전체 검색',autocomplete:'off',enterkeyhint:'search','aria-label':'위키 검색'});
+  inp.value=S.wikiS;
+  inp.addEventListener('input',()=>{S.wikiS=inp.value;S.wikiMode==='photo'?paintGallery():paintWikiSearch();});
+  return h('div',{class:'wsearch'},h('span',{class:'wsi','aria-hidden':'true',text:'⌕'}),inp);
+}
+function hiText(t,q){const i=q?t.toLowerCase().indexOf(q.toLowerCase()):-1;if(i<0)return [t];return [t.slice(0,i),h('mark',{text:t.slice(i,i+q.length)}),t.slice(i+q.length)];}
+function ctxOf(t,q,w=34){t=t.replace(/\s+/g,' ');const i=t.toLowerCase().indexOf(q.toLowerCase());if(i<0)return t.slice(0,w*2);const a=Math.max(0,i-w),b=Math.min(t.length,i+q.length+w);return (a?'…':'')+t.slice(a,b)+(b<t.length?'…':'');}
+function searchAll(raw){
+  const q=raw.trim().toLowerCase(),out={items:[],pages:[]};if(!q)return out;
+  for(const x of all()){
+    const f=[['제목',plainLinks(x.text)],['내용',x.note||''],['Claude',x.answer||''],['날짜',x.date]];
+    const hit=f.find(([,v])=>v.toLowerCase().includes(q));if(hit)out.items.push({x,label:hit[0],val:hit[1]});}
+  out.items.sort((a,b)=>b.x.date.localeCompare(a.x.date)||(b.x.createdAt||0)-(a.x.createdAt||0));
+  for(const pg of S.pages.values()){const inB=pg.body.toLowerCase().includes(q),inT=pg.title.toLowerCase().includes(q);
+    if(inT||inB)out.pages.push({pg,val:inB?pg.body:pg.title});}
+  out.pages.sort((a,b)=>b.pg.updatedAt-a.pg.updatedAt);
+  return out;
+}
+function paintWikiSearch(){
+  const box=$('wsres'),mode=$('wmode');if(!box)return;const q=S.wikiS.trim();
+  if(!q){box.replaceChildren();if(mode)mode.hidden=false;return;}
+  if(mode)mode.hidden=true;
+  const r=searchAll(q);
+  if(!r.items.length&&!r.pages.length){box.replaceChildren(h('div',{class:'empty'},h('b',{text:'찾는 내용이 없습니다'}),`‘${q}’ 가 들어간 기록이나 노트가 없습니다.`));return;}
+  const kids=[h('div',{class:'wsum',text:`기록 ${r.items.length} · 노트 ${r.pages.length}`})];
+  if(r.pages.length)kids.push(h('section',{class:'dsec'},h('div',{class:'dlabel',text:`노트 ${r.pages.length}`}),
+    r.pages.slice(0,30).map(({pg,val})=>h('button',{class:'srow',onclick:()=>{S.wikiS='';isDateRef(pg.title)?openDay(pg.title):showPage(pg.id,false);}},
+      h('b',null,hiText(pg.title,q)),h('span',null,hiText(ctxOf(val,q),q))))));
+  if(r.items.length)kids.push(h('section',{class:'dsec'},h('div',{class:'dlabel',text:`기록 ${r.items.length}`}),
+    r.items.slice(0,80).map(({x,label,val})=>h('button',{class:'srow',onclick:()=>openSheet(x.id)},
+      h('b',null,h('i',{class:'d-'+x.type}),...hiText(plainLinks(x.text),q)),
+      label!=='제목'&&label!=='날짜'?h('span',null,h('em',{text:label+' '}),...hiText(ctxOf(val,q),q)):null,
+      h('small',{text:`${fmtDay(x.date)} · ${TYPES[x.type]}${x.photos&&x.photos.length?` · 사진 ${x.photos.length}`:''}`})))));
+  box.replaceChildren(...kids);
+}
+function paintGallery(){
+  const box=$('wgal');if(!box)return;const q=S.wikiS.trim().toLowerCase();
+  const m=new Map();
+  for(const x of all()){if(!x.photos||!x.photos.length)continue;
+    if(q&&![plainLinks(x.text),x.note||'',x.answer||'',x.date].some(v=>v.toLowerCase().includes(q)))continue;
+    for(const id of x.photos)m.set(id,x);}
+  const by={};for(const [id,x] of m)(by[x.date.slice(0,7)]||(by[x.date.slice(0,7)]=[])).push([id,x]);
+  const months=Object.keys(by).sort().reverse();
+  if(!months.length){box.replaceChildren(h('div',{class:'empty'},h('b',{text:q?'찾는 사진이 없습니다':'아직 사진이 없습니다'}),q?'검색어를 바꿔 보세요.':'할 일·메모·일정에 사진을 붙이면 여기에 모입니다.'));return;}
+  box.replaceChildren(h('div',{class:'wsum',text:`사진 ${m.size}장`}),...months.map(mo=>{
+    const arr=by[mo].sort((a,b)=>b[1].date.localeCompare(a[1].date)||(b[1].createdAt||0)-(a[1].createdAt||0));
+    return h('section',{class:'gsec'},h('div',{class:'dlabel',text:`${mo.slice(0,4)}년 ${+mo.slice(5)}월 · ${arr.length}장`}),
+      h('div',{class:'ggrid'},arr.map(([id,x])=>{const im=h('img',{alt:'사진',loading:'lazy'});
+        const b=h('button',{type:'button',class:'gcell','aria-label':`${fmtDay(x.date)} ${plainLinks(x.text)} 사진`,onclick:()=>viewPhoto(id,x.id)},im,h('span',{class:'gcap',text:fmtDay(x.date).split(' ')[0]}));
+        phUrl(id).then(u=>{if(u)im.src=u;else b.classList.add('missing');});return b;})));
+  }));
 }
 function renderWikiHome(){
   if(S.wikiMode==='note'){renderWikiList();return;}
-  const kids=wikiHead(),t=today(),items=all();
+  const kids=wikiHead(),t=today(),items=all();const headN=kids.length;
   const empty=(a,b)=>h('div',{class:'empty'},h('b',{text:a}),b);
+  if(S.wikiMode==='photo')kids.push(h('div',{id:'wgal'}));
   if(S.wikiMode==='day'){
     const days=new Set();
     for(const x of items){if(x.date<=t)days.add(x.date);if(x.type==='todo'&&x.done)days.add(doneDay(x));}
@@ -1980,7 +2062,10 @@ function renderWikiHome(){
     if(up.length)kids.push(h('section',{class:'dsec'},h('div',{class:'dlabel',text:`다가오는 일정 ${up.length}`}),up.map(card)));
     if(past.length)kids.push(h('section',{class:'dsec past'},h('div',{class:'dlabel',text:`지난 일정 ${past.length}`}),past.slice(0,S.wikiDays).map(card)));
   }
+  const rest=kids.splice(headN);
+  kids.push(h('div',{id:'wmode'},rest));
   $('panel').replaceChildren(...kids);
+  if(S.wikiMode==='photo')paintGallery();else paintWikiSearch();
 }
 function dayParts(d){
   const items=all();
@@ -2084,7 +2169,11 @@ function thumbs(ids){
     box.append(b);phUrl(id).then(u=>{if(u)im.src=u;else b.classList.add('missing');});}
   return box;
 }
-function viewPhoto(id){phUrl(id).then(u=>{if(!u){toast('사진을 불러오지 못했습니다');return;}$('viewImg').src=u;$('viewer').hidden=false;});}
+function viewPhoto(id,itemId){phUrl(id).then(u=>{if(!u){toast('사진을 불러오지 못했습니다');return;}$('viewImg').src=u;
+  const cap=$('viewCap'),x=itemId&&S.items.get(itemId);
+  if(x){const t=plainLinks(x.text);cap.textContent=`${fmtDay(x.date)} · ${t.length>26?t.slice(0,26)+'…':t}  ›`;cap.hidden=false;cap.onclick=e=>{e.stopPropagation();$('viewer').hidden=true;$('viewImg').src='';openSheet(x.id);};}
+  else{cap.hidden=true;cap.onclick=null;}
+  $('viewer').hidden=false;});}
 (function(){
   const v=$('viewer'),im=$('viewImg');let drag=null,moved=false;
   const close=()=>{v.hidden=true;im.style.transform='';v.style.background='';im.src='';};

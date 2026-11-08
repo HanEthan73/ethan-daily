@@ -78,7 +78,9 @@ struct PhotoThumb: View {
 /// 전체 화면 사진: 오른쪽 위 ✕ 버튼, 아래로 끌어서 닫기, 탭해도 닫힘
 struct PhotoViewer: View {
     let image: UIImage?
+    var caption: String? = nil
     var close: () -> Void
+    var onCaption: (() -> Void)? = nil
     @State private var drag: CGSize = .zero
 
     var body: some View {
@@ -101,6 +103,17 @@ struct PhotoViewer: View {
             .padding(.trailing, 16).padding(.top, 8)
             .accessibilityLabel("사진 닫기")
         }
+        .overlay(alignment: .bottom) {
+            if let caption, let onCaption {
+                Button(action: onCaption) {
+                    Text(caption).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(.ultraThinMaterial))
+                }
+                .padding(.bottom, 24)
+            }
+        }
         .contentShape(Rectangle())
         .onTapGesture(perform: close)
         .gesture(
@@ -112,6 +125,41 @@ struct PhotoViewer: View {
                 }
         )
         .statusBarHidden()
+    }
+}
+
+/// 위키 사진 모아보기용 항목
+struct PhotoRef: Identifiable {
+    let id: String
+    let item: Item
+}
+
+/// 정사각 사진 칸 (없으면 동기화 저장소에서 받아 옴)
+struct PhotoSquare: View {
+    let id: String
+    var label: String = ""
+    @State private var img: UIImage?
+
+    var body: some View {
+        Color(.secondarySystemFill)
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                if let img { Image(uiImage: img).resizable().scaledToFill() }
+                else { Image(systemName: "photo").foregroundStyle(.secondary) }
+            }
+            .overlay(alignment: .bottomLeading) {
+                if !label.isEmpty {
+                    Text(label).font(.system(size: 10.5, weight: .semibold)).foregroundStyle(.white)
+                        .padding(.horizontal, 5).padding(.bottom, 3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .top, endPoint: .bottom))
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+            .task(id: id) {
+                if let i = PhotoStore.image(id) { img = i; return }
+                if await SyncService.shared.download(photo: id) { img = PhotoStore.image(id) }
+            }
     }
 }
 
