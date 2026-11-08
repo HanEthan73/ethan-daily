@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.24",
-"buildVersion": "24",
-"date": "2026-11-08T23:42:17Z",
-"localizedDescription": "ETHAN MEMO: Obsidian-flat buttons/tabs/hints, subtle pin icon",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=24",
-"size": 1003688,
+"version": "1.0.25",
+"buildVersion": "25",
+"date": "2026-11-08T23:48:57Z",
+"localizedDescription": "ETHAN MEMO: wiki global search + photo gallery (web, iOS)",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=25",
+"size": 1055136,
 "minOSVersion": "17.0"
         }
       ],
