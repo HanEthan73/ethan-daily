@@ -115,16 +115,16 @@ struct TodoWidgetView: View {
                         .monospacedDigit()
                     Text(subtitle)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(entry.lateCount > 0 ? Color.orange : Color.green)
+                        .foregroundStyle(entry.lateCount > 0 ? Theme.warn : Color.secondary)
                 }
                 Spacer()
                 if family != .systemSmall {
                     Link(destination: URL(string: "haru://todo")!) {
                         Image(systemName: "list.bullet")
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.onInk)
                             .frame(width: 38, height: 38)
-                            .background(Circle().fill(Color.green))
+                            .background(Circle().fill(Color.primary))
                     }
                 }
             }
@@ -142,10 +142,10 @@ struct TodoWidgetView: View {
                             HStack(spacing: 6) {
                                 Text(Fmt.string(d, "M/d (E)"))
                                     .font(.caption.weight(.semibold).monospacedDigit())
-                                    .foregroundStyle(Fmt.cal.isDateInToday(d) ? Color.accentColor : Color.primary)
+                                    .foregroundStyle(Color.primary)
                                 Text(relative(d))
                                     .font(.caption2)
-                                    .foregroundStyle(d < Fmt.cal.startOfDay(for: .now) ? Color.orange : Color.secondary)
+                                    .foregroundStyle(d < Fmt.cal.startOfDay(for: .now) ? Theme.warn : Color.secondary)
                                 Spacer(minLength: 0)
                                 Text("\(count)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                             }

@@ -18,7 +18,7 @@ struct SettingsScreen: View {
             Form {
                 Section {
                     if hasKey {
-                        Label("API 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(.green)
+                        Label("API 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
                     }
                     SecureField(hasKey ? "새 키로 바꾸기" : "sk-ant-로 시작하는 키", text: $key)
                         .textInputAutocapitalization(.never)

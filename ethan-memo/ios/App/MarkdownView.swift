@@ -69,7 +69,7 @@ struct MarkdownView: View {
                     HStack(alignment: .top, spacing: 9) {
                         Button { onToggle(t.line) } label: {
                             Image(systemName: t.done ? "checkmark.square.fill" : "square")
-                                .foregroundStyle(t.done ? Color.green : Color.secondary)
+                                .foregroundStyle(t.done ? Theme.todo : Color.secondary)
                                 .font(.title3)
                         }
                         .buttonStyle(.borderless)
@@ -93,7 +93,7 @@ struct MarkdownView: View {
                 .padding(.vertical, 10).padding(.horizontal, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color(.tertiarySystemFill))
-                .overlay(alignment: .leading) { Rectangle().fill(Color.accentColor).frame(width: 3) }
+                .overlay(alignment: .leading) { Rectangle().fill(Color.primary).frame(width: 3) }
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         case .code(let c):
             ScrollView(.horizontal, showsIndicators: false) {

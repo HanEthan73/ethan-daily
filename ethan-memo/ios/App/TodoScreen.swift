@@ -26,7 +26,7 @@ struct TodoScreen: View {
                             .submitLabel(.done)
                             .onSubmit(add)
                         Button("추가", action: add)
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.ink)
                             .controlSize(.small)
                     }
                 }
@@ -49,12 +49,12 @@ struct TodoScreen: View {
                         HStack(spacing: 8) {
                             Text(Fmt.short(d))
                                 .font(.subheadline.weight(.semibold).monospacedDigit())
-                                .foregroundStyle(diff == 0 ? Color.white : Color.primary)
+                                .foregroundStyle(diff == 0 ? Theme.onInk : Color.primary)
                                 .padding(.horizontal, 8).padding(.vertical, 2)
-                                .background(Capsule().fill(diff == 0 ? Color.accentColor : Color(.tertiarySystemFill)))
+                                .background(Capsule().fill(diff == 0 ? Color.primary : Color(.tertiarySystemFill)))
                             Text(relative(diff))
                                 .font(.caption.weight(.medium))
-                                .foregroundStyle(diff < 0 && openN > 0 ? Color.orange : diff == 0 ? Color.accentColor : Color.secondary)
+                                .foregroundStyle(diff < 0 && openN > 0 ? Theme.warn : diff == 0 ? Color.primary : Color.secondary)
                             Spacer()
                             Text("\(list.count - openN)/\(list.count) 완료")
                                 .font(.caption.monospacedDigit())

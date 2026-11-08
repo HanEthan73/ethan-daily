@@ -32,7 +32,7 @@ struct WikiScreen: View {
                             .submitLabel(.go)
                             .onSubmit { openOrCreate(q) }
                         Button("열기·만들기") { openOrCreate(q) }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.ink)
                             .controlSize(.small)
                             .disabled(q.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
@@ -160,7 +160,7 @@ struct WikiPageView: View {
                     Text(p.title).font(.title2.weight(.bold))
                 }
                 HStack(spacing: 8) {
-                    Button("편집") { editing = true }.buttonStyle(.borderedProminent).disabled(busy)
+                    Button("편집") { editing = true }.buttonStyle(.ink).disabled(busy)
                     Button { decorate(p) } label: {
                         if busy { HStack(spacing: 6) { ProgressView().controlSize(.small); Text("꾸미는 중…") } }
                         else { Label("Claude로 꾸미기", systemImage: "sparkles") }
@@ -244,8 +244,8 @@ struct WikiPageView: View {
         Button(action: action) {
             Text(text).font(.footnote).lineLimit(1)
                 .padding(.horizontal, 10).padding(.vertical, 5)
-                .foregroundStyle(warn ? Color.orange : Color.primary)
-                .background(Capsule().fill(warn ? Color.orange.opacity(0.15) : Color(.tertiarySystemFill)))
+                .foregroundStyle(warn ? Theme.warn : Color.primary)
+                .background(Capsule().fill(warn ? Theme.warn.opacity(0.15) : Color(.tertiarySystemFill)))
         }
         .buttonStyle(.plain)
     }

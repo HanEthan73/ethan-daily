@@ -33,6 +33,7 @@ struct RootView: View {
                 .tabItem { Label("설정", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }
+        .tint(Color.primary)
         // 위젯의 목록 버튼(haru://todo)으로 열면 할 일 탭으로
         .onOpenURL { url in
             if url.host == "todo" { router.tab = .todo }

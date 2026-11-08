@@ -13,9 +13,10 @@ struct NewEventSheet: View {
     @State private var time = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
     @FocusState private var focused: Bool
 
-    init(start: Date, end: Date) {
+    init(start: Date, end: Date, title: String = "") {
         _start = State(initialValue: start)
         _end = State(initialValue: end)
+        _title = State(initialValue: title)
     }
 
     var body: some View {
@@ -114,11 +115,15 @@ struct EditSheet: View {
                     }
                 }
                 Section {
+                    let asking = Asker.shared.busy.contains(item.uid)
                     Button {
                         save(close: false)
                         Asker.shared.ask(item, ctx: ctx)
-                        dismiss()
-                    } label: { Label("Claude에게 묻기", systemImage: "sparkle") }
+                    } label: {
+                        if asking { HStack(spacing: 8) { ProgressView(); Text("Claude가 답하는 중…") } }
+                        else { Label(item.answer == nil ? "Claude에게 묻기" : "다시 묻기", systemImage: "sparkle") }
+                    }
+                    .disabled(asking)
                     ShareLink(item: text) { Label("Claude 앱으로 보내기", systemImage: "square.and.arrow.up") }
                     if let a = item.answer {
                         Text(a).font(.subheadline).textSelection(.enabled)

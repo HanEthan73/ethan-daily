@@ -10,6 +10,7 @@ struct ItemRow: View {
     var showDate = false
     var onEdit: () -> Void
     private var asker = Asker.shared
+    @State private var makeEvent = false
 
     init(item: Item, showDate: Bool = false, onEdit: @escaping () -> Void) {
         self.item = item
@@ -33,19 +34,30 @@ struct ItemRow: View {
             .onTapGesture(perform: onEdit)
         }
         .padding(.vertical, 2)
-        .swipeActions(edge: .trailing) {
+        // ← 왼쪽으로 밀기: 일정 등록 (할 일) · 삭제
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if item.kind == .todo {
+                Button { makeEvent = true } label: { Label("일정 등록", systemImage: "calendar.badge.plus") }
+                    .tint(Theme.swipeEvent)
+            }
             Button(role: .destructive) {
                 ctx.delete(item)
                 Store.save(ctx)
             } label: { Label("삭제", systemImage: "trash") }
         }
-        .swipeActions(edge: .leading) {
+        // → 오른쪽으로 밀기: 완료
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if item.kind == .todo {
                 Button { toggle() } label: {
                     Label(item.done ? "되돌리기" : "완료", systemImage: item.done ? "arrow.uturn.backward" : "checkmark")
                 }
-                .tint(.green)
+                .tint(Theme.swipeDone)
             }
+        }
+        .sheet(isPresented: $makeEvent) {
+            let d = max(item.day, Fmt.cal.startOfDay(for: .now))
+            NewEventSheet(start: d, end: d, title: WikiText.plain(item.text))
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -55,7 +67,7 @@ struct ItemRow: View {
             Button { toggle() } label: {
                 Image(systemName: item.done ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundStyle(item.done ? Color.green : Color.secondary)
+                    .foregroundStyle(item.done ? Theme.todo : Color.secondary)
             }
             .buttonStyle(.borderless)
         case .event:
@@ -69,10 +81,10 @@ struct ItemRow: View {
                         .font(.subheadline.monospacedDigit())
                 }
             }
-            .foregroundStyle(.blue)
+            .foregroundStyle(Theme.event)
             .frame(width: 44, alignment: .leading)
         case .memo:
-            Circle().fill(Color.orange).frame(width: 7, height: 7).padding(.top, 7)
+            Circle().fill(Theme.memo).frame(width: 7, height: 7).padding(.top, 7)
         }
     }
 
@@ -85,7 +97,8 @@ struct ItemRow: View {
                         Text("↗ " + (WikiText.date(t).map(Fmt.short) ?? t))
                             .font(.caption)
                             .padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.accentColor.opacity(0.14)))
+                            .foregroundStyle(Color.primary)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.08)))
                     }
                     .buttonStyle(.borderless)
                 }
@@ -123,28 +136,15 @@ struct ItemRow: View {
         return p
     }
 
+    /// 목록에서는 표시만 (묻기·답변은 항목을 눌러 들어간 화면에서)
     @ViewBuilder private var answerBlock: some View {
-        let busy = asker.busy.contains(item.uid)
-        if busy || item.answer != nil {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("CLAUDE 답변").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-                    Spacer()
-                    if !busy {
-                        Button("다시 묻기") { asker.ask(item, ctx: ctx) }
-                            .font(.caption)
-                            .buttonStyle(.borderless)
-                    }
-                }
-                if busy {
-                    HStack(spacing: 6) { ProgressView().controlSize(.small); Text("생각하는 중…").foregroundStyle(.secondary) }
-                        .font(.subheadline)
-                } else if let a = item.answer {
-                    Text(a).font(.subheadline).textSelection(.enabled)
-                }
-            }
-            .padding(10)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color(.tertiarySystemFill)))
+        if asker.busy.contains(item.uid) {
+            Text("Claude 답변 중…").font(.caption2).foregroundStyle(.secondary)
+        } else if item.answer != nil {
+            Text("답변 있음")
+                .font(.caption2).foregroundStyle(.secondary)
+                .padding(.horizontal, 5).padding(.vertical, 1)
+                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color(.separator)))
         }
     }
 
@@ -195,12 +195,8 @@ struct Composer: View {
                     }
                 }
                 Spacer()
-                if kind == .memo {
-                    Button("메모하고 묻기") { add(ask: true) }
-                        .buttonStyle(.bordered)
-                }
                 Button("추가") { add(ask: false) }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.ink)
             }
             .controlSize(.small)
         }

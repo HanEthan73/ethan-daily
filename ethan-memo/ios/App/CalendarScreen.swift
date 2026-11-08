@@ -219,7 +219,7 @@ struct MonthGrid: View {
                 ForEach(Array(["일", "월", "화", "수", "목", "금", "토"].enumerated()), id: \.offset) { i, s in
                     Text(s)
                         .font(.caption)
-                        .foregroundStyle(i == 0 ? Color.red : i == 6 ? Color.blue : Color.secondary)
+                        .foregroundStyle(i == 0 ? Theme.sun : Color.secondary)
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -230,7 +230,7 @@ struct MonthGrid: View {
                     // 1) 드래그 범위
                     ForEach(Array(dragSegs.enumerated()), id: \.offset) { _, seg in
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.accentColor.opacity(0.18))
+                            .fill(Color.primary.opacity(0.12))
                             .frame(width: CGFloat(seg.end - seg.start + 1) * w - 2, height: rowH - 4)
                             .offset(x: CGFloat(seg.start) * w + 1, y: CGFloat(seg.row) * rowH + 2)
                     }
@@ -253,13 +253,13 @@ struct MonthGrid: View {
                             .padding(.horizontal, 4)
                             .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 2) - (b.openRight ? 0 : 2),
                                    height: barH, alignment: .leading)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.onInk)
                             .background(
                                 UnevenRoundedRectangle(topLeadingRadius: b.openLeft ? 0 : 4,
                                                        bottomLeadingRadius: b.openLeft ? 0 : 4,
                                                        bottomTrailingRadius: b.openRight ? 0 : 4,
                                                        topTrailingRadius: b.openRight ? 0 : 4)
-                                    .fill(Color.blue)
+                                    .fill(Theme.event)
                             )
                             .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 2),
                                     y: CGFloat(b.row) * rowH + 33 + CGFloat(b.lane) * (barH + 1))
@@ -363,10 +363,10 @@ struct DayCell: View {
             Text("\(Fmt.cal.component(.day, from: date))")
                 .font(.callout.monospacedDigit())
                 .fontWeight(isToday || isSelected ? .semibold : .regular)
-                .foregroundStyle(isSelected ? Color.white : column == 0 ? Color.red : column == 6 ? Color.blue : Color.primary)
+                .foregroundStyle(isSelected ? Theme.onInk : column == 0 ? Theme.sun : column == 6 ? Color.secondary : Color.primary)
                 .frame(width: 28, height: 28)
-                .background(Circle().fill(isSelected ? Color.accentColor : Color.clear))
-                .overlay(Circle().stroke(isToday && !isSelected ? Color.accentColor : Color.clear, lineWidth: 1.5))
+                .background(Circle().fill(isSelected ? Color.primary : Color.clear))
+                .overlay(Circle().stroke(isToday && !isSelected ? Color.primary : Color.clear, lineWidth: 1.5))
                 .padding(.top, 2)
             Spacer(minLength: 0)
             HStack(spacing: 3) {
