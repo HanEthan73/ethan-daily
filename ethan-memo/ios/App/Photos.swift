@@ -70,13 +70,48 @@ struct PhotoThumb: View {
             if await SyncService.shared.download(photo: id) { img = PhotoStore.image(id) }
         }
         .fullScreenCover(isPresented: $viewing) {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                if let img { Image(uiImage: img).resizable().scaledToFit() }
-            }
-            .onTapGesture { viewing = false }
-            .statusBarHidden()
+            PhotoViewer(image: img) { viewing = false }
         }
+    }
+}
+
+/// 전체 화면 사진: 오른쪽 위 ✕ 버튼, 아래로 끌어서 닫기, 탭해도 닫힘
+struct PhotoViewer: View {
+    let image: UIImage?
+    var close: () -> Void
+    @State private var drag: CGSize = .zero
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(max(0.25, 1 - Double(abs(drag.height)) / 400)).ignoresSafeArea()
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit()
+                    .scaleEffect(max(0.75, 1 - abs(drag.height) / 1000))
+                    .offset(x: drag.width * 0.4, y: drag.height)
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            Button(action: close) {
+                Image(systemName: "xmark").font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(.ultraThinMaterial))
+                    .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 0.5))
+            }
+            .padding(.trailing, 16).padding(.top, 8)
+            .accessibilityLabel("사진 닫기")
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: close)
+        .gesture(
+            DragGesture()
+                .onChanged { drag = $0.translation }
+                .onEnded { v in
+                    if abs(v.translation.height) > 110 || abs(v.predictedEndTranslation.height) > 300 { close() }
+                    else { withAnimation(.spring(response: 0.3)) { drag = .zero } }
+                }
+        )
+        .statusBarHidden()
     }
 }
 

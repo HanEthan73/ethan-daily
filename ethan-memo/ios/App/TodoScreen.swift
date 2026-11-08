@@ -54,12 +54,18 @@ struct TodoScreen: View {
                     if !dates.isEmpty {
                         HStack(spacing: 8) {
                             Spacer()
-                            Text("← 밀면 완료").foregroundStyle(Theme.swipeDone)
+                            Text("← 완료").foregroundStyle(Theme.swipeDone)
                                 .padding(.horizontal, 9).padding(.vertical, 2)
                                 .background(Capsule().fill(Theme.swipeDone.opacity(0.14)))
-                            Text("밀면 일정 등록 →").foregroundStyle(Theme.swipeEvent)
+                            Text("일정 등록 →").foregroundStyle(Theme.swipeEvent)
                                 .padding(.horizontal, 9).padding(.vertical, 2)
                                 .background(Capsule().fill(Theme.swipeEvent.opacity(0.15)))
+                            Text("꾹 = 고정").foregroundStyle(.secondary)
+                                .padding(.horizontal, 9).padding(.vertical, 2)
+                                .background(Capsule().fill(Color.secondary.opacity(0.14)))
+                            Text("두 번 탭 = 복사").foregroundStyle(.secondary)
+                                .padding(.horizontal, 9).padding(.vertical, 2)
+                                .background(Capsule().fill(Color.secondary.opacity(0.14)))
                             Spacer()
                         }
                         .font(.system(size: 11.5, weight: .semibold))

@@ -23,6 +23,7 @@ struct ItemRow: View {
     var onEdit: () -> Void
     private var asker = Asker.shared
     @State private var makeEvent = false
+    @State private var copied = false
 
     init(item: Item, showDate: Bool = false, onEdit: @escaping () -> Void) {
         self.item = item
@@ -36,7 +37,7 @@ struct ItemRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             leading
             VStack(alignment: .leading, spacing: 3) {
-                Text((item.pinned && !item.done ? "📌 " : "") + WikiText.plain(item.text))
+                Text(WikiText.plain(item.text))
                     .font(.system(size: 15.5, weight: item.done ? .medium : .semibold))
                     .padding(.horizontal, item.kind == .event ? 2 : 0)
                     .background(alignment: .bottom) {
@@ -50,7 +51,19 @@ struct ItemRow: View {
                 PhotoStrip(ids: item.photoIDs, size: 42)
             }
             .contentShape(Rectangle())
-            .onTapGesture(perform: onEdit)
+            // 한 번 탭 = 수정, 두 번 탭 = 복사
+            .gesture(TapGesture(count: 2).onEnded { copyText() }
+                .exclusively(before: TapGesture().onEnded { onEdit() }))
+        }
+        .padding(.trailing, item.pinned && !item.done ? 26 : 0)
+        .overlay {
+            if copied {
+                Text("📋 복사했습니다").font(.system(size: 12.5, weight: .semibold))
+                    .padding(.horizontal, 12).padding(.vertical, 6)
+                    .background(Capsule().fill(Color.black.opacity(0.82)))
+                    .foregroundStyle(.white)
+                    .transition(.opacity)
+            }
         }
         .padding(.vertical, 6)
         .padding(.leading, 4)
@@ -110,21 +123,38 @@ struct ItemRow: View {
 
     private var note: some View {
         let (_, strip) = noteColors
-        let shape = RoundedRectangle(cornerRadius: 14)
-        return ZStack {
-            shape.fill(Theme.cardLip).offset(y: 3)
-            shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
-                .overlay(alignment: .leading) {
-                    UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: 3, topTrailingRadius: 3)
-                        .fill(strip).frame(width: 4).padding(.vertical, 10)
+        let shape = RoundedRectangle(cornerRadius: 10)
+        let pinned = item.pinned && !item.done && item.kind == .todo
+        return shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2).fill(strip).frame(width: 3).padding(.vertical, 9)
+            }
+            .overlay(shape.strokeBorder(Theme.cardLip, lineWidth: 0.5))
+            .overlay(shape.strokeBorder(Theme.cardHi, lineWidth: 1).mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center)))
+            .overlay(alignment: .topTrailing) {
+                if pinned {
+                    UnevenRoundedRectangle(bottomLeadingRadius: 6, bottomTrailingRadius: 6)
+                        .fill(LinearGradient(colors: [Color(red: 1, green: 0.65, blue: 0.15), Color(red: 0.94, green: 0.45, blue: 0)], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 22, height: 27)
+                        .overlay(Image(systemName: "pin.fill").font(.system(size: 12, weight: .bold)).foregroundStyle(.white))
+                        .shadow(color: Color(red: 0.7, green: 0.3, blue: 0).opacity(0.4), radius: 2, y: 2)
+                        .padding(.trailing, 11)
                 }
-                .overlay(shape.stroke(Color.white.opacity(0.7), lineWidth: 0.5).mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center)))
-        }
-        .compositingGroup()
-        .shadow(color: .black.opacity(0.35), radius: 8, y: 6)
-        .opacity(item.done ? 0.82 : 1)
-        .padding(.top, 4).padding(.bottom, 7)
-        .padding(.horizontal, 2)
+            }
+            .shadow(color: Theme.cardShadow, radius: 5, y: 4)
+            .opacity(item.done ? 0.8 : 1)
+            .padding(.top, 3).padding(.bottom, 5)
+            .padding(.horizontal, 2)
+    }
+
+    private func copyText() {
+        var t = WikiText.plain(item.text)
+        let n = item.note.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !n.isEmpty { t += "\n\n" + n }
+        UIPasteboard.general.string = t
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        withAnimation(.easeOut(duration: 0.15)) { copied = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { withAnimation { copied = false } }
     }
 
     @ViewBuilder private var leading: some View {
@@ -175,7 +205,7 @@ struct ItemRow: View {
                 ForEach(marks, id: \.self) { m in
                     Text(m).font(.system(size: 10))
                         .padding(.horizontal, 5).padding(.vertical, 1)
-                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.black.opacity(0.15)))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Theme.cardSub.opacity(0.35)))
                         .foregroundStyle(Theme.cardSub)
                 }
             }

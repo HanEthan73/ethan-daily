@@ -69,11 +69,13 @@ enum Theme {
     static let warn = adaptive(rgb(0xE5352B), rgb(0xFF453A))
     static let sun = warn
     /// 연그레이 3D 카드
-    static let cardTop = adaptive(rgb(0xFFFFFF), rgb(0xF2F2F5))
-    static let cardBottom = adaptive(rgb(0xECECF0), rgb(0xD9D9DE))
-    static let cardLip = adaptive(rgb(0xC9C9CF), rgb(0x8E8E95))
-    static let cardInk = Color(rgb(0x141416))
-    static let cardSub = Color(rgb(0x55555B))
+    static let cardTop = adaptive(rgb(0xEAEAEF), rgb(0x2D2D32))
+    static let cardBottom = adaptive(rgb(0xE0E0E6), rgb(0x252529))
+    static let cardLip = adaptive(rgb(0x3C3C50, 0.16), rgb(0x000000, 0.55))
+    static let cardHi = adaptive(rgb(0xFFFFFF, 0.75), rgb(0xFFFFFF, 0.09))
+    static let cardShadow = adaptive(rgb(0x28284A, 0.24), rgb(0x000000, 0.65))
+    static let cardInk = adaptive(rgb(0x1C1C1E), rgb(0xF2F2F5))
+    static let cardSub = adaptive(rgb(0x5F5F67), rgb(0xA3A3AB))
     /// 포스트잇 바탕
     static let noteTodo = adaptive(rgb(0xFFF3E3), rgb(0x35261A))
     static let noteMemo = adaptive(rgb(0xFFF9D9), rgb(0x302A17))
