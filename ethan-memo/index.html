@@ -1136,7 +1136,7 @@ function renderWidget(){
 function fromHash(){if(location.hash==='#widget')S.view='widget';else if(S.view==='widget')S.view='cal';}
 window.addEventListener('hashchange',()=>{fromHash();render();});
 
-const ROW_H=80,BAR_TOP=38,BAR_H=13,MAX_LANES=2;
+const ROW_MIN=58,BAR_TOP=38,BAR_H=15,BAR_STEP=17,MAX_LANES=4;   // 한 날짜에 막대 4줄까지, 나머지는 +N
 const dayDiff=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
 let CAL={days:[],weeks:0};
 function renderCal(){
@@ -1152,22 +1152,10 @@ function renderCal(){
   for(const x of all()){if(x.type==='event')continue;const k=x.date;(marks[k]||(marks[k]={event:0,todo:0,memo:0}));
     if(x.type==='todo'&&x.done)continue;marks[k][x.type]++;}
   const t=today(),box=$('days');box.replaceChildren();
-  box.style.height=(weeks*ROW_H)+'px';
-  days.forEach((k,i)=>{
-    const d=pd(k),mk=marks[k];
-    const hn=holName(k);
-    const cls=['day',d.getMonth()!==mo&&'out',d.getDay()===0&&'sun',d.getDay()===6&&'sat',hn&&'hol',k===t&&'today',k===S.sel&&'sel'].filter(Boolean).join(' ');
-    const cnt=mk?(mk.event+mk.todo+mk.memo):0;
-    box.append(h('button',{class:cls,'data-i':i,'aria-label':`${d.getMonth()+1}월 ${d.getDate()}일 ${KD[d.getDay()]}요일${hn?`, ${hn}`:''}${cnt?`, 기록 ${cnt}개`:''}`,'aria-current':k===S.sel?'date':null,
-      onclick:()=>{if(dragJustEnded){dragJustEnded=false;return;}S.sel=k;S.view='cal';if(d.getMonth()!==mo)S.month=new Date(d.getFullYear(),d.getMonth(),1);render();}},
-      h('span',{class:'n',text:String(d.getDate())}),
-      hn?h('span',{class:'hname',text:hn.includes('대체')?'대체휴일':hn.split(' · ')[0]}):null,
-      h('span',{class:'dots','data-dots':i},mk&&['todo','memo'].filter(tp=>mk[tp]).map(tp=>h('i',{class:'d-'+tp})))));
-  });
-  // 일정은 하루짜리도 여러 날도 모두 막대 (여러 날은 주가 바뀌어도 이어짐)
+  /* 막대 배치를 먼저 계산 → 주마다 필요한 줄 수만큼만 높이를 줘서 잘림 없이 공간을 아낌 */
   const evs=all().filter(x=>x.type==='event').sort((a,b)=>a.date.localeCompare(b.date)
     ||dayDiff(b.date,b.endDate||b.date)-dayDiff(a.date,a.endDate||a.date)||(a.time||'99').localeCompare(b.time||'99')||(a.createdAt||0)-(b.createdAt||0));
-  const laneEnds=[],more={};
+  const laneEnds=[],more={},placed=[],rowLanes=new Array(weeks).fill(0);
   for(const ev of evs){
     const last=ev.endDate||ev.date;
     const s=dayDiff(days[0],ev.date),e=dayDiff(days[0],last);
@@ -1175,13 +1163,33 @@ function renderCal(){
     const cs=Math.max(0,s),ce=Math.min(n-1,e);
     let lane=laneEnds.findIndex(v=>v<cs);if(lane<0){lane=laneEnds.length;laneEnds.push(ce);}else laneEnds[lane]=ce;
     if(lane>=MAX_LANES){for(let i=cs;i<=ce;i++)more[i]=(more[i]||0)+1;continue;}
+    placed.push({ev,s,e,cs,ce,lane});
+    for(let r=Math.floor(cs/7);r<=Math.floor(ce/7);r++)rowLanes[r]=Math.max(rowLanes[r],lane+1);
+  }
+  const rowH=rowLanes.map((l,r)=>{const hasMore=[0,1,2,3,4,5,6].some(c=>more[r*7+c]);return Math.max(ROW_MIN,l?BAR_TOP+l*BAR_STEP+(hasMore?10:5):ROW_MIN);});
+  const rowTop=[];rowH.reduce((a,h2,i)=>(rowTop[i]=a,a+h2),0);
+  box.style.height=rowH.reduce((a,b)=>a+b,0)+'px';
+  days.forEach((k,i)=>{
+    const d=pd(k),mk=marks[k];
+    const hn=holName(k);const rh=rowH[Math.floor(i/7)];
+    const cls=['day',d.getMonth()!==mo&&'out',d.getDay()===0&&'sun',d.getDay()===6&&'sat',hn&&'hol',k===t&&'today',k===S.sel&&'sel'].filter(Boolean).join(' ');
+    const cnt=mk?(mk.event+mk.todo+mk.memo):0;
+    box.append(h('button',{class:cls,'data-i':i,style:`height:${rh}px`,'aria-label':`${d.getMonth()+1}월 ${d.getDate()}일 ${KD[d.getDay()]}요일${hn?`, ${hn}`:''}${cnt?`, 기록 ${cnt}개`:''}`,'aria-current':k===S.sel?'date':null,
+      onclick:()=>{if(dragJustEnded){dragJustEnded=false;return;}S.sel=k;S.view='cal';if(d.getMonth()!==mo)S.month=new Date(d.getFullYear(),d.getMonth(),1);render();}},
+      h('span',{class:'n',text:String(d.getDate())}),
+      hn?h('span',{class:'hname',text:hn.includes('대체')?'대체휴일':hn.split(' · ')[0]}):null,
+      h('span',{class:'dots','data-dots':i},mk&&['todo','memo'].filter(tp=>mk[tp]).map(tp=>h('i',{class:'d-'+tp})))));
+  });
+  // 일정은 하루짜리도 여러 날도 모두 막대 (여러 날은 주가 바뀌어도 이어짐)
+  for(const pl of placed){
+    const ev=pl.ev,s=pl.s,e=pl.e,lane=pl.lane;
     const label=ev.text;
-    for(let i=cs;i<=ce;){
-      const row=Math.floor(i/7),rowEnd=Math.min(ce,row*7+6);
+    for(let i=pl.cs;i<=pl.ce;){
+      const row=Math.floor(i/7),rowEnd=Math.min(pl.ce,row*7+6);
       const c0=i%7,span=rowEnd-i+1,openL=i>s,openR=rowEnd<e;
       const bar=h('button',{class:'bar hl-'+hl(ev)+(openL?' open-l':'')+(openR?' open-r':''),
         title:ev.endDate?`${ev.text} · ${fmtDay(ev.date)}–${fmtDay(ev.endDate)}`:`${ev.text} · ${fmtDay(ev.date)}${ev.time?' '+ev.time:''}`,
-        style:`left:calc(${c0}*100%/7 + ${openL?0:3}px);width:calc(${span}*100%/7 - ${(openL?0:3)+(openR?0:3)}px);top:${row*ROW_H+BAR_TOP+lane*(BAR_H+1)}px`,
+        style:`left:calc(${c0}*100%/7 + ${openL?0:3}px);width:calc(${span}*100%/7 - ${(openL?0:3)+(openR?0:3)}px);top:${rowTop[row]+BAR_TOP+lane*BAR_STEP}px`,
         onclick:()=>openSheet(ev.id)},(openL&&c0!==0)?'':label);
       box.append(bar);
       i=rowEnd+1;

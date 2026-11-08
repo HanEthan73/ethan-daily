@@ -155,10 +155,14 @@ struct MonthGrid: View {
     @State private var began = false
     @State private var pressTask: DispatchWorkItem?
 
-    private let rowH: CGFloat = 76
     private let barTop: CGFloat = 41
     private let barH: CGFloat = 15
-    private let maxLanes = 2
+    private let maxLanes = 4
+    /// 막대가 가장 많이 겹친 줄 수만큼 칸 높이를 늘려 잘림 없이 최대 4줄까지 보이게
+    private var rowH: CGFloat {
+        let lanes = (bars.map(\.lane).max() ?? -1) + 1
+        return max(66, barTop + CGFloat(lanes) * (barH + 2) + 5)
+    }
 
     private var firstCell: Date {
         let first = Fmt.startOfMonth(month)
@@ -237,6 +241,7 @@ struct MonthGrid: View {
     }
 
     var body: some View {
+        let rh = rowH
         VStack(spacing: 6) {
             HStack(spacing: 4) {
                 Text(Fmt.string(month, "yyyy. M"))
@@ -276,8 +281,8 @@ struct MonthGrid: View {
                         RoundedRectangle(cornerRadius: 10)
                             .fill(Theme.hiSoft)
                             .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.hi.opacity(0.6), lineWidth: 1))
-                            .frame(width: CGFloat(seg.end - seg.start + 1) * w - 2, height: rowH - 4)
-                            .offset(x: CGFloat(seg.start) * w + 1, y: CGFloat(seg.row) * rowH + 2)
+                            .frame(width: CGFloat(seg.end - seg.start + 1) * w - 2, height: rh - 4)
+                            .offset(x: CGFloat(seg.start) * w + 1, y: CGFloat(seg.row) * rh + 2)
                     }
                     // 2) 날짜 칸
                     ForEach(Array(days.enumerated()), id: \.offset) { i, d in
@@ -288,8 +293,8 @@ struct MonthGrid: View {
                                 holiday: Holidays.shared.short(d),
                                 kinds: dots[d] ?? [],
                                 column: i % 7)
-                            .frame(width: w, height: rowH)
-                            .offset(x: CGFloat(i % 7) * w, y: CGFloat(i / 7) * rowH)
+                            .frame(width: w, height: rh)
+                            .offset(x: CGFloat(i % 7) * w, y: CGFloat(i / 7) * rh)
                     }
                     // 3) 일정 막대
                     ForEach(bars) { b in
@@ -312,7 +317,7 @@ struct MonthGrid: View {
                                 if !b.openLeft { Rectangle().fill(c.c).frame(width: 2.5) }
                             }
                             .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 2),
-                                    y: CGFloat(b.row) * rowH + barTop + CGFloat(b.lane) * (barH + 2))
+                                    y: CGFloat(b.row) * rh + barTop + CGFloat(b.lane) * (barH + 2))
                             .allowsHitTesting(false)
                     }
                 }
@@ -323,7 +328,7 @@ struct MonthGrid: View {
                         .onEnded { v in ended(v, w: w) }
                 )
             }
-            .frame(height: CGFloat(weeks) * rowH)
+            .frame(height: CGFloat(weeks) * rh)
             .id(month)
             .transition(.opacity)
 
