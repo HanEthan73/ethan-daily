@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.8",
-"buildVersion": "8",
-"date": "2026-11-08T09:39:29Z",
-"localizedDescription": "ETHAN MEMO: wiki with [[links]], auto-formatted markdown, backlinks and Claude tidy-up; tabs ordered todo/calendar/wiki; Claude buttons moved into edit sheet",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=8",
-"size": 641654,
+"version": "1.0.9",
+"buildVersion": "9",
+"date": "2026-11-08T09:50:04Z",
+"localizedDescription": "ETHAN MEMO: swipe right to complete, swipe left to schedule; Claude only inside item detail; black/gray theme",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=9",
+"size": 650798,
 "minOSVersion": "17.0"
         }
       ],
