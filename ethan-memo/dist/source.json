@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.15",
-"buildVersion": "15",
-"date": "2026-11-08T13:44:16Z",
-"localizedDescription": "ETHAN MEMO: neon orange to-do markers and accents",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=15",
-"size": 944344,
+"version": "1.0.16",
+"buildVersion": "16",
+"date": "2026-11-08T13:50:23Z",
+"localizedDescription": "ETHAN MEMO: sticky-note cards, add photos while adding to-dos",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=16",
+"size": 960931,
 "minOSVersion": "17.0"
         }
       ],
