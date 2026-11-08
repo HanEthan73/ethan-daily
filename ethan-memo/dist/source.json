@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.21",
-"buildVersion": "21",
-"date": "2026-11-08T23:32:14Z",
-"localizedDescription": "Fix DayList helpers placement for iOS build",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=21",
-"size": 1000620,
+"version": "1.0.22",
+"buildVersion": "22",
+"date": "2026-11-08T23:36:03Z",
+"localizedDescription": "ETHAN MEMO: compact calendar-bar style todo cards (curved left strip)",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=22",
+"size": 1000494,
 "minOSVersion": "17.0"
         }
       ],
