@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.14",
-"buildVersion": "14",
-"date": "2026-11-08T13:38:16Z",
-"localizedDescription": "ETHAN MEMO: orange signature color, in-app reminders import banner",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=14",
-"size": 944081,
+"version": "1.0.15",
+"buildVersion": "15",
+"date": "2026-11-08T13:44:16Z",
+"localizedDescription": "ETHAN MEMO: neon orange to-do markers and accents",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=15",
+"size": 944344,
 "minOSVersion": "17.0"
         }
       ],
