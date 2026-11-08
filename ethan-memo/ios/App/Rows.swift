@@ -91,7 +91,8 @@ struct ItemRow: View {
                 if item.done {
                     Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.todo)
                 } else {
-                    Circle().stroke(isLate ? Theme.warn : Theme.todo, lineWidth: 2).frame(width: 8, height: 8)
+                    Circle().stroke(isLate ? Theme.warn : Theme.todo, lineWidth: 2.5).frame(width: 9, height: 9)
+                        .shadow(color: (isLate ? Theme.warn : Theme.todo).opacity(0.7), radius: 3)
                 }
             }
             .frame(width: 14)

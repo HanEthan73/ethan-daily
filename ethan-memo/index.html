@@ -746,6 +746,23 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
 .imp-t span{font-size:12px;opacity:.9}
 .imp-go{background:#fff;color:#C25E00;font-weight:700;font-size:13.5px;padding:7px 14px;border-radius:999px}
 .imp-x{color:#fff;opacity:.85;font-size:20px;width:28px;height:28px}
+
+/* ================= 형광 주황 통일 ================= */
+:root{--neon:#FF8A00;--neon-glow:rgba(255,138,0,.55);--todo:#F27A00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--neon:#FF9F0A;--neon-glow:rgba(255,159,10,.65);--todo:#FF9F0A}}
+:root[data-theme="dark"]{--neon:#FF9F0A;--neon-glow:rgba(255,159,10,.65);--todo:#FF9F0A}
+.mk:not(.on)::before{width:9px;height:9px;background:transparent;box-shadow:inset 0 0 0 2.5px var(--neon),0 0 7px var(--neon-glow)}
+.mk.on{color:var(--neon);text-shadow:0 0 6px var(--neon-glow)}
+.mk.late:not(.on)::before{box-shadow:inset 0 0 0 2.5px var(--warn),0 0 7px rgba(255,69,58,.5);background:transparent}
+.d-todo,.legend i.d-todo{background:var(--neon);box-shadow:0 0 5px var(--neon-glow)}
+.seg button i.d-todo{background:var(--neon)}
+.drow.done .ic{color:var(--neon)}
+.wstat:nth-child(2) b{color:var(--neon)}
+.it.done .mk{opacity:.9}
+.fold,.foldrow{color:var(--muted)}
+.switch:checked{background:var(--neon)}
+.gic.gi-done{background:var(--neon)}
+.gic.gi-ai{background:var(--metal);color:#fff}
 </style>
 </head>
 <body>

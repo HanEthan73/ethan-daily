@@ -64,7 +64,7 @@ enum Theme {
     static let line = adaptive(rgb(0xE3E3E8), rgb(0x38383A))
     static let today = adaptive(rgb(0xFF8A00), rgb(0xFF9500))
     static let event = adaptive(rgb(0x007AFF), rgb(0x0A84FF))
-    static let todo = adaptive(rgb(0x1E9E4A), rgb(0x32D74B))
+    static let todo = adaptive(rgb(0xF27A00), rgb(0xFF9F0A))
     static let memo = adaptive(rgb(0xC28A00), rgb(0xFFD60A))
     static let warn = adaptive(rgb(0xE5352B), rgb(0xFF453A))
     static let sun = warn
