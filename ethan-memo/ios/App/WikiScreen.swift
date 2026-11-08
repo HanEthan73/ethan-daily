@@ -544,13 +544,20 @@ struct WikiDayView: View {
             if !x.note.isEmpty { s += "\n  상세: " + x.note.replacingOccurrences(of: "\n", with: "\n  ") }
             return s
         }
-        let parts = [
-            events.isEmpty ? nil : "일정:\n" + events.map { line($0, "-") }.joined(separator: "\n"),
-            done.isEmpty ? nil : "완료한 일:\n" + done.map { line($0, "- [x]") }.joined(separator: "\n"),
-            open.isEmpty ? nil : "남은 일:\n" + open.map { line($0, "- [ ]") }.joined(separator: "\n"),
-            memos.isEmpty ? nil : "메모:\n" + memos.map { line($0, "-") }.joined(separator: "\n"),
-        ].compactMap { $0 }.joined(separator: "\n\n")
-        let old = note?.body.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        func block(_ title: String, _ xs: [Item], _ pre: String) -> String? {
+            if xs.isEmpty { return nil }
+            let body: String = xs.map { line($0, pre) }.joined(separator: "\n")
+            return title + ":\n" + body
+        }
+        var blocks: [String] = []
+        if let b = block("일정", events, "-") { blocks.append(b) }
+        if let b = block("완료한 일", done, "- [x]") { blocks.append(b) }
+        if let b = block("남은 일", open, "- [ ]") { blocks.append(b) }
+        if let b = block("메모", memos, "-") { blocks.append(b) }
+        let parts: String = blocks.joined(separator: "\n\n")
+        let old: String = note?.body.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let oldPart: String = old.isEmpty ? "" : "\n기존 노트:\n" + old
+        let record: String = parts.isEmpty ? "(기록 없음)" : parts
         let prompt = """
         다음은 \(key) 하루의 기록입니다. 개인 위키에 남길 '하루 정리' 노트를 한국어 마크다운으로 써 주세요.
         규칙:
@@ -562,8 +569,8 @@ struct WikiDayView: View {
         - 기록에 없는 사실을 지어내지 말 것. 기존 노트의 내용은 빼지 말고 살릴 것.
 
         기록:
-        \(parts.isEmpty ? "(기록 없음)" : parts)
-        \(old.isEmpty ? "" : "\n기존 노트:\n" + old)
+        \(record)
+        \(oldPart)
         """
         busy = true
         Task {
