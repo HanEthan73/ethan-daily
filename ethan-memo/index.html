@@ -718,7 +718,7 @@ async function connect(){
   S.sample=(p,o)=>callClaude(p,o);
   toLocal();
   if(Sync.on())Sync.run();
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update().catch(()=>{});});}).catch(()=>{});
 }
 function toLocal(){S.mode='local';loadLocal();render();}
 function setSync(s,t){const el=$('sync');el.dataset.s=s;el.textContent=t;}
