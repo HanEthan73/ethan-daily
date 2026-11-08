@@ -121,7 +121,7 @@ struct TodoScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .listRowSpacing(6)
+            .listRowSpacing(3)
             .onChange(of: picks) { _, sel in
                 guard !sel.isEmpty else { return }
                 Task {

@@ -47,7 +47,7 @@ struct ItemRow: View {
             leading
             VStack(alignment: .leading, spacing: 3) {
                 Text(WikiText.plain(item.text))
-                    .font(.system(size: 15.5, weight: item.done ? .medium : .semibold))
+                    .font(.system(size: 14.5, weight: item.done ? .medium : .bold))
                     .padding(.horizontal, item.kind == .event ? 2 : 0)
                     .background(alignment: .bottom) {
                         if item.kind == .event { Theme.hl(item.uid).b.frame(height: 9).clipShape(RoundedRectangle(cornerRadius: 2)) }
@@ -74,8 +74,8 @@ struct ItemRow: View {
                     .transition(.opacity)
             }
         }
-        .padding(.vertical, 6)
-        .padding(.leading, 4)
+        .padding(.vertical, 3)
+        .padding(.leading, 8)
         .listRowSeparator(.hidden)
         .listRowBackground(note)
         .overlay(alignment: .leading) {
@@ -139,11 +139,13 @@ struct ItemRow: View {
 
     private var note: some View {
         let (_, strip) = noteColors
-        let shape = RoundedRectangle(cornerRadius: 10)
+        // 캘린더 막대와 같은 모양: 둥근 모서리를 따라 휘는 왼쪽 색 띠
+        let shape = RoundedRectangle(cornerRadius: 7)
         let pinned = isPinned
-        return shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
-            .overlay(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2).fill(strip).frame(width: 3).padding(.vertical, 9)
+        return shape.fill(strip)
+            .overlay {
+                shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
+                    .padding(.leading, 3.5)
             }
             .overlay(shape.strokeBorder(Theme.cardLip, lineWidth: 0.5))
             .overlay(shape.strokeBorder(Theme.cardHi, lineWidth: 1).mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center)))
@@ -157,9 +159,9 @@ struct ItemRow: View {
                         .padding(.trailing, 11)
                 }
             }
-            .shadow(color: Theme.cardShadow, radius: 5, y: 4)
+            .shadow(color: Theme.cardShadow, radius: 3.5, y: 2.5)
             .opacity(item.done ? 0.8 : 1)
-            .padding(.top, 3).padding(.bottom, 5)
+            .padding(.top, 2).padding(.bottom, 3)
             .padding(.horizontal, 2)
     }
 

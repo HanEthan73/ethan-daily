@@ -815,18 +815,21 @@ input:focus,textarea:focus,select:focus{box-shadow:0 0 0 3px var(--hi-soft)}
 :root{--card-top:#EAEAEF;--card-bot:#E0E0E6;--card-ink:#1C1C1E;--card-sub:#5F5F67;--card-hi:rgba(255,255,255,.75);--card-edge:rgba(60,60,80,.16);--card-drop:rgba(40,40,70,.24);--card-line:rgba(0,0,0,.14)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--card-top:#2D2D32;--card-bot:#252529;--card-ink:#F2F2F5;--card-sub:#A3A3AB;--card-hi:rgba(255,255,255,.09);--card-edge:rgba(0,0,0,.55);--card-drop:rgba(0,0,0,.65);--card-line:rgba(255,255,255,.16)}}
 :root[data-theme="dark"]{--card-top:#2D2D32;--card-bot:#252529;--card-ink:#F2F2F5;--card-sub:#A3A3AB;--card-hi:rgba(255,255,255,.09);--card-edge:rgba(0,0,0,.55);--card-drop:rgba(0,0,0,.65);--card-line:rgba(255,255,255,.16)}
-.sec .list{gap:9px;padding-bottom:4px}
+.sec .list{gap:6px;padding-bottom:3px}
 .sec .list > .it,.sec .list > .it.memo,.sec .list > .it.is-late{--nb:linear-gradient(180deg,var(--card-top),var(--card-bot));
-  background:var(--nb);color:var(--card-ink);border-radius:10px;
-  box-shadow:inset 0 1px 0 var(--card-hi),inset 0 0 0 .5px var(--card-edge),0 1px 1px rgba(0,0,0,.10),0 8px 14px -8px var(--card-drop);
-  margin-bottom:2px;transition:transform .15s var(--ease),box-shadow .15s}
-.sec .list > .it:active{transform:translateY(1px);box-shadow:inset 0 1px 0 var(--card-hi),inset 0 0 0 .5px var(--card-edge),0 0 1px rgba(0,0,0,.12),0 3px 8px -6px var(--card-drop)}
-.sec .list > .it .sw-fg{background:var(--nb);border-radius:10px}
-.sec .list > .it::before{width:3px;top:9px;bottom:9px;border-radius:2px}
+  background:var(--nb);color:var(--card-ink);border-radius:7px;
+  box-shadow:inset 0 1px 0 var(--card-hi),inset 0 0 0 .5px var(--card-edge),0 1px 1px rgba(0,0,0,.10),0 5px 9px -6px var(--card-drop);
+  margin-bottom:1px;transition:transform .15s var(--ease),box-shadow .15s}
+.sec .list > .it:active{transform:translateY(1px);box-shadow:inset 0 1px 0 var(--card-hi),inset 0 0 0 .5px var(--card-edge),0 0 1px rgba(0,0,0,.12),0 2px 5px -4px var(--card-drop)}
+.sec .list > .it .sw-fg{background:var(--nb);border-radius:7px;padding:8px 12px 8px 15px;gap:8px}
+.sec .list > .it:not(.sw){padding:8px 12px 8px 15px;gap:8px}
+/* 캘린더 막대와 같은 모양: 둥근 모서리를 따라 휘는 왼쪽 색 띠 */
+.sec .list > .it::before{content:"";position:absolute;inset:0;width:auto;top:0;bottom:0;background:none;border-left:3.5px solid var(--nc);border-radius:7px;pointer-events:none;z-index:3}
 .sec .list > .it.done{--nb:linear-gradient(180deg,color-mix(in srgb,var(--card-top) 70%,var(--bg)),color-mix(in srgb,var(--card-bot) 70%,var(--bg)));opacity:.8}
-.sec .list > .it .txt{color:var(--card-ink)}
+.sec .list > .it .txt{color:var(--card-ink);font-size:14.5px;font-weight:650;line-height:1.38;letter-spacing:-.01em}
 .sec .list > .it.done .txt{color:var(--card-sub)}
-.sec .list > .it .meta,.sec .list > .it .meta span{color:var(--card-sub)}
+.sec .list > .it .meta,.sec .list > .it .meta span{color:var(--card-sub);font-size:11px}
+.sec .list > .it .body{gap:1px}
 .sec .list > .it .late{color:#E5352B}
 .sec .list > .it .ansmark{border-color:var(--card-line);color:var(--card-sub)}
 .sec .list > .it .mk.on{color:#E86F00;text-shadow:none}
