@@ -46,7 +46,7 @@ struct ItemRow: View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             leading
             VStack(alignment: .leading, spacing: 3) {
-                Text(WikiText.plain(item.text))
+                Text(CardMarkdown.attributed(WikiText.plain(item.text)))
                     .font(.system(size: 14.5, weight: item.done ? .medium : .bold))
                     .padding(.horizontal, item.kind == .event ? 2 : 0)
                     .background(alignment: .bottom) {
@@ -56,6 +56,14 @@ struct ItemRow: View {
                     .foregroundStyle(item.done ? Theme.cardSub : Theme.cardInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 meta
+                if !item.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text(CardMarkdown.attributed(item.note.trimmingCharacters(in: .whitespacesAndNewlines)))
+                        .font(.system(size: 13)).foregroundStyle(Theme.cardSub)
+                        .lineLimit(4)
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 5).fill(Color.gray.opacity(0.14)))
+                }
                 linkChips
                 PhotoStrip(ids: item.photoIDs, size: 42)
             }
@@ -249,7 +257,6 @@ struct ItemRow: View {
 
     private var markParts: [String] {
         var m: [String] = []
-        if !item.note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { m.append("노트") }
         if asker.busy.contains(item.uid) { m.append("Claude 답변 중…") } else if item.answer != nil { m.append("답변 있음") }
         return m
     }
@@ -343,5 +350,34 @@ struct Composer: View {
         ctx.insert(Item(kind: kind, day: day, time: (kind != .memo && hasTime) ? time : nil, text: t))
         Store.save(ctx)
         text = ""
+    }
+}
+
+
+// MARK: - 카드 안 마크다운 (굵게·기울임·코드·링크 + 제목/목록/체크 표시)
+
+enum CardMarkdown {
+    static func attributed(_ raw: String) -> AttributedString {
+        var lines: [String] = []
+        var inCode = false
+        for l in raw.replacingOccurrences(of: "\r", with: "").components(separatedBy: "\n") {
+            if l.hasPrefix("```") { inCode.toggle(); continue }
+            if inCode { lines.append("`" + l + "`"); continue }
+            var t = l
+            if let r = t.range(of: #"^\s*#{1,3}\s+"#, options: .regularExpression) {
+                t = "**" + t[r.upperBound...] + "**"
+            } else if let r = t.range(of: #"^\s*[-*+]\s+\[( |x|X)\]\s*"#, options: .regularExpression) {
+                let done = !t[r].contains("[ ]")
+                t = (done ? "☑ " : "☐ ") + t[r.upperBound...]
+            } else if let r = t.range(of: #"^\s*[-*+]\s+"#, options: .regularExpression) {
+                t = "• " + t[r.upperBound...]
+            } else if let r = t.range(of: #"^>\s?"#, options: .regularExpression) {
+                t = "▍" + t[r.upperBound...]
+            }
+            lines.append(t)
+        }
+        let src = lines.joined(separator: "\n")
+        let opts = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return (try? AttributedString(markdown: src, options: opts)) ?? AttributedString(src)
     }
 }

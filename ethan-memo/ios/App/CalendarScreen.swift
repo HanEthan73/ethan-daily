@@ -159,10 +159,13 @@ struct MonthGrid: View {
     private let barH: CGFloat = 15
     private let maxLanes = 4
     /// 막대가 가장 많이 겹친 줄 수만큼 칸 높이를 늘려 잘림 없이 최대 4줄까지 보이게
-    private var rowH: CGFloat {
-        let lanes = (bars.map(\.lane).max() ?? -1) + 1
-        return max(66, barTop + CGFloat(lanes) * (barH + 2) + 5)
+    private let barTall: CGFloat = 27
+    private func step(_ segs: [Seg]) -> CGFloat { (segs.contains { $0.tall } ? barTall : barH) + 2 }
+    private func rowHeight(_ segs: [Seg]) -> CGFloat {
+        let lanes = (segs.map(\.lane).max() ?? -1) + 1
+        return max(66, barTop + CGFloat(lanes) * step(segs) + 5)
     }
+    private var rowH: CGFloat { rowHeight(bars) }
 
     private var firstCell: Date {
         let first = Fmt.startOfMonth(month)
@@ -191,6 +194,7 @@ struct MonthGrid: View {
         let title: String
         let key: String
         let row: Int, start: Int, end: Int, lane: Int
+        var tall: Bool = false
         let openLeft: Bool, openRight: Bool
     }
 
@@ -216,8 +220,12 @@ struct MonthGrid: View {
             while i <= ce {
                 let row = i / 7
                 let rowEnd = min(ce, row * 7 + 6)
+                let cols = rowEnd % 7 - i % 7 + 1
+                let labelled = !(i > s && i % 7 != 0)
+                // 칸이 좁아 한 줄에 안 들어가는 제목은 두 줄로
+                let tall = labelled && CGFloat(ev.text.count) * 10.5 > CGFloat(cols) * 48 - 12
                 out.append(Seg(id: "\(ev.uid)-\(row)", title: ev.text, key: ev.uid, row: row,
-                               start: i % 7, end: rowEnd % 7, lane: lane,
+                               start: i % 7, end: rowEnd % 7, lane: lane, tall: tall,
                                openLeft: i > s, openRight: rowEnd < e))
                 i = rowEnd + 1
             }
@@ -241,7 +249,9 @@ struct MonthGrid: View {
     }
 
     var body: some View {
-        let rh = rowH
+        let allBars = bars
+        let rh = rowHeight(allBars)
+        let bstep = step(allBars)
         VStack(spacing: 6) {
             HStack(spacing: 4) {
                 Text(Fmt.string(month, "yyyy. M"))
@@ -297,14 +307,15 @@ struct MonthGrid: View {
                             .offset(x: CGFloat(i % 7) * w, y: CGFloat(i / 7) * rh)
                     }
                     // 3) 일정 막대
-                    ForEach(bars) { b in
+                    ForEach(allBars) { b in
                         let c = Theme.hl(b.key)
                         Text(b.openLeft && b.start != 0 ? " " : b.title)
-                            .font(.system(size: 10, weight: .semibold))
-                            .lineLimit(1)
-                            .padding(.leading, 5).padding(.trailing, 3)
-                            .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 2) - (b.openRight ? 0 : 2),
-                                   height: barH, alignment: .leading)
+                            .font(.system(size: 10.5, weight: .semibold))
+                            .lineLimit(b.tall ? 2 : 1)
+                            .multilineTextAlignment(.leading)
+                            .padding(.leading, 5).padding(.trailing, 2)
+                            .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 1) - (b.openRight ? 0 : 1),
+                                   height: b.tall ? barTall : barH, alignment: b.tall ? .topLeading : .leading)
                             .foregroundStyle(c.t)
                             .background(
                                 UnevenRoundedRectangle(topLeadingRadius: b.openLeft ? 0 : 4,
@@ -316,8 +327,8 @@ struct MonthGrid: View {
                             .overlay(alignment: .leading) {
                                 if !b.openLeft { Rectangle().fill(c.c).frame(width: 2.5) }
                             }
-                            .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 2),
-                                    y: CGFloat(b.row) * rh + barTop + CGFloat(b.lane) * (barH + 2))
+                            .offset(x: CGFloat(b.start) * w + (b.openLeft ? 0 : 1),
+                                    y: CGFloat(b.row) * rh + barTop + CGFloat(b.lane) * bstep)
                             .allowsHitTesting(false)
                     }
                 }

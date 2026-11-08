@@ -905,6 +905,31 @@ mark{background:color-mix(in srgb,var(--hi) 30%,transparent);color:inherit;borde
 .gcell .gcap{position:absolute;left:0;right:0;bottom:0;padding:10px 6px 3px;font-size:10.5px;font-weight:600;color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.55))}
 .gcell.missing::after{content:"🖼";position:absolute;inset:0;display:grid;place-items:center;opacity:.35}
 .vcap{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:calc(100% - 32px);padding:8px 14px;border:0;border-radius:6px;background:rgba(60,60,66,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+
+/* 달력 막대: 좁은 칸은 두 줄로 더 많이 보이게 */
+.bar{font-size:10.5px;letter-spacing:-.02em;text-overflow:clip}
+.bar.tall{height:27px;line-height:12px;white-space:normal;word-break:break-all;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;padding-top:1.5px;text-overflow:ellipsis;overflow:hidden}
+
+/* 카드 안 마크다운 */
+.sec .list > .it .md,.sec .list > .it .cnote{padding:0;font-size:14.5px;line-height:1.5;text-align:left;cursor:pointer;color:var(--card-ink)}
+.sec .list > .it .md>:first-child,.sec .list > .it .cnote>:first-child{margin-top:0}
+.sec .list > .it .md>:last-child,.sec .list > .it .cnote>:last-child{margin-bottom:0}
+.sec .list > .it .md p,.sec .list > .it .cnote p{margin:0 0 4px}
+.sec .list > .it .md h3,.sec .list > .it .md h4,.sec .list > .it .md h5{margin:2px 0 3px;font-size:15.5px;line-height:1.3;color:var(--card-ink)}
+.sec .list > .it .md strong,.sec .list > .it .cnote strong{font-weight:750}
+.sec .list > .it .md ul,.sec .list > .it .md ol,.sec .list > .it .cnote ul,.sec .list > .it .cnote ol{margin:0 0 4px;padding-left:19px}
+.sec .list > .it .md li.task,.sec .list > .it .cnote li.task{margin-left:-19px}
+.sec .list > .it .md li.task input,.sec .list > .it .cnote li.task input{pointer-events:none;width:15px;height:15px;margin-top:3px}
+.sec .list > .it .md code,.sec .list > .it .cnote code{background:rgba(127,127,140,.2);color:inherit}
+.sec .list > .it .md pre,.sec .list > .it .cnote pre{background:rgba(127,127,140,.16);padding:8px 10px;font-size:12px;margin:0 0 4px}
+.sec .list > .it .md blockquote,.sec .list > .it .cnote blockquote{margin:0 0 4px;padding:4px 10px;border-left-color:var(--nc);background:rgba(127,127,140,.14)}
+.sec .list > .it .md table,.sec .list > .it .cnote table{font-size:12.5px}
+.sec .list > .it .md a,.sec .list > .it .cnote a{color:var(--hi);text-decoration:underline;text-underline-offset:2px}
+/* 상세 내용 미리보기: 4줄까지, 넘치면 흐리게 */
+.sec .list > .it .cnote{margin-top:4px;padding:6px 8px;border-radius:5px;background:rgba(127,127,140,.14);color:var(--card-sub);font-size:13px;max-height:6.6em;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.sec .list > .it .cnote:not(:has(*:nth-child(n+4))):not(:has(li:nth-child(n+4))){-webkit-mask-image:none;mask-image:none}
+
+.c-row textarea#cText{flex:1 1 180px;min-width:0;resize:none;min-height:38px;max-height:150px;line-height:1.4;overflow-y:auto}
 </style>
 </head>
 <body>
@@ -1196,7 +1221,7 @@ function renderWidget(){
 function fromHash(){if(location.hash==='#widget')S.view='widget';else if(S.view==='widget')S.view='cal';}
 window.addEventListener('hashchange',()=>{fromHash();render();});
 
-const ROW_MIN=58,BAR_TOP=38,BAR_H=15,BAR_STEP=17,MAX_LANES=4;   // 한 날짜에 막대 4줄까지, 나머지는 +N
+const ROW_MIN=58,BAR_TOP=38,BAR_H=15,BAR_TALL=27,MAX_LANES=4;   // 한 날짜에 막대 4줄까지, 나머지는 +N
 const dayDiff=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
 let CAL={days:[],weeks:0};
 function renderCal(){
@@ -1215,6 +1240,7 @@ function renderCal(){
   /* 막대 배치를 먼저 계산 → 주마다 필요한 줄 수만큼만 높이를 줘서 잘림 없이 공간을 아낌 */
   const evs=all().filter(x=>x.type==='event').sort((a,b)=>a.date.localeCompare(b.date)
     ||dayDiff(b.date,b.endDate||b.date)-dayDiff(a.date,a.endDate||a.date)||(a.time||'99').localeCompare(b.time||'99')||(a.createdAt||0)-(b.createdAt||0));
+  const cellW=Math.max(40,(box.clientWidth||340)/7),rowTall=new Array(weeks).fill(false);
   const laneEnds=[],more={},placed=[],rowLanes=new Array(weeks).fill(0);
   for(const ev of evs){
     const last=ev.endDate||ev.date;
@@ -1223,10 +1249,17 @@ function renderCal(){
     const cs=Math.max(0,s),ce=Math.min(n-1,e);
     let lane=laneEnds.findIndex(v=>v<cs);if(lane<0){lane=laneEnds.length;laneEnds.push(ce);}else laneEnds[lane]=ce;
     if(lane>=MAX_LANES){for(let i=cs;i<=ce;i++)more[i]=(more[i]||0)+1;continue;}
-    placed.push({ev,s,e,cs,ce,lane});
+    const segs=[];
+    for(let i=cs;i<=ce;){const row=Math.floor(i/7),rowEnd=Math.min(ce,row*7+6),span=rowEnd-i+1,first=i===cs||(i>s&&false)||i===Math.max(s,0)||i%7===0;
+      const label=(i>s&&i%7!==0)?'':ev.text;
+      /* 칸이 좁아 한 줄에 안 들어가는 제목은 두 줄로 */
+      const tall=!!label&&label.length*10.5>span*cellW-12;
+      segs.push({i,row,rowEnd,span,tall});if(tall)rowTall[row]=true;i=rowEnd+1;}
+    placed.push({ev,s,e,cs,ce,lane,segs});
     for(let r=Math.floor(cs/7);r<=Math.floor(ce/7);r++)rowLanes[r]=Math.max(rowLanes[r],lane+1);
   }
-  const rowH=rowLanes.map((l,r)=>{const hasMore=[0,1,2,3,4,5,6].some(c=>more[r*7+c]);return Math.max(ROW_MIN,l?BAR_TOP+l*BAR_STEP+(hasMore?10:5):ROW_MIN);});
+  const stepOf=r=>rowTall[r]?BAR_TALL+2:BAR_H+2;
+  const rowH=rowLanes.map((l,r)=>{const hasMore=[0,1,2,3,4,5,6].some(c=>more[r*7+c]);return Math.max(ROW_MIN,l?BAR_TOP+l*stepOf(r)+(hasMore?10:5):ROW_MIN);});
   const rowTop=[];rowH.reduce((a,h2,i)=>(rowTop[i]=a,a+h2),0);
   box.style.height=rowH.reduce((a,b)=>a+b,0)+'px';
   days.forEach((k,i)=>{
@@ -1243,16 +1276,13 @@ function renderCal(){
   // 일정은 하루짜리도 여러 날도 모두 막대 (여러 날은 주가 바뀌어도 이어짐)
   for(const pl of placed){
     const ev=pl.ev,s=pl.s,e=pl.e,lane=pl.lane;
-    const label=ev.text;
-    for(let i=pl.cs;i<=pl.ce;){
-      const row=Math.floor(i/7),rowEnd=Math.min(pl.ce,row*7+6);
-      const c0=i%7,span=rowEnd-i+1,openL=i>s,openR=rowEnd<e;
-      const bar=h('button',{class:'bar hl-'+hl(ev)+(openL?' open-l':'')+(openR?' open-r':''),
+    for(const sg of pl.segs){
+      const i=sg.i,row=sg.row,rowEnd=sg.rowEnd,c0=i%7,span=sg.span,openL=i>s,openR=rowEnd<e;
+      const bar=h('button',{class:'bar hl-'+hl(ev)+(openL?' open-l':'')+(openR?' open-r':'')+(sg.tall?' tall':''),
         title:ev.endDate?`${ev.text} · ${fmtDay(ev.date)}–${fmtDay(ev.endDate)}`:`${ev.text} · ${fmtDay(ev.date)}${ev.time?' '+ev.time:''}`,
-        style:`left:calc(${c0}*100%/7 + ${openL?0:3}px);width:calc(${span}*100%/7 - ${(openL?0:3)+(openR?0:3)}px);top:${rowTop[row]+BAR_TOP+lane*BAR_STEP}px`,
-        onclick:()=>openSheet(ev.id)},(openL&&c0!==0)?'':label);
+        style:`left:calc(${c0}*100%/7 + ${openL?0:1}px);width:calc(${span}*100%/7 - ${(openL?0:1)+(openR?0:1)}px);top:${rowTop[row]+BAR_TOP+lane*stepOf(row)}px`,
+        onclick:()=>openSheet(ev.id)},(openL&&c0!==0)?'':ev.text);
       box.append(bar);
-      i=rowEnd+1;
     }
   }
   for(const i in more){const d=box.querySelector(`[data-dots="${i}"]`);if(d)d.append(h('b',{text:'+'+more[i]}));}
@@ -1328,12 +1358,16 @@ function itemRow(x,opts={}){
   for(const t of [...new Map(linksIn(x.text).map(t=>[norm(t),t])).values()])meta.push(h('button',{class:'mchip',text:isDateRef(t)?fmtDay(t):t,onclick:e=>{e.stopPropagation();openPage(t);}}));
   const busy=S.asking.has(x.id);
   const ans=null;
-  if(x.note&&x.note.trim())meta.push(h('span',{class:'ansmark',text:'노트'}));
   if(busy)meta.push(h('span',{class:'ansmark',text:'Claude 답변 중…'}));
   else if(x.answer)meta.push(h('span',{class:'ansmark',text:'답변 있음'}));
-  const body=h('div',{class:'body'},
-    h('button',{class:'txt',style:'text-align:left',onclick:openEdit,title:'눌러서 수정 · 두 번 누르면 복사',text:plainLinks(x.text)}),
-    meta.length?h('div',{class:'meta'},meta):null,thumbs(x.photos),ans);
+  /* 마크다운: 제목 # · 굵게 ** · 목록 - · 체크 - [ ] · 표 · 코드 · 링크를 카드에서도 그대로 보여 줌 */
+  const mdLike=/(^|\n)\s*(#{1,3}\s|[-*+]\s|\d+[.)]\s|>\s|```|\|.*\|)|\*\*[^*]+\*\*|~~[^~]+~~|`[^`]+`|\[[^\]]+\]\(https?:|\n/.test(x.text||'');
+  let ttl;
+  if(mdLike){ttl=h('div',{class:'txt md wiki-body',role:'button',tabindex:'0',title:'눌러서 수정 · 두 번 누르면 복사',onclick:e=>{if(e.target.closest('a'))return;openEdit();}});ttl.innerHTML=renderMd(x.text);}
+  else ttl=h('button',{class:'txt',style:'text-align:left',onclick:openEdit,title:'눌러서 수정 · 두 번 누르면 복사',text:plainLinks(x.text)});
+  const noteEl=x.note&&x.note.trim()?(()=>{const n=h('div',{class:'cnote wiki-body',role:'button',tabindex:'0',onclick:e=>{if(e.target.closest('a'))return;openEdit();}});n.innerHTML=renderMd(x.note);return n;})():null;
+  const body=h('div',{class:'body'},ttl,
+    meta.length?h('div',{class:'meta'},meta):null,noteEl,thumbs(x.photos),ans);
   if(x.type==='todo'){
     const c=h('span',{class:'mk'+(x.done?' on':'')+(!x.done&&x.date<t?' late':''),'aria-label':x.done?'완료됨':'할 일',text:x.done?'✓':''});
     return h('li',{class:'it sw'+(x.done?' done':'')+(!x.done&&x.date<t?' is-late':'')+(pinHere(x)?' pinned':''),'data-id':x.id,oncontextmenu:e=>e.preventDefault()},
@@ -1366,7 +1400,11 @@ function cPhotoRow(){if(!S.cPhotos.length)return null;
     return h('div',{class:'eph'},h('span',{class:'thumb'},im),h('button',{type:'button',class:'eph-x','aria-label':'빼기',text:'×',onclick:()=>{S.cPhotos=S.cPhotos.filter(x=>x!==id);render();}}));}));}
 function takePhotos(){const a=S.cPhotos;S.cPhotos=[];return a;}
 function composer(){
-  const inp=h('input',{type:'text',id:'cText',placeholder:PH[S.type],'aria-label':'내용',autocomplete:'off',enterkeyhint:'done'});
+  const inp=h('textarea',{id:'cText',rows:'1',placeholder:PH[S.type]+'  (마크다운 가능)','aria-label':'내용',autocomplete:'off',enterkeyhint:'enter'});
+  const coarse=matchMedia('(pointer:coarse)').matches;
+  /* 컴퓨터: Enter=추가, Shift+Enter=줄바꿈 · 폰: Enter=줄바꿈, 추가 버튼으로 저장 */
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&!coarse){e.preventDefault();inp.form.requestSubmit();}});
+  inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight+2,150)+'px';});
   const tm=h('input',{type:'time',id:'cTime','aria-label':'시간'});tm.hidden=S.type==='memo';
   const seg=h('div',{class:'seg',role:'group','aria-label':'종류'},['memo','todo','event'].map(tp=>
     h('button',{type:'button','aria-pressed':S.type===tp,onclick:()=>{S.type=tp;const v=inp.value;renderDay();const ni=$('cText');ni.value=v;ni.focus();}},h('i',{class:'d-'+tp}),TYPES[tp])));
