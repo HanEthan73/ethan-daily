@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.27",
-"buildVersion": "27",
-"date": "2026-11-09T00:48:42Z",
-"localizedDescription": "ETHAN MEMO: widget uses card style, pinned items on top (web + iOS widget)",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=27",
-"size": 1074875,
+"version": "1.0.28",
+"buildVersion": "28",
+"date": "2026-11-09T01:19:35Z",
+"localizedDescription": "swipe between tabs + pull to refresh (web + iOS)",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=28",
+"size": 1091378,
 "minOSVersion": "17.0"
         }
       ],
