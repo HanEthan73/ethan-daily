@@ -34,6 +34,17 @@ struct RootView: View {
                 .tag(Tab.settings)
         }
         .tint(Theme.hi)
+        // 좌우로 쓸어서 할 일 ↔ 캘린더 ↔ 위키
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40, coordinateSpace: .global)
+                .onEnded { v in
+                    let dx = v.translation.width, dy = v.translation.height
+                    guard abs(dx) > 90, abs(dx) > abs(dy) * 2 else { return }
+                    guard let next = TabSwipe.neighbor(of: router.tab, dx < 0 ? 1 : -1) else { return }
+                    guard !TabSwipe.isBlocked(at: v.startLocation) else { return }
+                    withAnimation(.easeInOut(duration: 0.22)) { router.tab = next }
+                }
+        )
         // 위젯의 목록 버튼(haru://todo)으로 열면 할 일 탭으로
         .onOpenURL { url in
             if url.host == "import" {

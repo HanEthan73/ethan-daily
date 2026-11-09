@@ -106,6 +106,7 @@ struct ItemRow: View {
             }
             Button(action: onEdit) { Label("수정", systemImage: "pencil") }
         }
+        .blocksTabSwipe()
         // ← 왼쪽으로 밀기: 완료 (초록) · 삭제
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if item.kind == .todo {

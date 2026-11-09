@@ -112,6 +112,7 @@ struct DayList: View {
         }
         .listStyle(.insetGrouped)
         .listRowSpacing(3)
+        .refreshable { await SyncService.shared.pullRefresh() }
         .spaceGray()
     }
 
@@ -333,6 +334,7 @@ struct MonthGrid: View {
                     }
                 }
                 .contentShape(Rectangle())
+                .blocksTabSwipe()
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { v in changed(v, w: w) }

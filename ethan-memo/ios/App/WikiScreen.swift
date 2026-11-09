@@ -100,6 +100,7 @@ struct WikiScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .refreshable { await SyncService.shared.pullRefresh() }
             .spaceGray()
             .navigationTitle("위키")
             .navigationBarTitleDisplayMode(.inline)

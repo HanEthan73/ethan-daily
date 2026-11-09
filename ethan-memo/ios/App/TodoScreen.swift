@@ -120,6 +120,7 @@ struct TodoScreen: View {
             }
             .listStyle(.insetGrouped)
             .listRowSpacing(3)
+            .refreshable { await SyncService.shared.pullRefresh() }
             .onChange(of: picks) { _, sel in
                 guard !sel.isEmpty else { return }
                 Task {
