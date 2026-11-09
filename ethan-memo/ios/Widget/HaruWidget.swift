@@ -7,6 +7,8 @@ struct TodoSnap: Identifiable {
     let id: String
     let text: String
     let day: Date
+    var pinned: Bool = false
+    var pinnedAt: Date? = nil
 }
 
 struct TodoEntry: TimelineEntry {
@@ -42,7 +44,7 @@ struct TodoProvider: TimelineProvider {
         let items = (try? ctx.fetch(fd)) ?? []
         let today = Fmt.cal.startOfDay(for: .now)
         return TodoEntry(date: .now,
-                         todos: items.map { TodoSnap(id: $0.uid, text: $0.text, day: $0.day) },
+                         todos: items.map { TodoSnap(id: $0.uid, text: $0.text, day: $0.day, pinned: $0.pinned, pinnedAt: $0.pinnedAt) },
                          total: items.count,
                          todayCount: items.filter { $0.day == today }.count,
                          lateCount: items.filter { $0.day < today }.count)
@@ -62,7 +64,7 @@ struct TodoWidgetView: View {
     }
 
     struct Line: Identifiable {
-        enum K { case header(Date, Int), todo(TodoSnap) }
+        enum K { case header(Date, Int), pinHeader(Int), todo(TodoSnap) }
         let id: String
         let kind: K
         var first = false
@@ -76,8 +78,16 @@ struct TodoWidgetView: View {
         case .systemMedium: maxLines = 4
         default: maxLines = 12
         }
-        let groups = Dictionary(grouping: entry.todos) { $0.day }
+        let pins = entry.todos.filter(\.pinned).sorted { ($0.pinnedAt ?? .distantPast) > ($1.pinnedAt ?? .distantPast) }
+        let groups = Dictionary(grouping: entry.todos.filter { !$0.pinned }) { $0.day }
         var out: [Line] = []
+        if !pins.isEmpty {
+            out.append(Line(id: "pinhead", kind: .pinHeader(pins.count), first: true))
+            for t in pins {
+                if out.count >= maxLines { break }
+                out.append(Line(id: t.id, kind: .todo(t)))
+            }
+        }
         for d in groups.keys.sorted(by: >) {
             if out.count >= maxLines - 1 { break }
             let list = groups[d] ?? []
@@ -151,18 +161,39 @@ struct TodoWidgetView: View {
                                 Text("\(count)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                             }
                             .padding(.top, line.first ? 0 : 4)
+                        case .pinHeader(let count):
+                            HStack(spacing: 5) {
+                                Image(systemName: "pin.fill").font(.system(size: 9)).rotationEffect(.degrees(35)).foregroundStyle(Theme.hi)
+                                Text("고정").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                Spacer(minLength: 0)
+                                Text("\(count)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                            }
                         case .todo(let t):
+                            // 앱 카드와 같은 모양: 작은 모서리 + 휘는 왼쪽 색 띠
+                            let late = t.day < Fmt.cal.startOfDay(for: .now)
+                            let strip = late ? Theme.warn : Theme.todo
+                            let shape = RoundedRectangle(cornerRadius: 6)
                             Button(intent: ToggleTodoIntent(uid: t.id)) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "circle")
-                                        .font(family == .systemSmall ? .callout : .title3)
+                                        .font(family == .systemSmall ? .caption : .callout)
                                         .foregroundStyle(.secondary)
                                     Text(t.text)
-                                        .font(family == .systemSmall ? .caption : .subheadline)
+                                        .font(.system(size: family == .systemSmall ? 12 : 13.5, weight: .semibold))
                                         .lineLimit(1)
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(Theme.cardInk)
                                     Spacer(minLength: 0)
+                                    if t.pinned {
+                                        Image(systemName: "pin.fill").font(.system(size: 9.5)).rotationEffect(.degrees(35))
+                                            .foregroundStyle(Theme.hi.opacity(0.85))
+                                    }
                                 }
+                                .padding(.vertical, family == .systemSmall ? 3 : 5)
+                                .padding(.leading, 9).padding(.trailing, 7)
+                                .background(
+                                    shape.fill(strip)
+                                        .overlay { shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom)).padding(.leading, 3) }
+                                )
                             }
                             .buttonStyle(.plain)
                         }

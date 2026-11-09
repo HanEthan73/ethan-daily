@@ -930,6 +930,71 @@ mark{background:color-mix(in srgb,var(--hi) 30%,transparent);color:inherit;borde
 .sec .list > .it .cnote:not(:has(*:nth-child(n+4))):not(:has(li:nth-child(n+4))){-webkit-mask-image:none;mask-image:none}
 
 .c-row textarea#cText{flex:1 1 180px;min-width:0;resize:none;min-height:38px;max-height:150px;line-height:1.4;overflow-y:auto}
+
+/* ===== 위젯 모드: 할 일 화면과 같은 카드 ===== */
+.wg .list{display:flex;flex-direction:column;gap:9px;padding:0 0 4px}
+.wg .list > .it{--nb:var(--note-todo);--nc:var(--neon);border:0 !important;border-radius:12px;background:var(--nb);box-shadow:var(--note-sh);overflow:hidden;position:relative;padding:12px 14px 12px 18px}
+.wg .list > .it.sw{padding:0}
+.wg .list > .it::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--nc);border-radius:0;z-index:2}
+.wg .list > .it.ev{--nb:color-mix(in srgb,var(--c) 15%,var(--surface));--nc:var(--c)}
+.wg .list > .it.memo{--nb:var(--note-memo);--nc:var(--c-yellow)}
+.wg .list > .it.done{--nb:var(--note-done);--nc:var(--line)}
+.wg .list > .it.is-late{--nb:var(--note-late);--nc:var(--warn)}
+.wg .list > .it .sw-fg{background:var(--nb);padding:13px 14px 13px 18px;box-shadow:none !important}
+.wg .list > .it .mk:not(.on){display:none}
+.wg .list > .it .mk.on{width:auto;margin-right:2px}
+.wg .list > .it .txt{font-size:15.5px;font-weight:600;line-height:1.4}
+.wg .list > .it.done .txt{font-weight:500}
+.wg .list > .fold{border:0;padding:2px 4px}
+.wg .list > .it.ev .txt{background:none;padding:0}
+.wg .list{gap:6px;padding-bottom:3px}
+.wg .list > .it,.wg .list > .it.memo,.wg .list > .it.is-late{--nb:linear-gradient(180deg,var(--card-top),var(--card-bot));
+  background:var(--nb);color:var(--card-ink);border-radius:7px;
+  box-shadow:inset 0 1px 0 var(--card-hi),inset 0 0 0 .5px var(--card-edge),0 1px 1px rgba(0,0,0,.10),0 5px 9px -6px var(--card-drop);
+  margin-bottom:1px;transition:transform .15s var(--ease),box-shadow .15s}
+.wg .list > .it:active{transform:translateY(1px);box-shadow:inset 0 1px 0 var(--card-hi),inset 0 0 0 .5px var(--card-edge),0 0 1px rgba(0,0,0,.12),0 2px 5px -4px var(--card-drop)}
+.wg .list > .it .sw-fg{background:var(--nb);border-radius:7px;padding:8px 12px 8px 15px;gap:8px}
+.wg .list > .it:not(.sw){padding:8px 12px 8px 15px;gap:8px}
+.wg .list > .it::before{content:"";position:absolute;inset:0;width:auto;top:0;bottom:0;background:none;border-left:3.5px solid var(--nc);border-radius:7px;pointer-events:none;z-index:3}
+.wg .list > .it.done{--nb:linear-gradient(180deg,color-mix(in srgb,var(--card-top) 70%,var(--bg)),color-mix(in srgb,var(--card-bot) 70%,var(--bg)));opacity:.8}
+.wg .list > .it .txt{color:var(--card-ink);font-size:14.5px;font-weight:650;line-height:1.38;letter-spacing:-.01em}
+.wg .list > .it.done .txt{color:var(--card-sub)}
+.wg .list > .it .meta,.wg .list > .it .meta span{color:var(--card-sub);font-size:11px}
+.wg .list > .it .body{gap:1px}
+.wg .list > .it .late{color:#E5352B}
+.wg .list > .it .ansmark{border-color:var(--card-line);color:var(--card-sub)}
+.wg .list > .it .mk.on{color:#E86F00;text-shadow:none}
+.wg .list > .it.ev{--nb:linear-gradient(180deg,color-mix(in srgb,var(--c) 9%,var(--card-top)),color-mix(in srgb,var(--c) 14%,var(--card-bot)))}
+.wg .list > .it.ev .time{color:var(--t)}
+.wg .list > .it .txt{display:block;width:100%}
+.wg .list > .it.pinned .sw-fg{padding-right:40px}
+.wg .list > .it.pinned:not(.sw){padding-right:40px;position:relative}
+.wg .list > .it.pinned .sw-fg{padding-right:30px}
+.wg .list > .it.pinned:not(.sw){padding-right:30px}
+.wg .list > .it .datechip{background:none;border:1px solid var(--card-line);border-radius:4px;padding:0 6px;font-size:10.5px;font-weight:500;color:var(--card-sub);line-height:17px}
+.wg .list > .it .md,.wg .list > .it .cnote{padding:0;font-size:14.5px;line-height:1.5;text-align:left;cursor:pointer;color:var(--card-ink)}
+.wg .list > .it .md>:first-child,.wg .list > .it .cnote>:first-child{margin-top:0}
+.wg .list > .it .md>:last-child,.wg .list > .it .cnote>:last-child{margin-bottom:0}
+.wg .list > .it .md p,.wg .list > .it .cnote p{margin:0 0 4px}
+.wg .list > .it .md h3,.wg .list > .it .md h4,.wg .list > .it .md h5{margin:2px 0 3px;font-size:15.5px;line-height:1.3;color:var(--card-ink)}
+.wg .list > .it .md strong,.wg .list > .it .cnote strong{font-weight:750}
+.wg .list > .it .md ul,.wg .list > .it .md ol,.wg .list > .it .cnote ul,.wg .list > .it .cnote ol{margin:0 0 4px;padding-left:19px}
+.wg .list > .it .md li.task,.wg .list > .it .cnote li.task{margin-left:-19px}
+.wg .list > .it .md li.task input,.wg .list > .it .cnote li.task input{pointer-events:none;width:15px;height:15px;margin-top:3px}
+.wg .list > .it .md code,.wg .list > .it .cnote code{background:rgba(127,127,140,.2);color:inherit}
+.wg .list > .it .md pre,.wg .list > .it .cnote pre{background:rgba(127,127,140,.16);padding:8px 10px;font-size:12px;margin:0 0 4px}
+.wg .list > .it .md blockquote,.wg .list > .it .cnote blockquote{margin:0 0 4px;padding:4px 10px;border-left-color:var(--nc);background:rgba(127,127,140,.14)}
+.wg .list > .it .md table,.wg .list > .it .cnote table{font-size:12.5px}
+.wg .list > .it .md a,.wg .list > .it .cnote a{color:var(--hi);text-decoration:underline;text-underline-offset:2px}
+.wg .list > .it .cnote{margin-top:4px;padding:6px 8px;border-radius:5px;background:rgba(127,127,140,.14);color:var(--card-sub);font-size:13px;max-height:6.6em;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.wg .list > .it .cnote:not(:has(*:nth-child(n+4))):not(:has(li:nth-child(n+4))){-webkit-mask-image:none;mask-image:none}
+.wg .list > .it .txt{font-size:15.5px}
+.wg .list{display:flex;flex-direction:column;gap:6px;padding:2px 0 4px}
+.wg .wg-day .list > .it .meta .late{display:none}
+.wg-date{border-top:0;padding:10px 2px 4px}
+.wg-date.pinrow{display:flex;align-items:center;gap:6px;padding:8px 2px 4px;color:var(--muted)}
+.wg-date.pinrow svg{width:11px;height:11px;fill:var(--hi);transform:rotate(35deg)}
+.wg-date.pinrow b{font-family:var(--f-body);font-size:12.5px;font-weight:600}
 </style>
 </head>
 <body>
@@ -1184,8 +1249,12 @@ function render(){
 
 /* 위젯: 날짜별로 끊어서 (최신 날짜가 위) */
 function widgetGroups(open,t){
-  const g={};for(const x of open)(g[x.date]||(g[x.date]=[])).push(x);
+  const pins=open.filter(x=>x.pinned).sort((a,b)=>(b.pinnedAt||0)-(a.pinnedAt||0));
+  const g={};for(const x of open)if(!x.pinned)(g[x.date]||(g[x.date]=[])).push(x);
   const box=h('div',{class:'wg-groups'});let shown=0;
+  if(pins.length){const pl=pins.slice(0,12);shown+=pl.length;
+    const hd=h('div',{class:'wg-date pinrow'});hd.innerHTML=PIN_SVG+'<b>고정</b><em>'+pins.length+'</em>';
+    box.append(h('div',{class:'wg-day pinned-day'},hd,h('ul',{class:'list'},pl.map(x=>itemRow(x)))));}
   for(const d of Object.keys(g).sort().reverse()){
     if(shown>=12)break;
     const diff=dayDiff(t,d);
