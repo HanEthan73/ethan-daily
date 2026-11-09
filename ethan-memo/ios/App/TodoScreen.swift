@@ -29,9 +29,8 @@ struct TodoScreen: View {
                             Image(systemName: "camera")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(.secondary)
-                                .frame(width: 36, height: 36)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(Color.clear))
-                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.line, lineWidth: 1))
+                                .frame(width: 40, height: 40)
+                                .background(Circle().fill(Theme.pillHi))
                                 .overlay(alignment: .topTrailing) {
                                     if !newPhotos.isEmpty {
                                         Text("\(newPhotos.count)").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
@@ -99,10 +98,10 @@ struct TodoScreen: View {
                     } header: {
                         HStack(spacing: 8) {
                             Text(Fmt.short(d))
-                                .font(.system(size: 12.5, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 14, weight: .heavy))
                                 .foregroundStyle(diff == 0 ? Theme.today : Color.primary)
-                                .padding(.horizontal, 8).padding(.vertical, 2)
-                                .background(RoundedRectangle(cornerRadius: 6).fill(diff == 0 ? Theme.today.opacity(0.14) : Theme.line.opacity(0.6)))
+                                .padding(.horizontal, 12).padding(.vertical, 4)
+                                .background(Capsule().fill(diff == 0 ? Theme.today.opacity(0.2) : Theme.pill))
                             Text(relative(diff))
                                 .font(.system(size: 11.5, weight: .medium))
                                 .foregroundStyle(diff < 0 && !open.isEmpty ? Theme.warn : diff == 0 ? Theme.today : Color.secondary)
@@ -119,7 +118,7 @@ struct TodoScreen: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .listRowSpacing(3)
+            .listRowSpacing(6)
             .refreshable { await SyncService.shared.pullRefresh() }
             .onChange(of: picks) { _, sel in
                 guard !sel.isEmpty else { return }

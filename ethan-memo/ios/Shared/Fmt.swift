@@ -56,12 +56,12 @@ enum Theme {
         UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: a)
     }
     static let hi = adaptive(rgb(0xE86F00), rgb(0xFFA526))
-    static let hiInk = Color.white
+    static let hiInk = adaptive(rgb(0xFFFFFF), rgb(0x1B1204))
     static let hiSoft = adaptive(rgb(0xFF9500, 0.14), rgb(0xFF9F0A, 0.18))
     static let btn = hi
-    static let bg = adaptive(rgb(0xF2F2F7), rgb(0x000000))
-    static let surface = adaptive(rgb(0xFFFFFF), rgb(0x1C1C1E))
-    static let line = adaptive(rgb(0xE3E3E8), rgb(0x38383A))
+    static let bg = adaptive(rgb(0xF5F4F8), rgb(0x0B0B0E))
+    static let surface = adaptive(rgb(0xFFFFFF), rgb(0x17171B))
+    static let line = adaptive(rgb(0xE2E0E8), rgb(0x2B2B31))
     static let today = adaptive(rgb(0xFF8A00), rgb(0xFF9500))
     static let event = adaptive(rgb(0x007AFF), rgb(0x0A84FF))
     static let todo = adaptive(rgb(0xF27A00), rgb(0xFF9F0A))
@@ -69,13 +69,18 @@ enum Theme {
     static let warn = adaptive(rgb(0xE5352B), rgb(0xFF453A))
     static let sun = warn
     /// 연그레이 3D 카드
-    static let cardTop = adaptive(rgb(0xEAEAEF), rgb(0x2D2D32))
-    static let cardBottom = adaptive(rgb(0xE0E0E6), rgb(0x252529))
+    static let cardTop = adaptive(rgb(0xECEAF1), rgb(0x1D1D22))
+    static let cardBottom = cardTop
     static let cardLip = adaptive(rgb(0x3C3C50, 0.16), rgb(0x000000, 0.55))
     static let cardHi = adaptive(rgb(0xFFFFFF, 0.75), rgb(0xFFFFFF, 0.09))
     static let cardShadow = adaptive(rgb(0x28284A, 0.24), rgb(0x000000, 0.65))
-    static let cardInk = adaptive(rgb(0x1C1C1E), rgb(0xF2F2F5))
-    static let cardSub = adaptive(rgb(0x5F5F67), rgb(0xA3A3AB))
+    static let cardInk = adaptive(rgb(0x1C1C1E), rgb(0xF4F4F7))
+    static let cardSub = adaptive(rgb(0x6A6A72), rgb(0x9C9CA5))
+    /// 알약 바탕 (YouTube Premium 느낌의 둥근 행)
+    static let pill = cardTop
+    static let pillHi = adaptive(rgb(0xE2E0EA), rgb(0x27272D))
+    /// 주황 버튼 글자: 어두운 모드는 짙은 갈색, 밝은 모드는 흰색
+    static let ctaInk = adaptive(rgb(0xFFFFFF), rgb(0x1B1204))
     /// 포스트잇 바탕
     static let noteTodo = adaptive(rgb(0xFFF3E3), rgb(0x35261A))
     static let noteMemo = adaptive(rgb(0xFFF9D9), rgb(0x302A17))
@@ -108,5 +113,15 @@ enum Theme {
         return HL(c: Color(rgb(p.0)),
                   t: adaptive(rgb(p.1), rgb(p.2)),
                   b: adaptive(rgb(p.0, p.3), rgb(p.4, p.5)))
+    }
+}
+
+/// 부드러운 그라데이션 바탕: 어두운 모드는 검정에 아래쪽 주황빛, 밝은 모드는 연한 복숭아빛
+struct Backdrop: View {
+    var body: some View {
+        ZStack {
+            Theme.bg
+            RadialGradient(colors: [Theme.hi.opacity(0.18), .clear], center: .init(x: 0.5, y: 1.08), startRadius: 0, endRadius: 520)
+        }
     }
 }

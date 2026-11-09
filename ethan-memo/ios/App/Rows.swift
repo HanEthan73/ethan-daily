@@ -8,10 +8,12 @@ extension View {
     /// 목록 바탕을 스페이스 그레이로
     func spaceGray() -> some View {
         self.scrollContentBackground(.hidden)
-            .background(Theme.bg.ignoresSafeArea())
+            .background(Backdrop().ignoresSafeArea())
     }
     /// 목록 한 줄 바탕
-    func rowSurface() -> some View { self.listRowBackground(Theme.surface) }
+    func rowSurface() -> some View {
+        self.listRowBackground(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Theme.pill).padding(.vertical, 2))
+    }
 }
 
 // MARK: - 한 줄 항목 (체크칸 없음: ← 밀면 완료, → 밀면 일정 등록)
@@ -47,7 +49,7 @@ struct ItemRow: View {
             leading
             VStack(alignment: .leading, spacing: 3) {
                 Text(CardMarkdown.attributed(WikiText.plain(item.text)))
-                    .font(.system(size: 14.5, weight: item.done ? .medium : .bold))
+                    .font(.system(size: 15.5, weight: item.done ? .medium : .bold))
                     .padding(.horizontal, item.kind == .event ? 2 : 0)
                     .background(alignment: .bottom) {
                         if item.kind == .event { Theme.hl(item.uid).b.frame(height: 9).clipShape(RoundedRectangle(cornerRadius: 2)) }
@@ -82,13 +84,11 @@ struct ItemRow: View {
                     .transition(.opacity)
             }
         }
-        .padding(.vertical, 3)
-        .padding(.leading, 8)
+        .padding(.vertical, 6)
+        .padding(.leading, 26)
+        .padding(.trailing, 6)
         .listRowSeparator(.hidden)
         .listRowBackground(note)
-        .overlay(alignment: .leading) {
-            if isLate { Rectangle().fill(Theme.warn).frame(width: 2).padding(.leading, -20) }
-        }
         .contextMenu {
             if canPin {
                 Button {
@@ -147,31 +147,28 @@ struct ItemRow: View {
     }
 
     private var note: some View {
-        let (_, strip) = noteColors
-        // 캘린더 막대와 같은 모양: 둥근 모서리를 따라 휘는 왼쪽 색 띠
-        let shape = RoundedRectangle(cornerRadius: 7)
+        let (_, dot) = noteColors
+        // 둥근 알약 행 + 왼쪽 색 점 (YouTube Premium 느낌)
+        let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
         let pinned = isPinned
-        return shape.fill(strip)
-            .overlay {
-                shape.fill(LinearGradient(colors: [Theme.cardTop, Theme.cardBottom], startPoint: .top, endPoint: .bottom))
-                    .padding(.leading, 3.5)
+        return shape.fill(Theme.pill)
+            .overlay { if item.kind == .event { shape.fill(Theme.hl(item.uid).b) } }
+            .overlay(alignment: .leading) {
+                Circle().fill(dot).frame(width: 10, height: 10)
+                    .background(Circle().fill(dot.opacity(0.22)).frame(width: 18, height: 18))
+                    .padding(.leading, 16)
             }
-            .overlay(shape.strokeBorder(Theme.cardLip, lineWidth: 0.5))
-            .overlay(shape.strokeBorder(Theme.cardHi, lineWidth: 1).mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center)))
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .trailing) {
                 if pinned {
-                    // 작고 조용한 핀 아이콘만
                     Image(systemName: "pin.fill")
-                        .font(.system(size: 10.5))
+                        .font(.system(size: 11))
                         .rotationEffect(.degrees(35))
-                        .foregroundStyle(Theme.hi.opacity(0.85))
-                        .padding(.top, 7).padding(.trailing, 9)
+                        .foregroundStyle(Theme.hi.opacity(0.9))
+                        .padding(.trailing, 16)
                 }
             }
-            .shadow(color: Theme.cardShadow, radius: 3.5, y: 2.5)
-            .opacity(item.done ? 0.8 : 1)
-            .padding(.top, 2).padding(.bottom, 3)
-            .padding(.horizontal, 2)
+            .opacity(item.done ? 0.55 : 1)
+            .padding(.vertical, 2)
     }
 
     private func copyText() {

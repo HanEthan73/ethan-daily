@@ -172,7 +172,7 @@ struct TodoWidgetView: View {
                             // 앱 카드와 같은 모양: 작은 모서리 + 휘는 왼쪽 색 띠
                             let late = t.day < Fmt.cal.startOfDay(for: .now)
                             let strip = late ? Theme.warn : Theme.todo
-                            let shape = RoundedRectangle(cornerRadius: 6)
+                            let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
                             Button(intent: ToggleTodoIntent(uid: t.id)) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "circle")

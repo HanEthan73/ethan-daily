@@ -111,7 +111,7 @@ struct DayList: View {
             }
         }
         .listStyle(.insetGrouped)
-        .listRowSpacing(3)
+        .listRowSpacing(6)
         .refreshable { await SyncService.shared.pullRefresh() }
         .spaceGray()
     }
@@ -319,10 +319,10 @@ struct MonthGrid: View {
                                    height: b.tall ? barTall : barH, alignment: b.tall ? .topLeading : .leading)
                             .foregroundStyle(c.t)
                             .background(
-                                UnevenRoundedRectangle(topLeadingRadius: b.openLeft ? 0 : 4,
-                                                       bottomLeadingRadius: b.openLeft ? 0 : 4,
-                                                       bottomTrailingRadius: b.openRight ? 0 : 4,
-                                                       topTrailingRadius: b.openRight ? 0 : 4)
+                                UnevenRoundedRectangle(topLeadingRadius: b.openLeft ? 0 : (b.tall ? 9 : 7.5),
+                                                       bottomLeadingRadius: b.openLeft ? 0 : (b.tall ? 9 : 7.5),
+                                                       bottomTrailingRadius: b.openRight ? 0 : (b.tall ? 9 : 7.5),
+                                                       topTrailingRadius: b.openRight ? 0 : (b.tall ? 9 : 7.5))
                                     .fill(c.b)
                             )
                             .overlay(alignment: .leading) {
