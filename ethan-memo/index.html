@@ -996,6 +996,123 @@ mark{background:color-mix(in srgb,var(--hi) 30%,transparent);color:inherit;borde
 .wg-date.pinrow svg{width:11px;height:11px;fill:var(--hi);transform:rotate(35deg)}
 .wg-date.pinrow b{font-family:var(--f-body);font-size:12.5px;font-weight:600}
 
+/* ================= 프리미엄 알약 스타일: 둥근 알약 행 · 부드러운 그라데이션 · 큰 제목 · 큰 알약 버튼 (어두운 톤 유지) ================= */
+:root{--bg:#F5F4F8;--surface:#FFFFFF;--sunk:#EBE9F0;--line:#E2E0E8;--pill:#ECEAF1;--pill-hi:#E2E0EA;--pill-ink:#1C1C1E;--pill-sub:#6A6A72;
+  --pbg:radial-gradient(130% 50% at 50% 108%,rgba(255,138,0,.16),transparent 62%),linear-gradient(180deg,#FBFAFD,#F5F3F8 60%,#FFF1E2);--cta-ink:#fff;--sel-bg:#1C1C1E;--sel-ink:#fff;
+  --card-top:var(--pill);--card-bot:var(--pill);--card-ink:var(--pill-ink);--card-sub:var(--pill-sub);--card-line:rgba(0,0,0,.14);--glass:color-mix(in srgb,#F5F4F8 72%,transparent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0B0B0E;--surface:#17171B;--sunk:#222227;--line:#2B2B31;--pill:#1D1D22;--pill-hi:#27272D;--pill-ink:#F4F4F7;--pill-sub:#9C9CA5;
+  --pbg:radial-gradient(130% 55% at 50% 108%,rgba(255,138,0,.20),transparent 62%),linear-gradient(180deg,#09090B,#0D0D11 62%,#120E0A);--cta-ink:#1B1204;--sel-bg:#F4F4F7;--sel-ink:#111114;
+  --card-top:var(--pill);--card-bot:var(--pill);--card-ink:var(--pill-ink);--card-sub:var(--pill-sub);--card-line:rgba(255,255,255,.16);--glass:color-mix(in srgb,#0B0B0E 70%,transparent)}}
+:root[data-theme="dark"]{--bg:#0B0B0E;--surface:#17171B;--sunk:#222227;--line:#2B2B31;--pill:#1D1D22;--pill-hi:#27272D;--pill-ink:#F4F4F7;--pill-sub:#9C9CA5;
+  --pbg:radial-gradient(130% 55% at 50% 108%,rgba(255,138,0,.20),transparent 62%),linear-gradient(180deg,#09090B,#0D0D11 62%,#120E0A);--cta-ink:#1B1204;--sel-bg:#F4F4F7;--sel-ink:#111114;
+  --card-top:var(--pill);--card-bot:var(--pill);--card-ink:var(--pill-ink);--card-sub:var(--pill-sub);--card-line:rgba(255,255,255,.16);--glass:color-mix(in srgb,#0B0B0E 70%,transparent)}
+html{background:var(--bg)}
+body{background:transparent}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--pbg);pointer-events:none}
+.top{background:var(--glass)}
+.top h1{font-weight:800}
+/* 큰 제목 */
+.day-head h2{font-size:32px;font-weight:800;letter-spacing:-.035em;line-height:1.12}
+.eyebrow{font-size:13px;font-weight:600;color:var(--pill-sub)}
+/* 위 탭: 알약 */
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--pill);border:0;border-radius:999px;padding:4px;margin:8px 0 10px}
+.tabs button{margin:0;padding:9px 0;border:0;border-radius:999px;font-size:14px;font-weight:700;color:var(--pill-sub);background:none;box-shadow:none;transition:background .18s,color .18s}
+.tabs button[aria-selected="true"]{background:var(--sel-bg);color:var(--sel-ink);border:0;box-shadow:none}
+.tabs .badge{background:rgba(255,149,0,.22);color:var(--hi);font-weight:800;border-radius:999px}
+.tabs button[aria-selected="true"] .badge{background:var(--hi);color:var(--cta-ink)}
+.sync{border-radius:999px;background:var(--pill);padding:5px 12px}
+.icon-btn{border-radius:999px}
+/* 묶음 상자는 투명하게, 줄이 바탕 위에 떠 있게 */
+.card{background:transparent;box-shadow:none;border:0;border-radius:28px;overflow:visible}
+.sec.card{padding:0}
+.sec-h{padding:20px 4px 10px;font-size:15px}
+.sec-h .c{color:var(--pill-sub);font-weight:700}
+.datechip{border-radius:999px;padding:3px 12px;font-size:14px;font-weight:800;background:var(--pill);color:var(--pill-ink)}
+.group-today .datechip{background:rgba(255,149,0,.2);color:var(--hi)}
+.group-today .rel{color:var(--hi)}
+.rel{font-weight:700}
+/* 할 일 · 일정 줄: 알약 */
+.sec .list{gap:10px;padding:0 0 4px}
+.sec .list > .it,.sec .list > .it.memo,.sec .list > .it.is-late,.sec .list > .it.done,.sec .list > .it.ev{border-radius:26px;box-shadow:none;margin-bottom:0;background:var(--nb);overflow:hidden}
+.sec .list > .it{--nb:var(--pill)}
+.sec .list > .it.ev{--nb:color-mix(in srgb,var(--c) 14%,var(--pill))}
+.sec .list > .it.done{--nb:var(--pill);--nc:var(--sw-done);opacity:.55}
+.sec .list > .it:active{transform:scale(.985);box-shadow:none}
+.sec .list > .it .sw-fg{background:var(--nb);border-radius:26px;padding:15px 20px 15px 44px;gap:8px;box-shadow:none !important}
+.sec .list > .it:not(.sw){padding:15px 20px 15px 44px}
+.sec .list > .it.pinned .sw-fg{padding-right:40px}
+.sec .list > .it.pinned:not(.sw){padding-right:40px}
+/* 왼쪽 띠 대신 둥근 점 (카드와 함께 움직임) */
+.sec .list > .it::before{display:none}
+.sec .list > .it:not(.sw)::before,.sec .list > .it .sw-fg::before{display:block;content:"";position:absolute;inset:auto;left:19px;top:50%;width:10px;height:10px;margin-top:-5px;
+  border:0;border-radius:50%;background:var(--nc);box-shadow:0 0 0 4px color-mix(in srgb,var(--nc) 20%,transparent);pointer-events:none;z-index:3}
+.sec .list > .it .txt{font-size:15.5px;font-weight:700;line-height:1.4;letter-spacing:-.015em}
+.sec .list > .it .meta,.sec .list > .it .meta span{font-size:11.5px}
+.sec .list > .it .datechip{border:0;background:rgba(127,127,140,.2);border-radius:999px;padding:0 9px;font-size:11px;font-weight:700;color:var(--card-sub);line-height:19px}
+.pinbadge{top:50%;margin-top:-9px;right:16px;width:18px;height:18px}
+.pinbadge svg{width:13px;height:13px}
+/* 고정 머리글 */
+.pinsec .sec-h .pinhead{font-size:15px;font-weight:800;color:var(--pill-ink)}
+.pinsec .sec-h .pinhead svg{fill:var(--hi)}
+.swipe-hint{margin:6px 0 2px}
+/* 입력 줄: 알약 한 덩어리 */
+.composer.card{background:var(--pill);border-radius:30px;padding:8px}
+.c-row{gap:8px;align-items:center}
+input[type=text],input[type=date],input[type=time],input[type=password],input[type=search],textarea,select{border-radius:18px;background:var(--pill-hi);color:var(--pill-ink)}
+.c-row input,.c-row textarea,.c-row input[type=text]{border-radius:999px;background:var(--pill-hi);padding-left:16px;padding-right:16px}
+.c-row textarea#cText{border-radius:22px;min-height:42px}
+.cam-btn{width:42px;height:42px;border-radius:50%;background:var(--pill-hi);border:0;color:var(--pill-sub)}
+/* 버튼: 큰 알약 (주황) */
+.primary,.nav-btn.strong,.imp-go{border-radius:999px;background:var(--hi);color:var(--cta-ink);font-weight:800;min-height:44px;padding:0 22px;font-size:15px;box-shadow:none !important;letter-spacing:-.01em}
+.c-row .primary{padding:0 20px}
+.nav-btn.strong{padding:8px 20px}
+.ghost{border-radius:999px;border:0;background:var(--pill-hi);color:var(--pill-ink);font-weight:700;padding:8px 16px}
+.ghost:hover{background:var(--line)}
+.c-row .ghost{border-radius:999px}
+.imp-banner{border-radius:28px;padding:16px 16px 16px 20px;background:linear-gradient(135deg,#FFA526,#F07400);color:#fff}
+.imp-go{background:#fff;color:#C25E00}
+.paste-bar{border-radius:999px;padding:10px 10px 10px 22px}
+/* 종류 선택: 알약 */
+.seg{border:0;border-radius:999px;background:var(--pill-hi);padding:4px;gap:4px;overflow:visible}
+.seg button{border-radius:999px;border:0;padding:8px 0;font-weight:700;color:var(--pill-sub)}
+.seg button + button{border-left:0}
+.seg button[aria-pressed="true"],.seg button[aria-pressed=""]{background:var(--sel-bg);color:var(--sel-ink);box-shadow:none}
+/* 달력 */
+.cal.card{background:var(--pill);border-radius:30px;padding:16px 12px 12px}
+.cal-head h2,#monthLabel{font-size:22px;font-weight:800;letter-spacing:-.03em}
+.day{border-radius:16px}
+.day.sel .n{background:var(--sel-bg);color:var(--sel-ink)}
+.bar{border-radius:999px;border-left:0;padding:0 7px}
+.bar.tall{border-radius:10px;padding:1.5px 7px 0}
+.bar.open-l{border-top-left-radius:0;border-bottom-left-radius:0}
+.bar.open-r{border-top-right-radius:0;border-bottom-right-radius:0}
+/* 시트 */
+.sheet{background:var(--surface);border-radius:32px 32px 0 0}
+.grp{background:var(--pill);border-radius:24px;box-shadow:none}
+.sheet h3{font-size:22px;font-weight:800;letter-spacing:-.025em}
+/* 위키 */
+.wstat{border:0;border-radius:24px;background:var(--pill);padding:12px 14px}
+.wseg{gap:8px;border-bottom:0;padding:2px 0 6px}
+.wseg button{margin:0;padding:8px 16px;border-radius:999px;background:var(--pill);color:var(--pill-sub);border-bottom:0;font-weight:700}
+.wseg button[aria-selected="true"]{background:var(--sel-bg);color:var(--sel-ink);border-bottom:0}
+.wsearch input{height:46px;border:0;border-radius:999px;background:var(--pill);padding-left:40px}
+.wsearch .wsi{left:15px}
+.ecard{border-top:0;background:var(--pill);border-radius:24px;padding:13px 18px 13px 22px;margin-bottom:8px}
+.ecard::before{left:0;top:16px;bottom:16px;width:4px;border-radius:0 4px 4px 0}
+.page-row{border-top:0;background:var(--pill);border-radius:24px;padding:14px 20px;margin-bottom:8px;width:100%}
+.page-row:hover{background:var(--pill-hi)}
+.dhead{padding:14px 4px 8px}
+.dhead b{font:800 16px var(--f-body)}
+.gcell,.gimg{border-radius:18px}
+.viewer img{border-radius:18px}
+.toast{border-radius:999px}
+.dsec{border-bottom:0;padding:2px 0 14px}
+.dgroup h4{margin:10px 0 6px 6px;font-size:12px;letter-spacing:0;font-weight:700;color:var(--pill-sub)}
+.drow{background:var(--pill);border-radius:22px;padding:12px 18px;margin-bottom:6px;align-items:center;font-weight:600}
+.drow .ic{width:18px;font-size:13px}
+.drow:hover{background:var(--pill-hi)}
+.drow-more,.more-btn{border-radius:999px}
+
 /* 탭 스와이프 · 당겨서 새로고침 */
 html{overscroll-behavior-y:contain}
 #ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:60;transform:translate(-50%,-60px);opacity:0;pointer-events:none;
