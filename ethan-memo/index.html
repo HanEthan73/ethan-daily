@@ -1152,6 +1152,11 @@ input[type=text],input[type=date],input[type=time],input[type=password],input[ty
 .pinbadge.off svg{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round}
 .pinbadge.off:hover,.pinbadge.off:active{opacity:.95;color:var(--hi)}
 
+.wstats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.wstat{display:flex;align-items:baseline;gap:8px;padding:12px 16px}
+.wstat b{font-size:24px}
+.wstat:nth-child(1) b{color:var(--t-blue)}.wstat:nth-child(2) b{color:var(--memo)}.wstat:nth-child(3) b{color:var(--t-green)}.wstat:nth-child(4) b{color:var(--t-yellow)}
+.toast{white-space:pre-line;text-align:center;width:max-content;max-width:calc(100vw - 28px);border-radius:22px;line-height:1.5;padding:11px 20px;font-size:13.5px}
 /* 탭 스와이프 · 당겨서 새로고침 */
 html{overscroll-behavior-y:contain}
 #ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:60;transform:translate(-50%,-60px);opacity:0;pointer-events:none;
@@ -1300,7 +1305,7 @@ const $=id=>document.getElementById(id);
 function h(tag,props,...kids){const el=document.createElement(tag);
   if(props)for(const k in props){const v=props[k];if(v==null||v===false)continue;
     if(k==='class')el.className=v;else if(k==='text')el.textContent=v;else if(k.startsWith('on'))el.addEventListener(k.slice(2),v);
-    else el.setAttribute(k,v===true?'':v);}
+    else el.setAttribute(k,v===true?(k.startsWith('aria-')?'true':''):v);}
   for(const c of kids.flat()){if(c==null||c===false)continue;el.append(c.nodeType?c:document.createTextNode(c));}
   return el;}
 const CHECK='<svg viewBox="0 0 12 12" fill="none"><path d="M2.5 6.2 5 8.6l4.6-5" stroke="var(--surface)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1815,7 +1820,7 @@ function saveEdit(askAfter){const e=S.edit;if(!e)return;const text=$('eText').va
   if(askAfter){S.edit={...S.items.get(rest.id)};paintSheet();ask(rest.id);return;}
   closeSheet();if(isNew)toast(e.type==='event'?(endDate?`📅 ${fmtDay(date)} – ${fmtDay(endDate)} 일정을 캘린더에 등록했습니다`:`📅 ${fmtDay(date)} 일정을 캘린더에 등록했습니다`):'등록했습니다');}
 $('eSave').onclick=()=>saveEdit(false);
-$('eMove').onclick=()=>{const e=S.edit;if(!e)return;const to=e.type==='memo'?'todo':'memo';e.type=to;saveEdit(false);toast(to==='memo'?'📝 메모로 옮겼습니다 · 캘린더의 메모 모아보기에서 볼 수 있어요':'할 일로 옮겼습니다');};
+$('eMove').onclick=()=>{const e=S.edit;if(!e)return;const to=e.type==='memo'?'todo':'memo';e.type=to;saveEdit(false);toast(to==='memo'?'📝 메모로 옮겼습니다\n캘린더·위키의 ‘메모 모아보기’에서 볼 수 있어요':'할 일로 옮겼습니다');};
 $('eAsk').onclick=()=>saveEdit(true);
 if(navigator.share){$('eShare').hidden=false;$('eShare').onclick=()=>{const t=$('eText').value.trim();if(t)navigator.share({text:t}).catch(()=>{});};}
 $('eCancel').onclick=closeSheet;
@@ -2272,11 +2277,13 @@ function wikiHead(){
   const upcoming=all().filter(x=>x.type==='event'&&(x.endDate||x.date)>=t).length;
   const notes=[...S.pages.values()].filter(p=>!isDateRef(p.title)).length;
   const nPh=all().reduce((n,x)=>n+((x.photos&&x.photos.length)||0),0);
-  const modes=[['day','날짜별'],['done','완료'],['todo','남은 일'],['event','일정'],['photo',`사진${nPh?' '+nPh:''}`],['note',`노트${notes?' '+notes:''}`]];
+  const nMemo=all().filter(x=>x.type==='memo').length;
+  const modes=[['day','날짜별'],['done','완료'],['todo','남은 일'],['event','일정'],['memo',`메모${nMemo?' '+nMemo:''}`],['photo',`사진${nPh?' '+nPh:''}`],['note',`노트${notes?' '+notes:''}`]];
   return [
     h('div',{class:'day-head'},h('div',null,h('p',{class:'eyebrow',text:'기록'}),h('h2',null,'위키'))),
     h('div',{class:'wstats'},
       h('button',{class:'wstat',onclick:()=>{S.wikiMode='todo';render();}},h('b',{text:String(open.length)}),h('span',{text:'남은 할 일'})),
+      h('button',{class:'wstat',onclick:()=>{S.wikiMode='memo';S.wikiDays=21;render();}},h('b',{text:String(nMemo)}),h('span',{text:'메모 모아보기'})),
       h('button',{class:'wstat',onclick:()=>{S.wikiMode='done';render();}},h('b',{text:String(doneWeek)}),h('span',{text:'최근 7일 완료'})),
       h('button',{class:'wstat',onclick:()=>{S.wikiMode='event';render();}},h('b',{text:String(upcoming)}),h('span',{text:'다가오는 일정'}))),
     h('div',{class:'wseg',role:'tablist'},modes.map(([k,l])=>h('button',{role:'tab','aria-selected':S.wikiMode===k,onclick:()=>{S.wikiMode=k;S.wikiDays=21;render();}},l))),
@@ -2369,6 +2376,16 @@ function renderWikiHome(){
         h('button',{class:'dhead',onclick:()=>openDay(d)},h('b',{text:fmtDay(d)}),h('span',{text:age>0?`등록 ${age}일째`:relDay(d)}),h('em',{text:`${l.length}`})),
         l.map(x=>drow(x,'todo',x.time||''))));}
   }
+  if(S.wikiMode==='memo'){
+    const g={};for(const x of items)if(x.type==='memo')(g[x.date]||(g[x.date]=[])).push(x);
+    const ds=Object.keys(g).sort().reverse();
+    if(!ds.length)kids.push(empty('메모가 없습니다','할 일·일정을 열어 ‘메모로 이동’을 누르거나, 캘린더에서 메모를 추가해 보세요.'));
+    for(const d of ds.slice(0,S.wikiDays)){const l=g[d].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+      kids.push(h('div',{class:'sec card'},
+        h('div',{class:'sec-h'},h('button',{class:'datechip',text:fmtDay(d),title:'이 날짜 열기',onclick:()=>openDay(d)}),h('span',{class:'rel',text:relDay(d)}),h('span',{class:'sp'}),h('span',{class:'c',text:`${l.length}개`})),
+        h('ul',{class:'list'},l.map(x=>itemRow(x)))));}
+    if(ds.length>S.wikiDays)kids.push(h('button',{class:'more',text:'더 보기',onclick:()=>{S.wikiDays+=21;render();}}));
+  }
   if(S.wikiMode==='event'){
     const ev=items.filter(x=>x.type==='event');
     const up=ev.filter(x=>(x.endDate||x.date)>=t).sort((a,b)=>a.date.localeCompare(b.date)||byTime(a,b));
@@ -2386,6 +2403,7 @@ function renderWikiHome(){
   kids.push(h('div',{id:'wmode'},rest));
   $('panel').replaceChildren(...kids);
   if(S.wikiMode==='photo')paintGallery();else paintWikiSearch();
+  {const sg=document.querySelector('.wseg'),on=sg&&sg.querySelector('[aria-selected="true"]');if(on)sg.scrollLeft=Math.max(0,on.offsetLeft-sg.clientWidth/2+on.offsetWidth/2);}
 }
 function dayParts(d){
   const items=all();

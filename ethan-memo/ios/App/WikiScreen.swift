@@ -7,7 +7,7 @@ enum WikiRoute: Hashable {
 }
 
 enum WikiMode: String, CaseIterable, Identifiable {
-    case byDate = "날짜별", done = "완료", open = "남은 일", events = "일정", photos = "사진", notes = "노트"
+    case byDate = "날짜별", done = "완료", open = "남은 일", events = "일정", memos = "메모", photos = "사진", notes = "노트"
     var id: String { rawValue }
 }
 
@@ -61,7 +61,7 @@ struct WikiScreen: View {
                         stat("남은 일", openN, Theme.warn) { modeRaw = WikiMode.open.rawValue }
                         stat("완료", doneN, Theme.todo) { modeRaw = WikiMode.done.rawValue }
                         stat("일정", evN, Theme.hi) { modeRaw = WikiMode.events.rawValue }
-                        stat("노트", pages.filter { !WikiText.isDate($0.title) }.count, Theme.memo) { modeRaw = WikiMode.notes.rawValue }
+                        stat("메모", items.filter { $0.kind == .memo }.count, Theme.memo) { modeRaw = WikiMode.memos.rawValue }
                     }
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -83,6 +83,7 @@ struct WikiScreen: View {
                 case .done: doneList(todos.filter(\.done))
                 case .open: openList(todos.filter { !$0.done })
                 case .events: eventList(items.filter { $0.kind == .event })
+                case .memos: memoList(items.filter { $0.kind == .memo })
                 case .notes: noteList
                 }
                 }
@@ -332,6 +333,34 @@ struct WikiScreen: View {
     }
 
     // MARK: 일정 (다가오는 것 먼저, 지난 것은 아래)
+
+    /// 메모 모아보기: 날짜별(최신 위)로 전부
+    @ViewBuilder private func memoList(_ list: [Item]) -> some View {
+        let groups = Dictionary(grouping: list) { $0.day }
+        let days = groups.keys.sorted(by: >)
+        let today = Fmt.cal.startOfDay(for: .now)
+        if list.isEmpty { Section { empty("메모가 없습니다. 할 일·일정을 열어 ‘메모로 이동’을 누르거나, 캘린더에서 메모를 추가해 보세요.") } }
+        ForEach(days, id: \.self) { d in
+            let rows = (groups[d] ?? []).sorted { $0.createdAt > $1.createdAt }
+            let diff = Fmt.daysBetween(today, d)
+            Section {
+                ForEach(rows) { x in ItemRow(item: x, pinDay: d) { editing = x } }
+            } header: {
+                HStack(spacing: 8) {
+                    Text(Fmt.short(d))
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(diff == 0 ? Theme.today : Color.primary)
+                        .padding(.horizontal, 12).padding(.vertical, 4)
+                        .background(Capsule().fill(diff == 0 ? Theme.today.opacity(0.2) : Theme.pill))
+                    Text(diff == 0 ? "오늘" : diff < 0 ? "\(-diff)일 전" : "\(diff)일 후")
+                        .font(.system(size: 11.5, weight: .medium)).foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(rows.count)개").font(.system(size: 11.5)).foregroundStyle(.secondary)
+                }
+                .textCase(nil)
+            }
+        }
+    }
 
     @ViewBuilder private func eventList(_ list: [Item]) -> some View {
         let today = Fmt.cal.startOfDay(for: .now)
