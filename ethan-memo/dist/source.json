@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.29",
-"buildVersion": "29",
-"date": "2026-11-09T14:35:44Z",
-"localizedDescription": "iOS: premium pill UI (pill rows, gradient backdrop, capsule buttons)",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=29",
-"size": 1092022,
+"version": "1.0.30",
+"buildVersion": "30",
+"date": "2026-11-10T00:32:49Z",
+"localizedDescription": "iOS: memo board in calendar, move-to-memo, theme colors, softer late color, smaller calendar bar text",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=30",
+"size": 1142316,
 "minOSVersion": "17.0"
         }
       ],
