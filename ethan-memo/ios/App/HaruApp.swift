@@ -17,16 +17,19 @@ struct RootView: View {
     private var router = Router.shared
     @Environment(\.scenePhase) private var phase
     private var asker = Asker.shared
+    @AppStorage(ThemePrefs.accentKey, store: Store.defaults) private var accentKey = "orange"
+    @AppStorage(ThemePrefs.lateKey, store: Store.defaults) private var lateKey = "coral"
 
     var body: some View {
+        let themeID = accentKey + "|" + lateKey
         TabView(selection: Binding(get: { router.tab }, set: { router.tab = $0 })) {
-            TodoScreen()
+            TodoScreen().id(themeID)
                 .tabItem { Label("할 일", systemImage: "checklist") }
                 .tag(Tab.todo)
-            CalendarScreen()
+            CalendarScreen().id(themeID)
                 .tabItem { Label("캘린더", systemImage: "calendar") }
                 .tag(Tab.calendar)
-            WikiScreen()
+            WikiScreen().id(themeID)
                 .tabItem { Label("위키", systemImage: "book.closed") }
                 .tag(Tab.wiki)
             SettingsScreen()
@@ -34,6 +37,7 @@ struct RootView: View {
                 .tag(Tab.settings)
         }
         .tint(Theme.hi)
+        .onChange(of: themeID) { _, _ in Store.refreshWidgets() }
         // 좌우로 쓸어서 할 일 ↔ 캘린더 ↔ 위키
         .simultaneousGesture(
             DragGesture(minimumDistance: 40, coordinateSpace: .global)

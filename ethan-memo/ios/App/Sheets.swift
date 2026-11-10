@@ -143,6 +143,14 @@ struct EditSheet: View {
                     }
                 }
                 Section {
+                    Button {
+                        kind = (kind == .memo) ? .todo : .memo
+                        save(close: true)
+                    } label: {
+                        Label(kind == .memo ? "할 일로 이동" : "메모로 이동", systemImage: "arrow.turn.up.right")
+                    }
+                } footer: { Text("종류만 바꿉니다. 내용·날짜·사진은 그대로이고, 메모는 캘린더의 ‘메모 모아보기’에서 한꺼번에 볼 수 있어요.") }
+                Section {
                     let asking = Asker.shared.busy.contains(item.uid)
                     Button {
                         save(close: false)

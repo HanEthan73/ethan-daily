@@ -19,10 +19,28 @@ struct SettingsScreen: View {
     @State private var pasting = false
     @State private var pasteText = ""
     private var sync = SyncService.shared
+    @AppStorage(ThemePrefs.accentKey, store: Store.defaults) private var accent = "orange"
+    @AppStorage(ThemePrefs.lateKey, store: Store.defaults) private var lateKey = "coral"
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("강조색").font(.system(size: 14.5, weight: .semibold))
+                        SwatchRow(presets: ThemePrefs.accents, selection: $accent)
+                    }
+                    .padding(.vertical, 4)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("지난 일 색").font(.system(size: 14.5, weight: .semibold))
+                        SwatchRow(presets: ThemePrefs.lates, selection: $lateKey)
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("테마 색")
+                } footer: {
+                    Text("강조색은 버튼·오늘·선택 표시에, 지난 일 색은 날짜가 지난 할 일에 쓰입니다. 맨 끝 무지개 동그라미로 원하는 색을 직접 고를 수 있어요.")
+                }
                 Section {
                     if hasKey {
                         Label("API 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
@@ -209,5 +227,39 @@ struct SettingsScreen: View {
             if let l = sync.last { return "동기화됨 · " + Fmt.string(l, "M/d HH:mm") }
             return "연결됨"
         }
+    }
+}
+
+
+/// 색 고르는 동그라미 줄 (프리셋 + 직접 고르기)
+struct SwatchRow: View {
+    let presets: [ThemePrefs.Preset]
+    @Binding var selection: String
+    @State private var custom = Color.orange
+
+    var body: some View {
+        let isCustom = ThemePrefs.hex(selection) != nil
+        HStack(spacing: 12) {
+            ForEach(presets) { p in
+                Button { selection = p.id } label: {
+                    Circle().fill(Theme.adaptive(Theme.rgb(p.light), Theme.rgb(p.dark)))
+                        .frame(width: 32, height: 32)
+                        .overlay {
+                            if selection == p.id {
+                                Image(systemName: "checkmark").font(.system(size: 13, weight: .heavy)).foregroundStyle(.white)
+                                    .shadow(color: .black.opacity(0.4), radius: 1)
+                            }
+                        }
+                        .overlay(Circle().stroke(selection == p.id ? Color.primary.opacity(0.7) : Color.clear, lineWidth: 2).padding(-4))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(p.name)
+            }
+            ColorPicker("직접 고르기", selection: $custom, supportsOpacity: false)
+                .labelsHidden()
+                .overlay(Circle().stroke(isCustom ? Color.primary.opacity(0.7) : Color.clear, lineWidth: 2).padding(-4).allowsHitTesting(false))
+                .onChange(of: custom) { _, c in selection = ThemePrefs.uiHex(c) }
+        }
+        .onAppear { if let h = ThemePrefs.hex(selection) { custom = Color(Theme.rgb(h)) } }
     }
 }

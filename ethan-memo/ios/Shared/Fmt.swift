@@ -55,19 +55,21 @@ enum Theme {
     static func rgb(_ hex: UInt32, _ a: CGFloat = 1) -> UIColor {
         UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: a)
     }
-    static let hi = adaptive(rgb(0xE86F00), rgb(0xFFA526))
+    // 강조색·지난 일 색은 설정에서 바꿀 수 있음 (앱 그룹에 저장 → 위젯도 같이 따라감)
+    static var hi: Color { ThemePrefs.accent }
     static let hiInk = adaptive(rgb(0xFFFFFF), rgb(0x1B1204))
-    static let hiSoft = adaptive(rgb(0xFF9500, 0.14), rgb(0xFF9F0A, 0.18))
-    static let btn = hi
+    static var hiSoft: Color { ThemePrefs.accentSoft }
+    static var btn: Color { hi }
     static let bg = adaptive(rgb(0xF5F4F8), rgb(0x0B0B0E))
     static let surface = adaptive(rgb(0xFFFFFF), rgb(0x17171B))
     static let line = adaptive(rgb(0xE2E0E8), rgb(0x2B2B31))
-    static let today = adaptive(rgb(0xFF8A00), rgb(0xFF9500))
+    static var today: Color { hi }
     static let event = adaptive(rgb(0x007AFF), rgb(0x0A84FF))
-    static let todo = adaptive(rgb(0xF27A00), rgb(0xFF9F0A))
+    static var todo: Color { hi }
     static let memo = adaptive(rgb(0xC28A00), rgb(0xFFD60A))
-    static let warn = adaptive(rgb(0xE5352B), rgb(0xFF453A))
-    static let sun = warn
+    /// 지난 일 색 (기본: 눈이 덜 아픈 코랄)
+    static var warn: Color { ThemePrefs.late }
+    static let sun = adaptive(rgb(0xE5352B), rgb(0xFF453A))
     /// 연그레이 3D 카드
     static let cardTop = adaptive(rgb(0xECEAF1), rgb(0x1D1D22))
     static let cardBottom = cardTop
@@ -123,5 +125,52 @@ struct Backdrop: View {
             Theme.bg
             RadialGradient(colors: [Theme.hi.opacity(0.18), .clear], center: .init(x: 0.5, y: 1.08), startRadius: 0, endRadius: 520)
         }
+    }
+}
+
+/// 테마 색 설정 (이 기기에만 저장). 값은 프리셋 이름 또는 "#RRGGBB".
+enum ThemePrefs {
+    static let accentKey = "themeAccent"
+    static let lateKey = "themeLate"
+    struct Preset: Identifiable { let id: String; let name: String; let light: UInt32; let dark: UInt32 }
+    static let accents: [Preset] = [
+        .init(id: "orange", name: "오렌지", light: 0xE86F00, dark: 0xFFA526),
+        .init(id: "blue", name: "블루", light: 0x0A6FE0, dark: 0x4DA3FF),
+        .init(id: "teal", name: "민트", light: 0x0E9F8E, dark: 0x3DD6C3),
+        .init(id: "green", name: "그린", light: 0x2E9E4F, dark: 0x4ADE80),
+        .init(id: "purple", name: "퍼플", light: 0x7C4DDB, dark: 0xB18CFF),
+        .init(id: "pink", name: "핑크", light: 0xD6336C, dark: 0xFF7AA8),
+        .init(id: "gray", name: "그래파이트", light: 0x5F6368, dark: 0xC9CDD3),
+    ]
+    static let lates: [Preset] = [
+        .init(id: "coral", name: "코랄", light: 0xD4756B, dark: 0xE8928A),
+        .init(id: "rose", name: "로즈", light: 0xC9788F, dark: 0xE59BB0),
+        .init(id: "amber", name: "앰버", light: 0xC98A1B, dark: 0xE8B04A),
+        .init(id: "lav", name: "라벤더", light: 0x8A78D0, dark: 0xB3A4F0),
+        .init(id: "slate", name: "슬레이트", light: 0x7C8796, dark: 0xA3ADBB),
+        .init(id: "red", name: "레드", light: 0xE0352B, dark: 0xFF453A),
+    ]
+    private static func value(_ key: String, _ def: String) -> String { Store.defaults.string(forKey: key) ?? def }
+    static func hex(_ s: String) -> UInt32? {
+        guard s.hasPrefix("#"), s.count == 7, let v = UInt32(s.dropFirst(), radix: 16) else { return nil }
+        return v
+    }
+    static func color(_ list: [Preset], key: String) -> Color {
+        if let h = hex(key) { return Color(Theme.rgb(h)) }
+        let p = list.first { $0.id == key } ?? list[0]
+        return Theme.adaptive(Theme.rgb(p.light), Theme.rgb(p.dark))
+    }
+    static var accent: Color { color(accents, key: value(accentKey, "orange")) }
+    static var late: Color { color(lates, key: value(lateKey, "coral")) }
+    static var accentSoft: Color {
+        let k = value(accentKey, "orange")
+        if let h = hex(k) { return Color(Theme.rgb(h, 0.16)) }
+        let p = accents.first { $0.id == k } ?? accents[0]
+        return Theme.adaptive(Theme.rgb(p.light, 0.14), Theme.rgb(p.dark, 0.18))
+    }
+    static func uiHex(_ c: Color) -> String {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(c).getRed(&r, green: &g, blue: &b, alpha: &a)
+        return String(format: "#%02X%02X%02X", Int(r * 255 + 0.5), Int(g * 255 + 0.5), Int(b * 255 + 0.5))
     }
 }

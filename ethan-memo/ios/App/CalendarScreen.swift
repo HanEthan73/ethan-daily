@@ -15,6 +15,7 @@ struct CalendarScreen: View {
     @State private var selected = Fmt.cal.startOfDay(for: .now)
     @State private var editing: Item?
     @State private var rangeDraft: RangeDraft?
+    @State private var memoBoard = false
     private var router = Router.shared
 
     private var dayItems: [Item] { items.filter { $0.covers(selected) } }
@@ -27,16 +28,36 @@ struct CalendarScreen: View {
                     rangeDraft = RangeDraft(start: s, end: e)
                 }
                 .padding(.horizontal, 12)
-                .padding(.bottom, 8)
-                .background(Theme.bg)
+                .padding(.bottom, 6)
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) { memoBoard.toggle() }
+                } label: {
+                    Text(memoBoard ? "📅 날짜별로 보기" : "📝 메모 모아보기")
+                        .font(.system(size: 14, weight: .heavy))
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                        .foregroundStyle(memoBoard ? Theme.ctaInk : Color.primary)
+                        .background(Capsule().fill(memoBoard ? Theme.hi : Theme.pillHi))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 16).padding(.bottom, 8)
 
                 Rectangle().fill(Theme.line).frame(height: 0.5)
 
-                DayList(day: selected, items: dayItems, editing: $editing)
+                if memoBoard {
+                    MemoBoard(month: month, items: items, editing: $editing, openDay: { d in
+                        selected = Fmt.cal.startOfDay(for: d)
+                        month = Fmt.startOfMonth(d)
+                        memoBoard = false
+                    })
+                } else {
+                    DayList(day: selected, items: dayItems, editing: $editing)
+                }
             }
             .navigationTitle("ETHAN MEMO")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $editing) { EditSheet(item: $0) }
+            .onChange(of: selected) { _, _ in memoBoard = false }
             .onAppear(perform: applyJump)
             .onChange(of: router.jumpDate) { _, _ in applyJump() }
             .sheet(item: $rangeDraft) { d in
@@ -53,6 +74,70 @@ extension CalendarScreen {
         router.jumpDate = nil
         selected = Fmt.cal.startOfDay(for: d)
         month = Fmt.startOfMonth(d)
+    }
+}
+
+// MARK: - 메모 모아보기
+
+struct MemoBoard: View {
+    let month: Date
+    let items: [Item]
+    @Binding var editing: Item?
+    var openDay: (Date) -> Void
+    @State private var all = false
+
+    var body: some View {
+        let memos = items.filter { $0.kind == .memo && (all || Fmt.cal.isDate($0.day, equalTo: month, toGranularity: .month)) }
+        let groups = Dictionary(grouping: memos) { $0.day }
+        let days = groups.keys.sorted(by: >)
+        let today = Fmt.cal.startOfDay(for: .now)
+
+        List {
+            Section {
+                Picker("범위", selection: $all) {
+                    Text("\(Fmt.string(month, "M월")) 메모").tag(false)
+                    Text("전체").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            } footer: {
+                Text("메모 \(memos.count)개").font(.system(size: 12, weight: .semibold))
+            }
+            if days.isEmpty {
+                Section {
+                    Text(all ? "메모가 없습니다." : "이 달에는 메모가 없습니다. 날짜를 눌러 추가하거나, 할 일·일정을 열어 ‘메모로 이동’을 눌러 보세요.")
+                        .font(.subheadline).foregroundStyle(.secondary).rowSurface()
+                }
+            }
+            ForEach(days, id: \.self) { d in
+                let list = (groups[d] ?? []).sorted { $0.createdAt > $1.createdAt }
+                let diff = Fmt.daysBetween(today, d)
+                Section {
+                    ForEach(list) { item in ItemRow(item: item, pinDay: d) { editing = item } }
+                } header: {
+                    Button { openDay(d) } label: {
+                        HStack(spacing: 8) {
+                            Text(Fmt.short(d))
+                                .font(.system(size: 14, weight: .heavy))
+                                .foregroundStyle(diff == 0 ? Theme.today : Color.primary)
+                                .padding(.horizontal, 12).padding(.vertical, 4)
+                                .background(Capsule().fill(diff == 0 ? Theme.today.opacity(0.2) : Theme.pill))
+                            Text(diff == 0 ? "오늘" : diff < 0 ? "\(-diff)일 전" : "\(diff)일 후")
+                                .font(.system(size: 11.5, weight: .medium)).foregroundStyle(.secondary)
+                            Spacer()
+                            Text("\(list.count)개").font(.system(size: 11.5)).foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .textCase(nil)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .listRowSpacing(6)
+        .refreshable { await SyncService.shared.pullRefresh() }
+        .spaceGray()
     }
 }
 
@@ -224,7 +309,7 @@ struct MonthGrid: View {
                 let cols = rowEnd % 7 - i % 7 + 1
                 let labelled = !(i > s && i % 7 != 0)
                 // 칸이 좁아 한 줄에 안 들어가는 제목은 두 줄로
-                let tall = labelled && CGFloat(ev.text.count) * 10.5 > CGFloat(cols) * 48 - 12
+                let tall = labelled && CGFloat(ev.text.count) * 9.2 > CGFloat(cols) * 48 - 9
                 out.append(Seg(id: "\(ev.uid)-\(row)", title: ev.text, key: ev.uid, row: row,
                                start: i % 7, end: rowEnd % 7, lane: lane, tall: tall,
                                openLeft: i > s, openRight: rowEnd < e))
@@ -311,10 +396,10 @@ struct MonthGrid: View {
                     ForEach(allBars) { b in
                         let c = Theme.hl(b.key)
                         Text(b.openLeft && b.start != 0 ? " " : b.title)
-                            .font(.system(size: 10.5, weight: .semibold))
+                            .font(.system(size: 9.5, weight: .bold))
                             .lineLimit(b.tall ? 2 : 1)
                             .multilineTextAlignment(.leading)
-                            .padding(.leading, 5).padding(.trailing, 2)
+                            .padding(.leading, 4).padding(.trailing, 2)
                             .frame(width: CGFloat(b.end - b.start + 1) * w - (b.openLeft ? 0 : 1) - (b.openRight ? 0 : 1),
                                    height: b.tall ? barTall : barH, alignment: b.tall ? .topLeading : .leading)
                             .foregroundStyle(c.t)
