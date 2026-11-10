@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.30",
-"buildVersion": "30",
-"date": "2026-11-10T00:32:49Z",
-"localizedDescription": "iOS: memo board in calendar, move-to-memo, theme colors, softer late color, smaller calendar bar text",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=30",
-"size": 1142316,
+"version": "1.0.31",
+"buildVersion": "31",
+"date": "2026-11-10T04:04:21Z",
+"localizedDescription": "pin button on every card (right side), composer button renamed add and kept on one row (web + iOS)",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=31",
+"size": 1144137,
 "minOSVersion": "17.0"
         }
       ],
