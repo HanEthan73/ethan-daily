@@ -44,7 +44,7 @@ struct TodoScreen: View {
                             .focused($focused)
                             .submitLabel(.done)
                             .onSubmit(add)
-                        Button("추가", action: add).buttonStyle(.ink)
+                        Button("add", action: add).buttonStyle(.ink)
                     }
                     .rowSurface()
                     if !newPhotos.isEmpty {

@@ -42,6 +42,16 @@ struct ItemRow: View {
     }
     private var canPin: Bool { pinDay != nil || item.kind == .todo }
 
+    private func togglePin() {
+        if let d = pinDay { item.toggleDayPin(d) }
+        else {
+            item.pinned.toggle()
+            item.pinnedAt = item.pinned ? .now : nil
+            item.updatedAt = .now
+        }
+        Store.save(ctx)
+    }
+
     private var isLate: Bool { item.kind == .todo && !item.done && Fmt.daysBetween(item.day, .now) > 0 }
 
     var body: some View {
@@ -73,8 +83,20 @@ struct ItemRow: View {
             // 한 번 탭 = 수정, 두 번 탭 = 복사
             .gesture(TapGesture(count: 2).onEnded { copyText() }
                 .exclusively(before: TapGesture().onEnded { onEdit() }))
+            // 오른쪽 핀: 눌러서 고정 / 해제 (안 고정된 건 흐리게)
+            if canPin && (pinDay != nil || !item.done) {
+                Button(action: togglePin) {
+                    Image(systemName: isPinned ? "pin.fill" : "pin")
+                        .font(.system(size: 14, weight: .semibold))
+                        .rotationEffect(.degrees(35))
+                        .foregroundStyle(isPinned ? Theme.hi : Theme.cardSub.opacity(0.55))
+                        .frame(width: 34, height: 34)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(isPinned ? "고정 해제" : "고정")
+            }
         }
-        .padding(.trailing, isPinned ? 18 : 0)
         .overlay {
             if copied {
                 Text("📋 복사했습니다").font(.system(size: 12.5, weight: .semibold))
@@ -91,15 +113,7 @@ struct ItemRow: View {
         .listRowBackground(note)
         .contextMenu {
             if canPin {
-                Button {
-                    if let d = pinDay { item.toggleDayPin(d) }
-                    else {
-                        item.pinned.toggle()
-                        item.pinnedAt = item.pinned ? .now : nil
-                        item.updatedAt = .now
-                    }
-                    Store.save(ctx)
-                } label: {
+                Button(action: togglePin) {
                     Label(isPinned ? "고정 해제" : (pinDay != nil ? "이 날짜 맨 위에 고정" : "맨 위에 고정"),
                           systemImage: isPinned ? "pin.slash" : "pin")
                 }
@@ -150,22 +164,12 @@ struct ItemRow: View {
         let (_, dot) = noteColors
         // 둥근 알약 행 + 왼쪽 색 점 (YouTube Premium 느낌)
         let shape = RoundedRectangle(cornerRadius: 26, style: .continuous)
-        let pinned = isPinned
         return shape.fill(Theme.pill)
             .overlay { if item.kind == .event { shape.fill(Theme.hl(item.uid).b) } }
             .overlay(alignment: .leading) {
                 Circle().fill(dot).frame(width: 10, height: 10)
                     .background(Circle().fill(dot.opacity(0.22)).frame(width: 18, height: 18))
                     .padding(.leading, 16)
-            }
-            .overlay(alignment: .trailing) {
-                if pinned {
-                    Image(systemName: "pin.fill")
-                        .font(.system(size: 11))
-                        .rotationEffect(.degrees(35))
-                        .foregroundStyle(Theme.hi.opacity(0.9))
-                        .padding(.trailing, 16)
-                }
             }
             .opacity(item.done ? 0.55 : 1)
             .padding(.vertical, 2)
