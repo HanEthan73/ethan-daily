@@ -81,9 +81,10 @@ struct ItemRow: View {
                 PhotoStrip(ids: item.photoIDs, size: 42)
             }
             .contentShape(Rectangle())
-            // 한 번 탭 = 수정, 두 번 탭 = 복사
-            .gesture(TapGesture(count: 2).onEnded { copyText() }
+            // 한 번 탭 = 수정, 두 번 탭 = 고정, 꾹 누르기 = 복사
+            .gesture(TapGesture(count: 2).onEnded { if canPin && (pinDay != nil || !item.done) { togglePin() } }
                 .exclusively(before: TapGesture().onEnded { onEdit() }))
+            .onLongPressGesture(minimumDuration: 0.5) { copyText() }
             // 오른쪽 핀: 눌러서 고정 / 해제 (안 고정된 건 흐리게)
             if item.kind != .memo {
                 Button {
@@ -126,15 +127,6 @@ struct ItemRow: View {
         .padding(.trailing, 6)
         .listRowSeparator(.hidden)
         .listRowBackground(note)
-        .contextMenu {
-            if canPin {
-                Button(action: togglePin) {
-                    Label(isPinned ? "고정 해제" : (pinDay != nil ? "이 날짜 맨 위에 고정" : "맨 위에 고정"),
-                          systemImage: isPinned ? "pin.slash" : "pin")
-                }
-            }
-            Button(action: onEdit) { Label("수정", systemImage: "pencil") }
-        }
         .blocksTabSwipe()
         // ← 왼쪽으로 밀기: 완료 (초록) · 삭제
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
