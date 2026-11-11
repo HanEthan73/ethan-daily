@@ -79,7 +79,7 @@ struct RootView: View {
                 if phase == .active { await SyncService.shared.run() }
             }
         }
-        .alert("Claude 연결 오류",
+        .alert("GPT 연결 오류",
                isPresented: Binding(get: { asker.lastError != nil }, set: { if !$0 { asker.lastError = nil } })) {
             Button("확인", role: .cancel) {}
         } message: {

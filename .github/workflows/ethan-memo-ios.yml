@@ -87,7 +87,7 @@ jobs:
                 "bundleIdentifier": "com.ethanhan.haru",
                 "developerName": "Ethan",
                 "subtitle": "날짜별 메모 · 할 일 · 캘린더 · 위젯",
-                "localizedDescription": "날짜별 메모, 완료 체크되는 할 일, 드래그로 기간 일정 등록, 홈 화면 위젯, 메모를 바로 Claude에게.",
+                "localizedDescription": "날짜별 메모, 완료 체크되는 할 일, 드래그로 기간 일정 등록, 홈 화면 위젯, 메모를 바로 GPT에게.",
                 "iconURL": "$BASE/icon-512.png",
                 "tintColor": "#2A50C8",
                 "category": "productivity",

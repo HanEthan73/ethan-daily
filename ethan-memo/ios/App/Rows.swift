@@ -77,6 +77,7 @@ struct ItemRow: View {
                         .background(RoundedRectangle(cornerRadius: 5).fill(Color.gray.opacity(0.14)))
                 }
                 linkChips
+                placeChips
                 PhotoStrip(ids: item.photoIDs, size: 42)
             }
             .contentShape(Rectangle())
@@ -84,6 +85,20 @@ struct ItemRow: View {
             .gesture(TapGesture(count: 2).onEnded { copyText() }
                 .exclusively(before: TapGesture().onEnded { onEdit() }))
             // 오른쪽 핀: 눌러서 고정 / 해제 (안 고정된 건 흐리게)
+            if item.kind != .memo {
+                Button {
+                    item.kind = .memo
+                    Store.save(ctx)
+                } label: {
+                    Image(systemName: "note.text")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.cardSub.opacity(0.55))
+                        .frame(width: 34, height: 34)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("메모로 보내기")
+            }
             if canPin && (pinDay != nil || !item.done) {
                 Button(action: togglePin) {
                     Image(systemName: isPinned ? "pin.fill" : "pin")
@@ -204,6 +219,39 @@ struct ItemRow: View {
         }
     }
 
+    @ViewBuilder private var placeChips: some View {
+        let places = Self.places(in: item.text)
+        if !places.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(places, id: \.self) { q in
+                    Button {
+                        var c = URLComponents(string: "https://www.google.com/maps/search/")!
+                        c.queryItems = [URLQueryItem(name: "api", value: "1"), URLQueryItem(name: "query", value: q)]
+                        if let u = c.url { UIApplication.shared.open(u) }
+                    } label: {
+                        Text("📍 " + q).font(.caption)
+                            .padding(.horizontal, 7).padding(.vertical, 2)
+                            .foregroundStyle(Color.green)
+                            .background(RoundedRectangle(cornerRadius: 6).fill(Color.green.opacity(0.16)))
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+    }
+
+    static func places(in text: String) -> [String] {
+        var out: [String] = []
+        for line in text.split(separator: "\n") {
+            for part in line.split(separator: "📍").dropFirst(line.hasPrefix("📍") ? 0 : 1) {
+                let q = part.trimmingCharacters(in: .whitespaces)
+                    .trimmingCharacters(in: CharacterSet(charactersIn: ",.;:!?)]"))
+                if !q.isEmpty && !out.contains(q) { out.append(q) }
+            }
+        }
+        return out
+    }
+
     @ViewBuilder private var linkChips: some View {
         let links = WikiText.links(in: item.text)
         if !links.isEmpty {
@@ -259,7 +307,7 @@ struct ItemRow: View {
 
     private var markParts: [String] {
         var m: [String] = []
-        if asker.busy.contains(item.uid) { m.append("Claude 답변 중…") } else if item.answer != nil { m.append("답변 있음") }
+        if asker.busy.contains(item.uid) { m.append("GPT 답변 중…") } else if item.answer != nil { m.append("답변 있음") }
         return m
     }
 

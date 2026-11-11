@@ -534,7 +534,7 @@ struct WikiScreen: View {
     }
 }
 
-// MARK: - 하루 정리 페이지 (자동 + 그날 노트 + Claude 정리)
+// MARK: - 하루 정리 페이지 (자동 + 그날 노트 + GPT 정리)
 
 struct WikiDayView: View {
     @Environment(\.modelContext) private var ctx
@@ -575,7 +575,7 @@ struct WikiDayView: View {
                 HStack(spacing: 8) {
                     Button { summarize(events: events, done: done, open: open, memos: memos) } label: {
                         if busy { HStack(spacing: 6) { ProgressView().controlSize(.small); Text("정리하는 중…") } }
-                        else { Label("Claude 하루 정리", systemImage: "sparkles") }
+                        else { Label("GPT 하루 정리", systemImage: "sparkles") }
                     }
                     .buttonStyle(.ink).disabled(busy)
                     Button { editPage = notePage() } label: { Label("노트", systemImage: "square.and.pencil") }
@@ -634,7 +634,7 @@ struct WikiDayView: View {
         })
         .sheet(item: $editing) { EditSheet(item: $0) }
         .sheet(item: $editPage) { WikiEditView(page: $0) }
-        .alert("Claude로 정리하지 못했습니다", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
+        .alert("GPT로 정리하지 못했습니다", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("확인", role: .cancel) {}
         } message: { Text(errorText ?? "") }
     }
@@ -725,11 +725,11 @@ struct WikiDayView: View {
         \(record)
         \(oldPart)
         """
-        if noKey { ClaudeLink.open(prompt); return }
+        if noKey { GPTLink.open(prompt); return }
         busy = true
         Task {
             do {
-                var t = try await ClaudeClient.ask(prompt, maxTokens: 3000)
+                var t = try await GPTClient.ask(prompt, maxTokens: 3000)
                 t = t.replacingOccurrences(of: #"^```(?:markdown|md)?\s*\n"#, with: "", options: .regularExpression)
                 t = t.replacingOccurrences(of: #"\n```\s*$"#, with: "", options: .regularExpression)
                 t = t.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -739,7 +739,7 @@ struct WikiDayView: View {
                     Store.save(ctx)
                 }
             } catch {
-                errorText = (error as? ClaudeError)?.message ?? error.localizedDescription
+                errorText = (error as? GPTError)?.message ?? error.localizedDescription
             }
             busy = false
         }
@@ -793,7 +793,7 @@ struct WikiPageView: View {
                     Button("편집") { editing = true }.buttonStyle(.ink).disabled(busy)
                     Button { decorate(p) } label: {
                         if busy { HStack(spacing: 6) { ProgressView().controlSize(.small); Text("꾸미는 중…") } }
-                        else { Label("Claude로 꾸미기", systemImage: "sparkles") }
+                        else { Label("GPT로 꾸미기", systemImage: "sparkles") }
                     }
                     .buttonStyle(.bordered).tint(Theme.hi).disabled(busy)
                     if let u = undo, !busy {
@@ -807,7 +807,7 @@ struct WikiPageView: View {
                     if p.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         VStack(spacing: 6) {
                             Text("빈 페이지입니다").font(.headline)
-                            Text("‘편집’으로 직접 쓰거나, ‘Claude로 꾸미기’를 누르면 이 제목으로 초안을 만들어 줍니다.")
+                            Text("‘편집’으로 직접 쓰거나, ‘GPT로 꾸미기’를 누르면 이 제목으로 초안을 만들어 줍니다.")
                                 .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 24)
@@ -856,7 +856,7 @@ struct WikiPageView: View {
             return .handled
         })
         .sheet(isPresented: $editing) { WikiEditView(page: p) }
-        .alert("Claude로 꾸미지 못했습니다", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
+        .alert("GPT로 꾸미지 못했습니다", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("확인", role: .cancel) {}
         } message: { Text(errorText ?? "") }
         .confirmationDialog("이 페이지를 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -910,11 +910,11 @@ struct WikiPageView: View {
         내용:
         \(p.body.isEmpty ? "(비어 있음)" : p.body)
         """
-        if noKey { ClaudeLink.open(prompt); return }
+        if noKey { GPTLink.open(prompt); return }
         busy = true
         Task {
             do {
-                var t = try await ClaudeClient.ask(prompt, maxTokens: 4000)
+                var t = try await GPTClient.ask(prompt, maxTokens: 4000)
                 t = t.replacingOccurrences(of: #"^```(?:markdown|md)?\s*\n"#, with: "", options: .regularExpression)
                 t = t.replacingOccurrences(of: #"\n```\s*$"#, with: "", options: .regularExpression)
                 t = t.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -925,7 +925,7 @@ struct WikiPageView: View {
                     Store.save(ctx)
                 }
             } catch {
-                errorText = (error as? ClaudeError)?.message ?? error.localizedDescription
+                errorText = (error as? GPTError)?.message ?? error.localizedDescription
             }
             busy = false
         }

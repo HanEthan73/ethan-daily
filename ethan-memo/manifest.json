@@ -1,7 +1,7 @@
 {
   "name": "ETHAN MEMO",
   "short_name": "ETHAN MEMO",
-  "description": "날짜별 메모 · 할 일 · 캘린더, 메모를 바로 Claude에게",
+  "description": "날짜별 메모 · 할 일 · 캘린더, 메모를 바로 GPT에게",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

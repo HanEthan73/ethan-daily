@@ -10,7 +10,7 @@ struct SettingsScreen: View {
     @State private var backupMsg: String?
     @State private var key = ""
     @State private var hasKey = Keychain.read() != nil
-    @AppStorage("claudeModel") private var model = ClaudeModel.sonnet.rawValue
+    @AppStorage("gptModel") private var model = GPTModel.mini.rawValue
     @State private var testState: String?
     @State private var testing = false
     @State private var repo = SyncService.shared.repo
@@ -65,14 +65,14 @@ struct SettingsScreen: View {
                     }
                     .buttonStyle(.borderless)
                 } header: {
-                    Text("Claude API 키")
+                    Text("OpenAI API 키")
                 } footer: {
-                    Text("console.anthropic.com에서 발급합니다. 키는 이 아이폰의 Keychain에만 저장됩니다. API 사용료는 Claude 구독과 별도로 청구됩니다.")
+                    Text("platform.openai.com에서 발급합니다. 키는 이 아이폰의 Keychain에만 저장됩니다. API 사용료는 ChatGPT 구독과 별도로 청구됩니다.")
                 }
 
                 Section("답변 모델") {
                     Picker("모델", selection: $model) {
-                        ForEach(ClaudeModel.allCases) { Text($0.label).tag($0.rawValue) }
+                        ForEach(GPTModel.allCases) { Text($0.label).tag($0.rawValue) }
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
@@ -84,10 +84,10 @@ struct SettingsScreen: View {
                         testState = nil
                         Task {
                             do {
-                                let a = try await ClaudeClient.ask("연결 확인입니다. '연결됨' 한 단어로만 답하세요.")
+                                let a = try await GPTClient.ask("연결 확인입니다. '연결됨' 한 단어로만 답하세요.")
                                 testState = "성공: \(a)"
                             } catch {
-                                testState = (error as? ClaudeError)?.message ?? error.localizedDescription
+                                testState = (error as? GPTError)?.message ?? error.localizedDescription
                             }
                             testing = false
                         }

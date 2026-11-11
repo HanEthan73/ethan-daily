@@ -16,20 +16,20 @@ final class Asker {
     func ask(_ item: Item, ctx: ModelContext) {
         guard !busy.contains(item.uid) else { return }
         guard Keychain.read() != nil else {
-            // API 키 없이: Claude 앱(구독)으로 질문을 열고, 답은 복사해 와서 붙여넣기
-            ClaudeLink.open(Prompt.make(item))
+            // API 키 없이: ChatGPT 앱(구독)으로 질문을 열고, 답은 복사해 와서 붙여넣기
+            GPTLink.open(Prompt.make(item))
             return
         }
         busy.insert(item.uid)
         let prompt = Prompt.make(item)
         Task {
             do {
-                let answer = try await ClaudeClient.ask(prompt)
+                let answer = try await GPTClient.ask(prompt)
                 item.answer = answer
                 item.answeredAt = .now
                 Store.save(ctx)
             } catch {
-                lastError = (error as? ClaudeError)?.message ?? error.localizedDescription
+                lastError = (error as? GPTError)?.message ?? error.localizedDescription
             }
             busy.remove(item.uid)
         }
@@ -67,45 +67,49 @@ enum Prompt {
     }
 }
 
-// MARK: - Anthropic API
+// MARK: - OpenAI API
 
-enum ClaudeModel: String, CaseIterable, Identifiable {
-    case sonnet = "claude-sonnet-5-5"
-    case haiku = "claude-haiku-5-5"
-    case opus = "claude-opus-5-5"
+enum GPTModel: String, CaseIterable, Identifiable {
+    case mini = "gpt-5-mini"
+    case full = "gpt-5"
+    case fast = "gpt-4o-mini"
+    case four = "gpt-4o"
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .sonnet: return "Sonnet 5.5 (기본)"
-        case .haiku: return "Haiku 5.5 (빠름·저렴)"
-        case .opus: return "Opus 5.5 (깊이)"
+        case .mini: return "GPT-5 mini (기본)"
+        case .full: return "GPT-5 (깊이)"
+        case .fast: return "GPT-4o mini (빠름·저렴)"
+        case .four: return "GPT-4o"
         }
     }
-    static var current: ClaudeModel {
-        ClaudeModel(rawValue: UserDefaults.standard.string(forKey: "claudeModel") ?? "") ?? .sonnet
+    static var current: GPTModel {
+        GPTModel(rawValue: UserDefaults.standard.string(forKey: "gptModel") ?? "") ?? .mini
     }
 }
 
-struct ClaudeError: Error {
+struct GPTError: Error {
     let message: String
 }
 
-enum ClaudeClient {
+enum GPTClient {
     static func ask(_ prompt: String, maxTokens: Int = 1200) async throws -> String {
         guard let key = Keychain.read(), !key.isEmpty else {
-            throw ClaudeError(message: "API 키가 없습니다. 설정 탭에서 입력하세요.")
+            throw GPTError(message: "API 키가 없습니다. 설정 탭에서 입력하세요.")
         }
-        var req = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
+        var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
         req.httpMethod = "POST"
-        req.timeoutInterval = 90
-        req.setValue(key, forHTTPHeaderField: "x-api-key")
-        req.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        req.setValue("application/json", forHTTPHeaderField: "content-type")
-        let body: [String: Any] = [
-            "model": ClaudeModel.current.rawValue,
-            "max_tokens": maxTokens,
+        req.timeoutInterval = 120
+        req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let model = GPTModel.current.rawValue
+        let reasoning = model.hasPrefix("gpt-5")
+        var body: [String: Any] = [
+            "model": model,
+            "max_completion_tokens": reasoning ? maxTokens * 4 : maxTokens,
             "messages": [["role": "user", "content": prompt]]
         ]
+        if reasoning { body["reasoning_effort"] = "low" }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (data, resp) = try await URLSession.shared.data(for: req)
@@ -114,18 +118,21 @@ enum ClaudeClient {
             struct E: Decodable { struct Inner: Decodable { let message: String }; let error: Inner }
             let detail = (try? JSONDecoder().decode(E.self, from: data))?.error.message ?? ""
             switch code {
-            case 401: throw ClaudeError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
-            case 429: throw ClaudeError(message: "요청이 많습니다. 잠시 후 다시 시도하세요.")
-            case 529, 503: throw ClaudeError(message: "Claude 서버가 혼잡합니다. 잠시 후 다시 시도하세요.")
-            default: throw ClaudeError(message: "요청 실패 (\(code)) \(detail)")
+            case 401: throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
+            case 429: throw GPTError(message: "요청이 많거나 사용 한도를 넘었습니다. 잠시 후 다시 시도하세요.")
+            case 500, 503: throw GPTError(message: "OpenAI 서버가 혼잡합니다. 잠시 후 다시 시도하세요.")
+            default: throw GPTError(message: "요청 실패 (\(code)) \(detail)")
             }
         }
         struct R: Decodable {
-            struct Block: Decodable { let type: String; let text: String? }
-            let content: [Block]
+            struct Choice: Decodable {
+                struct Msg: Decodable { let content: String? }
+                let message: Msg
+            }
+            let choices: [Choice]
         }
         let r = try JSONDecoder().decode(R.self, from: data)
-        let text = r.content.compactMap { $0.type == "text" ? $0.text : nil }.joined()
+        let text = r.choices.first?.message.content ?? ""
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
@@ -135,7 +142,7 @@ enum ClaudeClient {
 enum Keychain {
     private static func base(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: "haru.claude",
+         kSecAttrService as String: "haru.openai",
          kSecAttrAccount as String: account]
     }
 
@@ -160,11 +167,11 @@ enum Keychain {
 }
 
 
-/// API 키 없이 Claude 앱·웹(구독)으로 열기: 질문을 복사해 두고 claude.ai/new?q= 로 엶
-enum ClaudeLink {
+/// API 키 없이 ChatGPT 앱·웹(구독)으로 열기: 질문을 복사해 두고 chatgpt.com/?q= 로 엶
+enum GPTLink {
     @MainActor static func open(_ prompt: String) {
         UIPasteboard.general.string = prompt
         let q = String(prompt.prefix(6000)).addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed.subtracting(CharacterSet(charactersIn: "&+=?#"))) ?? ""
-        if let url = URL(string: "https://claude.ai/new?q=" + q) { UIApplication.shared.open(url) }
+        if let url = URL(string: "https://chatgpt.com/?q=" + q) { UIApplication.shared.open(url) }
     }
 }

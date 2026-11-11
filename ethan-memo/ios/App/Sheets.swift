@@ -65,7 +65,7 @@ struct NewEventSheet: View {
     }
 }
 
-// MARK: - 수정 (상세 노트 · 사진 · 달력에서 날짜 고르기 · Claude)
+// MARK: - 수정 (상세 노트 · 사진 · 달력에서 날짜 고르기 · GPT)
 
 struct EditSheet: View {
     @Environment(\.modelContext) private var ctx
@@ -156,8 +156,8 @@ struct EditSheet: View {
                         save(close: false)
                         Asker.shared.ask(item, ctx: ctx)
                     } label: {
-                        if asking { HStack(spacing: 8) { ProgressView(); Text("Claude가 답하는 중…") } }
-                        else { Label(item.answer == nil ? "Claude에게 묻기" : "다시 묻기", systemImage: "sparkle") }
+                        if asking { HStack(spacing: 8) { ProgressView(); Text("GPT가 답하는 중…") } }
+                        else { Label(item.answer == nil ? "GPT에게 묻기" : "다시 묻기", systemImage: "sparkle") }
                     }
                     .disabled(asking)
                     Button {
@@ -166,11 +166,11 @@ struct EditSheet: View {
                             item.answeredAt = .now
                             Store.save(ctx)
                         }
-                    } label: { Label("Claude 답변 붙여넣기", systemImage: "doc.on.clipboard") }
+                    } label: { Label("GPT 답변 붙여넣기", systemImage: "doc.on.clipboard") }
                     if let a = item.answer {
                         Text(a).font(.subheadline).textSelection(.enabled)
                     }
-                } header: { Text("Claude") } footer: { Text("API 키가 없으면 Claude 앱으로 열립니다. 답을 복사해 와서 ‘답변 붙여넣기’를 누르세요.") }
+                } header: { Text("GPT") } footer: { Text("API 키가 없으면 ChatGPT 앱으로 열립니다. 답을 복사해 와서 ‘답변 붙여넣기’를 누르세요.") }
                 Section {
                     Button("삭제", role: .destructive) { confirmDelete = true }
                 }
