@@ -10,18 +10,18 @@
       "bundleIdentifier": "com.ethanhan.haru",
       "developerName": "Ethan",
       "subtitle": "날짜별 메모 · 할 일 · 캘린더 · 위젯",
-      "localizedDescription": "날짜별 메모, 완료 체크되는 할 일, 드래그로 기간 일정 등록, 홈 화면 위젯, 메모를 바로 Claude에게.",
+      "localizedDescription": "날짜별 메모, 완료 체크되는 할 일, 드래그로 기간 일정 등록, 홈 화면 위젯, 메모를 바로 GPT에게.",
       "iconURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/icon-512.png",
       "tintColor": "#2A50C8",
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.32",
-"buildVersion": "32",
-"date": "2026-11-10T04:09:04Z",
-"localizedDescription": "wiki memo board (web+iOS), two-line wide toast, fix aria-selected state on chips",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=32",
-"size": 1151342,
+"version": "1.0.33",
+"buildVersion": "33",
+"date": "2026-11-11T13:18:02Z",
+"localizedDescription": "메모로 보내기 버튼·구글맵 칩·Claude 제거 후 GPT(OpenAI) 연동",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=33",
+"size": 1158534,
 "minOSVersion": "17.0"
         }
       ],
