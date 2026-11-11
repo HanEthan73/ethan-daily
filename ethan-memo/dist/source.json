@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.33",
-"buildVersion": "33",
-"date": "2026-11-11T13:18:02Z",
-"localizedDescription": "메모로 보내기 버튼·구글맵 칩·Claude 제거 후 GPT(OpenAI) 연동",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=33",
-"size": 1158534,
+"version": "1.0.34",
+"buildVersion": "34",
+"date": "2026-11-11T13:21:04Z",
+"localizedDescription": "제스처 변경: 두 번 탭=고정, 꾹 누르기=복사",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=34",
+"size": 1158171,
 "minOSVersion": "17.0"
         }
       ],
