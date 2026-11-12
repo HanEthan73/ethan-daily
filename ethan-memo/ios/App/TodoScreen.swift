@@ -18,7 +18,10 @@ struct TodoScreen: View {
         let today = Fmt.cal.startOfDay(for: .now)
         let pins = todos.filter { $0.pinned && !$0.done }.sorted { ($0.pinnedAt ?? .distantPast) > ($1.pinnedAt ?? .distantPast) }
         let groups = Dictionary(grouping: todos.filter { !($0.pinned && !$0.done) }) { $0.day }
-        let dates = groups.keys.sorted(by: >)
+        // 다 끝낸 날짜는 숨김 (오늘은 항상 보임 · 기록은 캘린더·위키에)
+        let dates = groups.keys.filter { d in
+            Fmt.cal.isDateInToday(d) || (groups[d] ?? []).contains { !$0.done }
+        }.sorted(by: >)
         let openCount = todos.filter { !$0.done }.count
 
         NavigationStack {

@@ -1286,8 +1286,8 @@ main.grid{padding-bottom:88px}
 .subpage .gcbox{border-top:0;margin-top:0;padding-top:0}
 .sheet-bg:not([hidden]) ~ .bot-fab{display:none}
 
-.gbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:999px;border:0;background:#fff;color:#1f1f1f;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.gbtn:active{opacity:.85}
+.g-login{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:999px;text-decoration:none;border:0;background:#fff;color:#1f1f1f;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.g-login:active{opacity:.85}
 
 /* 챗봇 입력: 한 줄 입력칸 + 아래 버튼 줄 */
 #botBox .chat-form{flex-direction:column;align-items:stretch;gap:4px;padding:8px 10px 8px;border-radius:24px}
@@ -1295,6 +1295,10 @@ main.grid{padding-bottom:88px}
 .cf-row{display:flex;align-items:center;gap:6px}
 .cf-sp{flex:1}
 .cf-row .primary{min-width:76px;padding:9px 16px}
+.act{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.act-g{border:0;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;font-weight:700;background:#fff;color:#1a73e8;cursor:pointer}
+.gcweb{display:flex;flex-direction:column;gap:8px;padding:4px 0 12px}
+.gc-adv{margin-top:6px;border-top:1px solid var(--line);padding-top:10px}.gc-adv>summary{cursor:pointer;font-size:14px;font-weight:700;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -1364,6 +1368,7 @@ main.grid{padding-bottom:88px}
     <input type="date" id="eDate" hidden><input type="date" id="eEnd" hidden>
     <div class="hint gh" id="eSpan"></div>
     <div class="grp">
+      <button type="button" class="grow gbtn" id="eGcal" hidden><span class="glbl"><i class="gic" style="font-weight:800;color:#4285F4">G</i><span>구글 캘린더에 추가</span></span><span class="chev">↗</span></button>
       <button type="button" class="grow gbtn" id="eMove"><span class="glbl"><i class="gic gi-move">↪</i><span id="eMoveLbl">메모로 이동</span></span><span class="chev">›</span></button>
     </div>
     <div class="grp">
@@ -1425,9 +1430,16 @@ main.grid{padding-bottom:88px}
     <div class="subpage" id="spGcal" hidden>
       <button type="button" class="sp-back" data-back>‹ 설정</button>
       <h4 class="sp-title">구글 캘린더</h4>
+      <div class="gcweb">
+        <div class="tb-h"><b>웹 로그인 방식 · 설정 없음</b><small>이 브라우저에 로그인된 구글 계정을 그대로 씁니다</small></div>
+        <div class="gc-btns"><a class="g-login" href="https://calendar.google.com/calendar/r" target="_blank" rel="noopener"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><span>구글 캘린더 열기</span></a></div>
+        <label class="gc-chk"><input type="checkbox" id="gcWeb" checked> 일정을 만들면 ‘구글 캘린더에 추가’ 버튼 보여주기</label>
+        <p class="hint">일정을 열거나 챗봇으로 일정을 등록하면 <b>구글 캘린더에 추가 ↗</b> 버튼이 생겨요. 누르면 구글 캘린더 웹이 제목·날짜·시간이 채워진 채로 열리고 <b>저장</b>만 누르면 됩니다. 처음 한 번은 구글 로그인 화면이 나올 수 있어요.</p>
+      </div>
+      <details class="gc-adv"><summary>고급: 구글 일정을 앱 달력에 불러오기 · 자동 동기화</summary>
     <div class="gcbox">
       <div class="tb-h"><small id="gcState">연결 안 됨</small></div>
-      <div class="gc-btns"><button class="gbtn" id="gcConnect" type="button"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><span id="gcBtnT">Google 계정으로 로그인</span></button><button class="ghost" id="gcOff" type="button" hidden>연결 해제</button></div>
+      <div class="gc-btns"><button class="g-login" id="gcConnect" type="button"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><span id="gcBtnT">Google 계정으로 로그인</span></button><button class="ghost" id="gcOff" type="button" hidden>연결 해제</button></div>
       <label class="gc-chk"><input type="checkbox" id="gcPush" checked> 앱에서 만든 일정을 구글 캘린더에도 추가·수정·삭제</label>
       <details class="gc-help" id="gcSetup"><summary>최초 1회: 앱 등록 (구글 정책상 필요 · 5분 · 무료)</summary>
         <p class="hint">구글은 내 일정에 접근하는 앱마다 ‘클라이언트 ID’ 등록을 요구해요. 한 번만 만들면 그다음부터는 모든 기기에서 위의 ‘Google 계정으로 로그인’만 누르면 됩니다. <b>이메일이 아니라</b> …apps.googleusercontent.com 으로 끝나는 ID를 넣어야 해요.</p>
@@ -1442,6 +1454,7 @@ main.grid{padding-bottom:88px}
         <label class="f-col">OAuth 클라이언트 ID<input id="gcCid" placeholder="123…-abc….apps.googleusercontent.com" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
       </details>
     </div>
+      </details>
     </div>
   </div>
 </div>
@@ -1893,6 +1906,7 @@ function renderMemoBoard(){
       h('button',{type:'button','aria-pressed':scope==='all',text:'전체',onclick:()=>{S.memoScope='all';render();}}))];
   if(!dates.length)kids.push(h('div',{class:'card empty'},h('b',{text:scope==='all'?'메모가 없습니다':'이 달에는 메모가 없습니다'}),'날짜를 눌러 메모를 추가하거나, 할 일·일정을 열어 ‘메모로 이동’을 눌러 보세요.'));
   for(const d of dates){
+    if(!openL.length&&d!==t)continue; /* 다 끝낸 날짜는 숨김 (기록은 캘린더·위키에) */
     const diff=Math.round((pd(d)-pd(t))/864e5);
     const rel=diff===0?'오늘':diff===-1?'어제':diff===1?'내일':diff<0?`${-diff}일 전`:`${diff}일 후`;
     const list=groups[d].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).sort(byPin);
@@ -2006,6 +2020,7 @@ function paintSheet(){
   const cur=S.items.get(e.id),busyA=S.asking.has(e.id),ansT=busyA?(S.asking.get(e.id)||'생각하는 중…'):(cur&&cur.answer)||'';
   $('eAns').hidden=!ansT;$('eAnsText').textContent=ansT;
   $('eAskLbl').textContent=busyA?'묻는 중…':(cur&&cur.answer?'다시 묻기':'GPT에게 묻기');$('eAsk').disabled=busyA;
+  {const gb=$('eGcal');if(gb)gb.hidden=!(e.type==='event'&&gWebOn()&&!e.gid);}
   {const mv=$('eMove');mv.hidden=!!e.isNew;$('eMoveLbl').textContent=e.type==='memo'?'할 일로 이동':'메모로 이동';}
   const del=$('eDel');del.hidden=!!e.isNew;del.textContent=delArmed?'한 번 더 누르면 삭제':'삭제';del.classList.toggle('armed',delArmed);
   const s=$('eDate').value,en=$('eEnd').value;
@@ -2876,9 +2891,10 @@ function chatRun(name,a){
     if(name==='delete_item'){const x=S.items.get(a.id);if(!x)return {ok:false,error:'없는 id'};const t=x.text;remove(a.id);return {ok:true,deleted:t};}
   }catch(e){return {ok:false,error:String(e&&e.message||e)};}
   return {ok:false,error:'알 수 없는 도구'};}
+const actT=a=>typeof a==='string'?a:(a&&a.t)||'';
 function chatActText(name,a,r){
   if(!r.ok)return null;
-  if(name==='add_items')return r.created.map(c=>`${{event:'📅',todo:'☑️',memo:'📝'}[c.type]} ${fmtDay(c.date)}${c.time?' '+c.time:''} · ${c.text}`);
+  if(name==='add_items')return r.created.map(c=>({t:`${{event:'📅',todo:'☑️',memo:'📝'}[c.type]} ${fmtDay(c.date)}${c.time?' '+c.time:''} · ${c.text}`,id:c.type==='event'?c.id:''}));
   if(name==='update_item')return [`✏️ 수정 · ${r.text} (${fmtDay(r.date)})`];
   if(name==='delete_item')return [`🗑 삭제 · ${r.deleted}`];return null;}
 async function gptRaw(body){
@@ -2987,7 +3003,7 @@ async function chatSend(text){
   const acts=[];let final='';
   try{
     const c0=aiCfg()||{};const hist=S.chat.slice(-16),lastU=hist[hist.length-1];
-    const msgs=[{role:'system',content:chatSys()},...hist.map(m=>({role:m.role,content:(m.content||'')+(m.photos&&m.photos.length?`\n[사진 ${m.photos.length}장 첨부]`:'')+(m.files&&m.files.length?`\n[파일: ${m.files.join(', ')}]`:'')+(m.acts&&m.acts.length?'\n[앱에 처리됨: '+m.acts.join(' / ')+']':'')}))];
+    const msgs=[{role:'system',content:chatSys()},...hist.map(m=>({role:m.role,content:(m.content||'')+(m.photos&&m.photos.length?`\n[사진 ${m.photos.length}장 첨부]`:'')+(m.files&&m.files.length?`\n[파일: ${m.files.join(', ')}]`:'')+(m.acts&&m.acts.length?'\n[앱에 처리됨: '+m.acts.map(actT).join(' / ')+']':'')}))];
     if(lastU&&lastU.role==='user'&&((lastU.photos&&lastU.photos.length)||(lastU._files&&lastU._files.length)))msgs[msgs.length-1].content=await chatParts(lastU,c0);
     for(let round=0;round<5;round++){
       const r=await gptRaw({messages:msgs,tools:CHAT_TOOLS});const m=r.choices&&r.choices[0]&&r.choices[0].message;if(!m)break;
@@ -3029,7 +3045,8 @@ function renderChat(){
     if(m.role==='user'){if(m.content)b.append(document.createTextNode(m.content));if(m.photos&&m.photos.length){const th=thumbs(m.photos);if(th){th.classList.add('bub-ph');b.prepend(th);}}if(m.files&&m.files.length)b.append(h('div',{class:'bub-files'},...m.files.map(n=>h('span',{text:'📎 '+n}))));}else{const t=h('div',{class:'wiki-body'});t.innerHTML=renderMd(m.content);b.append(t);}
     log.append(b);
     if(m.gpt)log.append(h('button',{type:'button',class:'primary gptopen',text:'ChatGPT로 물어보기 ↗',onclick:()=>openGPT(m.gpt)}));
-    if(m.acts&&m.acts.length)log.append(h('div',{class:'acts'},...m.acts.map(a=>h('div',{class:'act',text:a}))));}
+    if(m.acts&&m.acts.length)log.append(h('div',{class:'acts'},...m.acts.map(a=>{const x=a&&a.id?S.items.get(a.id):null;
+      return h('div',{class:'act'},h('span',{text:actT(a)}),x&&gWebOn()&&!x.gid?h('button',{type:'button',class:'act-g',text:'구글에 추가 ↗',onclick:()=>gOpenTemplate(x)}):null);})));}
   if(S.chatBusy)log.append(h('div',{class:'bub bot typing',text:'생각하는 중…'}));
   if(S.chatErr)log.append(h('div',{class:'bub err'},S.chatErr,!hasAI()?h('button',{type:'button',class:'ghost',text:'설정 열기',onclick:()=>openSettings()}):null));
   const ta=h('textarea',{id:'chatIn',rows:'1',placeholder:'무엇이든 말하거나 물어보세요',enterkeyhint:'send','aria-label':'GPT에게 말하기',disabled:S.chatBusy?'':null});
@@ -3188,7 +3205,22 @@ function gcalDisconnect(){const t=gTok();if(t)fetch('https://oauth2.googleapis.c
 function paintGcal(){const st=$('gcState');if(!st)return;const at=+lsGet(GC.at)||0;
   st.textContent=!gOn()?'로그인 안 됨':gTok()?`${lsGet('ethanmemo.gcal.who')||'연결됨'} · 구글 일정 ${S.gcal.length}개${at?' · '+clock(at)+' 동기화':''}`:'연결 만료 · ‘지금 동기화’를 누르면 다시 연결';
   $('gcBtnT').textContent=gOn()?(gTok()?'지금 동기화':'Google 로그인 다시 하기'):'Google 계정으로 로그인';const su=$('gcSetup');if(su&&GC_BUILTIN_CID)su.hidden=true;$('gcOff').hidden=!gOn();$('gcPush').checked=lsGet(GC.push)!=='0';
-  $('gcUri').textContent=gRedirect();}
+  $('gcUri').textContent=gRedirect();$('gcWeb').checked=gWebOn();}
+/* 구글 캘린더 '웹 로그인 방식': 내용이 채워진 구글 캘린더 일정 만들기 화면을 엶 (키·등록 필요 없음) */
+const GCWEB='ethanmemo.gcal.web';
+function gWebOn(){return lsGet(GCWEB)!=='0';}
+function gTemplateURL(x){
+  const c=k=>k.replace(/-/g,''),t=s=>s.replace(':','')+'00';
+  let dates;
+  if(x.time){const s=new Date(x.date+'T'+x.time+':00');let e=x.endDate?new Date(x.endDate+'T'+x.time+':00'):new Date(s.getTime()+36e5);if(e<=s)e=new Date(s.getTime()+36e5);
+    dates=`${c(x.date)}T${t(x.time)}/${c(ymd(e))}T${pad(e.getHours())}${pad(e.getMinutes())}00`;}
+  else dates=`${c(x.date)}/${c(gAdd(x.endDate||x.date,1))}`;
+  const q=new URLSearchParams({action:'TEMPLATE',text:plainLinks(x.text||'').split('\n')[0].slice(0,200),dates,details:((x.note||'')+'\n\n— ETHAN MEMO').trim(),ctz:'Asia/Seoul'});
+  const loc=(placesIn(x.text||'')[0])||'';if(loc)q.set('location',loc);
+  return 'https://calendar.google.com/calendar/render?'+q.toString();}
+function gOpenTemplate(x){window.open(gTemplateURL(x),'_blank','noopener');}
+$('eGcal').onclick=()=>{const e=S.edit;if(!e)return;const date=$('eDate')?$('eDate').value||e.date:e.date;gOpenTemplate({...e,text:$('eText')?$('eText').value:e.text,date,time:$('eTime')?$('eTime').value:e.time});};
+$('gcWeb').onchange=e=>lsSet(GCWEB,e.target.checked?'1':'0');
 $('gcConnect').onclick=()=>{const v=$('gcCid').value.trim();if(v&&!CID_RE.test(v)){toast(/@/.test(v)?'이메일이 아니라 ‘클라이언트 ID’를 넣어야 해요\n…apps.googleusercontent.com 으로 끝나는 값':'클라이언트 ID 형식이 아니에요\n…apps.googleusercontent.com 으로 끝나야 해요');$('gcSetup').open=true;$('gcCid').focus();return;}if(v)lsSet(GC.cid,v);if(!gOn()||!gTok())gAuth(gOn());else gcalRefresh(true).then(()=>toast('📅 구글 캘린더 동기화 완료'));};
 $('gcOff').onclick=gcalDisconnect;
 $('gcPush').onchange=e=>{lsSet(GC.push,e.target.checked?'1':'0');if(e.target.checked)gcalFlush().catch(()=>{});};
