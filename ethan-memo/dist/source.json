@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.39",
-"buildVersion": "39",
-"date": "2026-11-12T04:09:16Z",
-"localizedDescription": "ChatGPT식 모델 선택 메뉴, 크레딧 없음(429) 시 무료 모드로 자동 처리",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=39",
-"size": 1288866,
+"version": "1.0.40",
+"buildVersion": "40",
+"date": "2026-11-12T06:34:29Z",
+"localizedDescription": "무료 Gemini(구글 로그인 키) 연동: 모델 선택에 무료/유료, 키 자동 전환, 한도 초과 시 기본 모드",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=40",
+"size": 1281532,
 "minOSVersion": "17.0"
         }
       ],
