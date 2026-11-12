@@ -1288,6 +1288,13 @@ main.grid{padding-bottom:88px}
 
 .gbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:999px;border:0;background:#fff;color:#1f1f1f;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .gbtn:active{opacity:.85}
+
+/* 챗봇 입력: 한 줄 입력칸 + 아래 버튼 줄 */
+#botBox .chat-form{flex-direction:column;align-items:stretch;gap:4px;padding:8px 10px 8px;border-radius:24px}
+#botBox .chat-form textarea{width:100%;padding:8px 6px;min-height:40px;white-space:pre-wrap}
+.cf-row{display:flex;align-items:center;gap:6px}
+.cf-sp{flex:1}
+.cf-row .primary{min-width:76px;padding:9px 16px}
 </style>
 </head>
 <body>
@@ -2831,12 +2838,17 @@ const CHAT_TOOLS=[
   endDate:{type:'string',description:'기간 일정의 종료일 YYYY-MM-DD (선택)'},time:{type:'string',description:'HH:MM 24시간제 (선택, 모르면 비움)'},note:{type:'string',description:'세부 내용 (선택)'},attach_photos:{type:'boolean',description:'사용자가 이번 메시지에 첨부한 사진을 이 항목에 붙일지. 사진이 있고 그 사진과 관련된 항목이면 true'}},required:['type','text','date']}}},required:['items']}}},
  {type:'function',function:{name:'update_item',description:'이미 있는 항목을 수정한다(완료 처리 포함). id는 항목 목록에 있는 값.',parameters:{type:'object',properties:{id:{type:'string'},text:{type:'string'},date:{type:'string'},endDate:{type:'string'},time:{type:'string'},note:{type:'string'},type:{type:'string',enum:['event','todo','memo']},done:{type:'boolean'}},required:['id']}}},
  {type:'function',function:{name:'delete_item',description:'항목을 삭제한다. 사용자가 분명히 지우라고 했을 때만.',parameters:{type:'object',properties:{id:{type:'string'}},required:['id']}}}];
+const gAddD=(k,n)=>{const d=pd(k);d.setDate(d.getDate()+n);return ymd(d);};
+function addMonths(k,n){const d=pd(k),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return ymd(d);}
+/* AI가 연도를 틀려 한참 지난 날짜를 주면(예: 2026-02 ↔ 2027-02) 1년 뒤로 바로잡음 */
+function fixYear(k){if(!DATE_RE.test(k))return k;const lo=gAddD(today(),-31);if(k>=lo)return k;const n=(+k.slice(0,4)+1)+k.slice(4);return n>=lo&&n<=gAddD(today(),366)?n:k;}
 function chatSys(){
   const t=today(),d=pd(t),lo=ymd(new Date(d.getTime()-7*864e5)),hi=ymd(new Date(d.getTime()+45*864e5));
   const rows=all().filter(x=>!x.example&&((x.type==='todo'&&!x.done)||(x.date>=lo&&x.date<=hi))).sort((a,b)=>a.date.localeCompare(b.date)||byTime(a,b)).slice(0,120)
     .map(x=>`${x.id}|${{event:'일정',todo:'할일',memo:'메모'}[x.type]}|${x.date}${x.endDate?'~'+x.endDate:''}|${x.time||'-'}|${plainLinks(x.text).replace(/\n/g,' ').slice(0,60)}${x.done?'|완료':''}`);
   return `당신은 ETHAN MEMO의 개인 비서 챗봇입니다. 한국어로 짧고 친근하게 답하세요.
-오늘은 ${t} (${KD[d.getDay()]}요일)입니다. 시간대는 한국(KST).
+오늘은 ${t} (${KD[d.getDay()]}요일)입니다. 시간대는 한국(KST). 올해는 ${t.slice(0,4)}년입니다.
+날짜 계산 예: 내일=${gAddD(t,1)}, 다음 주 같은 요일=${gAddD(t,7)}, 1개월 뒤=${addMonths(t,1)}, 3개월 뒤=${addMonths(t,3)}. 미래 날짜를 과거 연도로 쓰지 마세요.
 사용자가 일정·약속·할 일·메모를 말하면 되묻지 말고 바로 add_items 도구로 등록하세요. 여러 건이면 한 번에 등록하세요.
 - "내일", "다음 주 화요일", "모레 3시" 같은 상대 표현은 오늘 기준으로 정확한 날짜(YYYY-MM-DD)로 바꾸세요.
 - 날짜·시간이 정해진 약속/만남/방문은 event, 해야 할 일은 todo(날짜 없으면 오늘), 단순 기록·아이디어는 memo.
@@ -2850,7 +2862,7 @@ function chatRun(name,a){
   try{
     if(name==='add_items'){const out=[];for(const it of (a.items||[])){
       const type=['event','todo','memo'].includes(it.type)?it.type:'memo';const text=String(it.text||'').trim();if(!text)continue;
-      const date=DATE_RE.test(it.date||'')?it.date:today();const endDate=type==='event'&&DATE_RE.test(it.endDate||'')&&it.endDate>date?it.endDate:'';
+      const date=DATE_RE.test(it.date||'')?fixYear(it.date):today();if(DATE_RE.test(it.endDate||''))it.endDate=fixYear(it.endDate);const endDate=type==='event'&&DATE_RE.test(it.endDate||'')&&it.endDate>date?it.endDate:'';
       const time=type!=='memo'&&TIME_RE.test(it.time||'')?it.time:'';
       const x={id:uid(),type,text,note:String(it.note||'').trim(),date,endDate,time,done:false,createdAt:Date.now()};
       if(it.attach_photos&&S.curPh&&S.curPh.length)x.photos=[...S.curPh];
@@ -2886,6 +2898,8 @@ function quickParse(text){
     const cut=x=>{s=s.replace(x,' ');};
     if(m=s.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/)||s.match(/(?<!\d)(\d{1,2})\/(\d{1,2})(?!\d)/)){const y=pd(t0).getFullYear();let k=`${y}-${p2(m[1])}-${p2(m[2])}`;if(k<t0)k=`${y+1}-${p2(m[1])}-${p2(m[2])}`;date=k;cut(m[0]);}
     else if(m=s.match(/(\d{1,3})\s*일\s*(?:후|뒤)/)){date=addDays(t0,+m[1]);cut(m[0]);}
+    else if(m=s.match(/(\d{1,2})\s*(?:개월|달)\s*(?:후|뒤)/)){date=addMonths(t0,+m[1]);cut(m[0]);}
+    else if(m=s.match(/다음\s*달\s*(\d{1,2})\s*일/)){const n=addMonths(t0,1);date=n.slice(0,8)+p2(m[1]);cut(m[0]);}
     else if(m=s.match(/(\d)\s*주\s*(?:후|뒤)/)){date=addDays(t0,7*+m[1]);cut(m[0]);}
     else if(m=s.match(/(다다음|다음|이번|담)\s*주\s*([월화수목금토일])(?:요일)?/)){const w=WD.indexOf(m[2]),add=m[1]==='이번'?0:m[1]==='다다음'?14:7;date=addDays(t0,w-dow+add);cut(m[0]);}
     else if(m=s.match(/(오늘|내일|모레|글피|어제)/)){date=addDays(t0,{오늘:0,내일:1,모레:2,글피:3,어제:-1}[m[1]]);cut(m[0]);}
@@ -2895,12 +2909,15 @@ function quickParse(text){
       if(/오후|저녁|밤/.test(ap)){if(h<12)h+=12;}else if(/오전|아침|새벽/.test(ap)){if(h===12)h=0;}else if(/점심/.test(ap)){if(h<11)h+=12;}else if(h>=1&&h<=6)h+=12;
       if(h<24&&mi<60){time=`${p2(h)}:${p2(mi)}`;cut(m[0]);}}
     else if(m=s.match(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/)){time=`${p2(m[1])}:${m[2]}`;cut(m[0]);}
-    const isMemo=/^\s*(메모|기록)/.test(c)||/메모\s*(해|로)/.test(c);
-    s=s.replace(/(메모|기록)\s*(해\s*줘|해줘|해|로|:)?/,' ').replace(/(일정|약속|할\s*일)?\s*(등록|추가|잡아|넣어|저장)\s*(해\s*줘|해줘|해|줘|주세요)?/g,' ').replace(/(해\s*줘|해줘|줘|주세요)\s*$/,' ').replace(/(오늘|내일|모레)/g,' ');
+    const isMemo=/^\s*(메모|기록)/.test(c)||/메모\s*(해|로)/.test(c);const wantEv=/일정\s*(으로|로)?\s*(추가|등록|잡|넣)/.test(c),wantTodo=/할\s*일\s*(으로|로)?\s*(추가|등록|넣)/.test(c);
+    s=s.replace(/\s*(이)?라고\s*/,' ');
+    s=s.replace(/(메모|기록)\s*(해\s*줘|해줘|해|로|:)?/,' ').replace(/(일정|약속|할\s*일)?\s*(으로|로)?\s*(등록|추가|잡아|넣어|저장)\s*(해\s*줘|해줘|해|줘|주세요)?/g,' ').replace(/(해\s*줘|해줘|줘|주세요)\s*$/,' ').replace(/(오늘|내일|모레)/g,' ');
     s=s.replace(/\s+/g,' ').trim().replace(/^(에|에는|까지|부터|은|는|도|이|가)\s+/,'').replace(/\s+(에|까지|부터)$/,'').replace(/(에|까지)$/,'').trim();
     const text2=s||c;
     let type;
     if(isMemo)type='memo';
+    else if(wantEv)type='event';
+    else if(wantTodo)type='todo';
     else if(until)type='todo';
     else if(time)type=TODO_KW.test(text2)&&!EVT_KW.test(text2)?'todo':'event';
     else if(EVT_KW.test(text2)&&date)type='event';
@@ -2930,7 +2947,7 @@ function freeChat(text,ph){
   const items=quickParse(text);if(ph.length&&items.length)items[0].attach_photos=true;
   if(!items.length)return {content:'이해하지 못했어요. “내일 오후 3시 치과”, “금요일까지 보고서 제출”처럼 말해 보세요.',acts:[]};
   const r=chatRun('add_items',{items});const acts=chatActText('add_items',{},r)||[];
-  return {content:'등록했어요 ✅ (무료 모드 · 잘못 알아들었으면 카드를 눌러 고치세요)',acts};
+  return {content:'등록했어요 ✅ (기본 모드)',acts};
 }
 /* ---------- 챗봇 첨부: 사진(기기 사진함에 저장 후 AI에 보냄)·PDF·텍스트 파일 ---------- */
 S.chatPh=[];S.chatFiles=[];S.curPh=[];
@@ -3015,7 +3032,7 @@ function renderChat(){
     if(m.acts&&m.acts.length)log.append(h('div',{class:'acts'},...m.acts.map(a=>h('div',{class:'act',text:a}))));}
   if(S.chatBusy)log.append(h('div',{class:'bub bot typing',text:'생각하는 중…'}));
   if(S.chatErr)log.append(h('div',{class:'bub err'},S.chatErr,!hasAI()?h('button',{type:'button',class:'ghost',text:'설정 열기',onclick:()=>openSettings()}):null));
-  const ta=h('textarea',{id:'chatIn',rows:'1',placeholder:'예) 내일 오후 3시 치과 예약',enterkeyhint:'send','aria-label':'GPT에게 말하기',disabled:S.chatBusy?'':null});
+  const ta=h('textarea',{id:'chatIn',rows:'1',placeholder:'무엇이든 말하거나 물어보세요',enterkeyhint:'send','aria-label':'GPT에게 말하기',disabled:S.chatBusy?'':null});
   ta.value=S.chatDraft;ta.addEventListener('input',()=>{S.chatDraft=ta.value;autoGrow(ta);});
   ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();chatSend(ta.value);}});
   const mic=h('button',{type:'button',id:'chatMic',class:'mic'+(S.listening?' on':''),'aria-label':'음성으로 말하기',title:'음성 입력',onclick:micToggle});mic.innerHTML=MIC_SVG;
@@ -3023,7 +3040,7 @@ function renderChat(){
   fin.addEventListener('change',()=>{const fs=[...(fin.files||[])];fin.value='';if(fs.length)chatAddFiles(fs);});
   const clip=h('button',{type:'button',class:'mic clip','aria-label':'사진·파일 첨부',title:'사진·파일 첨부',onclick:()=>fin.click()});clip.innerHTML=CLIP_SVG;
   ta.addEventListener('paste',e=>{const fs=[...((e.clipboardData&&e.clipboardData.files)||[])];if(fs.length){e.preventDefault();chatAddFiles(fs);}});
-  const form=h('form',{class:'chat-form card',onsubmit:e=>{e.preventDefault();chatSend(ta.value);}},fin,clip,mic,ta,h('button',{class:'primary',type:'submit',text:'보내기',disabled:S.chatBusy?'':null}));
+  const form=h('form',{class:'chat-form card',onsubmit:e=>{e.preventDefault();chatSend(ta.value);}},fin,ta,h('div',{class:'cf-row'},clip,mic,h('span',{class:'cf-sp'}),h('button',{class:'primary',type:'submit',text:'보내기',disabled:S.chatBusy?'':null})));
   const top=h('div',{class:'chat-top'},modelPicker(),h('span',{class:'chat-tools'},S.chat.length?h('button',{type:'button',class:'ghost',text:'대화 지우기',onclick:()=>{if(confirm('대화를 지울까요? (등록된 일정·할 일은 그대로입니다)')){S.chat=[];S.chatErr='';saveChat();renderChat();}}}):null,h('button',{type:'button',class:'icon-btn',text:'✕','aria-label':'닫기',onclick:closeBot})));
   p.replaceChildren(...[top,log,attStrip(),form].filter(Boolean));
   setTimeout(()=>{log.scrollTop=log.scrollHeight;autoGrow(ta);if((had||S.chatFocus)&&!S.chatBusy&&S.botOpen){ta.focus();S.chatFocus=false;}},0);

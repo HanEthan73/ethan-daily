@@ -66,6 +66,11 @@ enum QuickChat {
                 date = fixedDate(Int(m.g[0]) ?? 1, Int(m.g[1]) ?? 1); cut(&s, m.full)
             } else if let m = match(#"(\d{1,3})\s*일\s*(?:후|뒤)"#, s) {
                 date = addDays(Int(m.g[0]) ?? 0); cut(&s, m.full)
+            } else if let m = match(#"(\d{1,2})\s*(?:개월|달)\s*(?:후|뒤)"#, s) {
+                date = ymd(cal.date(byAdding: .month, value: Int(m.g[0]) ?? 0, to: t0) ?? t0); cut(&s, m.full)
+            } else if let m = match(#"다음\s*달\s*(\d{1,2})\s*일"#, s) {
+                let n = cal.date(byAdding: .month, value: 1, to: t0) ?? t0
+                date = "\(cal.component(.year, from: n))-\(p2(cal.component(.month, from: n)))-\(p2(Int(m.g[0]) ?? 1))"; cut(&s, m.full)
             } else if let m = match(#"(\d)\s*주\s*(?:후|뒤)"#, s) {
                 date = addDays(7 * (Int(m.g[0]) ?? 0)); cut(&s, m.full)
             } else if let m = match(#"(다다음|다음|이번|담)\s*주\s*([월화수목금토일])(?:요일)?"#, s) {
@@ -101,8 +106,11 @@ enum QuickChat {
             }
 
             let isMemo = test(#"^\s*(메모|기록)"#, c) || test(#"메모\s*(해|로)"#, c)
+            let wantEv = test(#"일정\s*(으로|로)?\s*(추가|등록|잡|넣)"#, c)
+            let wantTodo = test(#"할\s*일\s*(으로|로)?\s*(추가|등록|넣)"#, c)
+            if let r = s.range(of: #"\s*(이)?라고\s*"#, options: .regularExpression) { s.replaceSubrange(r, with: " ") }
             s = sub(s, #"(메모|기록)\s*(해\s*줘|해줘|해|로|:)?"#)
-            s = sub(s, #"(일정|약속|할\s*일)?\s*(등록|추가|잡아|넣어|저장)\s*(해\s*줘|해줘|해|줘|주세요)?"#)
+            s = sub(s, #"(일정|약속|할\s*일)?\s*(으로|로)?\s*(등록|추가|잡아|넣어|저장)\s*(해\s*줘|해줘|해|줘|주세요)?"#)
             s = sub(s, #"(해\s*줘|해줘|줘|주세요)\s*$"#)
             s = sub(s, #"(오늘|내일|모레)"#)
             s = s.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression).trimmingCharacters(in: .whitespaces)
@@ -113,6 +121,8 @@ enum QuickChat {
 
             let type: String
             if isMemo { type = "memo" }
+            else if wantEv { type = "event" }
+            else if wantTodo { type = "todo" }
             else if until { type = "todo" }
             else if !time.isEmpty { type = (test(todoKW, body) && !test(evtKW, body)) ? "todo" : "event" }
             else if test(evtKW, body) && date != nil { type = "event" }

@@ -69,6 +69,13 @@ final class ChatModel {
         return Fmt.cal.date(bySettingHour: p[0], minute: p[1], second: 0, of: day)
     }
     private static func ymd(_ d: Date) -> String { dayFormatter().string(from: d) }
+    /// AI가 연도를 틀려 한참 지난 날짜를 주면 1년 뒤로 바로잡음
+    private static func fixYear(_ d: Date?) -> Date? {
+        guard let d else { return nil }
+        let lo = Fmt.addDays(Fmt.cal.startOfDay(for: .now), -31)
+        guard d < lo, let n = Fmt.cal.date(byAdding: .year, value: 1, to: d) else { return d }
+        return (n >= lo && n <= Fmt.addDays(lo, 400)) ? n : d
+    }
 
     // MARK: 시스템 프롬프트 (오늘 날짜 + 현재 항목 목록)
     private func system(ctx: ModelContext) -> String {
@@ -88,6 +95,7 @@ final class ChatModel {
         return """
         당신은 ETHAN MEMO의 개인 비서 챗봇입니다. 한국어로 짧고 친근하게 답하세요.
         오늘은 \(Self.ymd(today)) (\(Fmt.string(today, "E"))요일)입니다. 시간대는 한국(KST).
+        올해는 \(Self.ymd(today).prefix(4))년입니다. 날짜 계산 예: 내일=\(Self.ymd(Fmt.addDays(today, 1))), 다음 주 같은 요일=\(Self.ymd(Fmt.addDays(today, 7))), 1개월 뒤=\(Self.ymd(Fmt.cal.date(byAdding: .month, value: 1, to: today) ?? today)), 3개월 뒤=\(Self.ymd(Fmt.cal.date(byAdding: .month, value: 3, to: today) ?? today)). 미래 날짜를 과거 연도로 쓰지 마세요.
         사용자가 일정·약속·할 일·메모를 말하면 되묻지 말고 바로 add_items 도구로 등록하세요. 여러 건이면 한 번에 등록하세요.
         - "내일", "다음 주 화요일", "모레 3시" 같은 상대 표현은 오늘 기준으로 정확한 날짜(YYYY-MM-DD)로 바꾸세요.
         - 날짜·시간이 정해진 약속/만남/방문은 event, 해야 할 일은 todo(날짜 없으면 오늘), 단순 기록·아이디어는 memo.
@@ -154,8 +162,8 @@ final class ChatModel {
                 let text = (raw["text"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !text.isEmpty else { continue }
                 let kind = Kind(rawValue: raw["type"] as? String ?? "") ?? .memo
-                let day = Self.parseDay(raw["date"] as? String) ?? Fmt.cal.startOfDay(for: .now)
-                var end = Self.parseDay(raw["endDate"] as? String)
+                let day = Self.fixYear(Self.parseDay(raw["date"] as? String)) ?? Fmt.cal.startOfDay(for: .now)
+                var end = Self.fixYear(Self.parseDay(raw["endDate"] as? String))
                 if kind != .event || (end.map { $0 <= day } ?? true) { end = nil }
                 let time = kind == .memo ? nil : Self.parseTime(raw["time"] as? String, on: day)
                 let item = Item(kind: kind, day: day, endDay: end, time: time, text: text)
@@ -235,7 +243,7 @@ final class ChatModel {
         var items: [[String: Any]] = parsed.map { ["type": $0.type, "text": $0.text, "date": $0.date, "time": $0.time] }
         if !curPhotos.isEmpty { items[0]["attach_photos"] = true }
         let r = run("add_items", ["items": items], ctx: ctx)
-        msgs.append(ChatMsg(role: "assistant", content: "등록했어요 ✅ (무료 모드 · 잘못 알아들었으면 카드를 눌러 고치세요)", acts: r.acts))
+        msgs.append(ChatMsg(role: "assistant", content: "등록했어요 ✅ (기본 모드)", acts: r.acts))
     }
 
     /// 이번 메시지의 사진·파일을 AI가 읽을 수 있는 형태로
@@ -537,44 +545,49 @@ struct ChatScreen: View {
         }
     }
 
+    /// 입력칸은 한 줄 전체, 버튼은 그 아래 줄
     private var composerRow: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            Menu {
-                Button { pickingPhotos = true } label: { Label("사진", systemImage: "photo.on.rectangle") }
-                Button { pickingFiles = true } label: { Label("파일 (PDF·텍스트)", systemImage: "doc") }
-            } label: {
-                Image(systemName: "paperclip")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Theme.hi)
-                    .frame(width: 34, height: 42)
-            }
-            .accessibilityLabel("사진·파일 첨부")
-            Button {
-                focused = false
-                speech.toggle(base: draft) { draft = $0 }
-            } label: {
-                Image(systemName: speech.listening ? "waveform" : "mic.fill")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(speech.listening ? Color.white : Theme.hi)
-                    .frame(width: 42, height: 42)
-                    .background(Circle().fill(speech.listening ? Color.red : Theme.hiSoft))
-            }
-            .buttonStyle(.borderless)
-            .accessibilityLabel("음성으로 말하기")
-            TextField("예) 내일 오후 3시 치과 예약", text: $draft, axis: .vertical)
+        VStack(alignment: .leading, spacing: 6) {
+            TextField("무엇이든 말하거나 물어보세요", text: $draft, axis: .vertical)
                 .lineLimit(1...5)
                 .focused($focused)
                 .padding(.horizontal, 14).padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 22).fill(Theme.pill))
-            Button { send(draft) } label: {
-                Text("보내기").font(.system(size: 15, weight: .bold))
-                    .padding(.horizontal, 16).padding(.vertical, 11)
-                    .foregroundStyle(Theme.ctaInk)
-                    .background(Capsule().fill(Theme.hi))
+            HStack(spacing: 8) {
+                Menu {
+                    Button { pickingPhotos = true } label: { Label("사진", systemImage: "photo.on.rectangle") }
+                    Button { pickingFiles = true } label: { Label("파일 (PDF·텍스트)", systemImage: "doc") }
+                } label: {
+                    Image(systemName: "paperclip")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.hi)
+                        .frame(width: 40, height: 40)
+                }
+                .accessibilityLabel("사진·파일 첨부")
+                Button {
+                    focused = false
+                    speech.toggle(base: draft) { draft = $0 }
+                } label: {
+                    Image(systemName: speech.listening ? "waveform" : "mic.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(speech.listening ? Color.white : Theme.hi)
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(speech.listening ? Color.red : Theme.hiSoft))
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("음성으로 말하기")
+                Spacer()
+                Button { send(draft) } label: {
+                    Text("보내기").font(.system(size: 15, weight: .bold))
+                        .padding(.horizontal, 18).padding(.vertical, 10)
+                        .foregroundStyle(Theme.ctaInk)
+                        .background(Capsule().fill(Theme.hi))
+                }
+                .buttonStyle(.borderless)
+                .disabled(chat.busy || !canSend)
+                .opacity(chat.busy || !canSend ? 0.5 : 1)
             }
-            .buttonStyle(.borderless)
-            .disabled(chat.busy || !canSend)
-            .opacity(chat.busy || !canSend ? 0.5 : 1)
         }
         .alert("음성 입력", isPresented: Binding(get: { speech.error != nil }, set: { if !$0 { speech.error = nil } })) {
             Button("확인", role: .cancel) {}
