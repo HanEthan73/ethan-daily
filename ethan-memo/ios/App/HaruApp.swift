@@ -11,7 +11,7 @@ struct HaruApp: App {
     }
 }
 
-enum Tab: Hashable { case todo, calendar, wiki, chat, settings }
+enum Tab: Hashable { case todo, calendar, wiki, settings }
 
 struct RootView: View {
     private var router = Router.shared
@@ -19,6 +19,8 @@ struct RootView: View {
     private var asker = Asker.shared
     @AppStorage(ThemePrefs.accentKey, store: Store.defaults) private var accentKey = "orange"
     @AppStorage(ThemePrefs.lateKey, store: Store.defaults) private var lateKey = "coral"
+    @AppStorage("botEnabled") private var botEnabled = true
+    @State private var showBot = false
 
     var body: some View {
         let themeID = accentKey + "|" + lateKey
@@ -32,16 +34,36 @@ struct RootView: View {
             WikiScreen().id(themeID)
                 .tabItem { Label("위키", systemImage: "book.closed") }
                 .tag(Tab.wiki)
-            ChatScreen().id(themeID)
-                .tabItem { Label("GPT", systemImage: "bubble.left.and.text.bubble.right") }
-                .tag(Tab.chat)
             SettingsScreen()
                 .tabItem { Label("설정", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }
         .tint(Theme.hi)
+        // 왼쪽 아래 GPT 봇 버튼 → 팝업(질문·등록·음성)
+        .overlay(alignment: .bottomLeading) {
+            if botEnabled && router.tab != .settings {
+                Button { showBot = true } label: {
+                    Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(Theme.ctaInk)
+                        .frame(width: 56, height: 56)
+                        .background(Circle().fill(Theme.hi))
+                        .shadow(color: .black.opacity(0.28), radius: 8, y: 4)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("GPT 비서 열기")
+                .padding(.leading, 16)
+                .padding(.bottom, 66)
+            }
+        }
+        .sheet(isPresented: $showBot) {
+            ChatScreen(onClose: { showBot = false })
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .onChange(of: botEnabled) { _, on in if !on { showBot = false } }
         .onChange(of: themeID) { _, _ in Store.refreshWidgets() }
-        // 좌우로 쓸어서 할 일 ↔ 캘린더 ↔ 위키 ↔ GPT
+        // 좌우로 쓸어서 할 일 ↔ 캘린더 ↔ 위키
         .simultaneousGesture(
             DragGesture(minimumDistance: 40, coordinateSpace: .global)
                 .onEnded { v in

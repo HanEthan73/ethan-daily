@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 import Observation
+import Speech
+import AVFoundation
 
 // MARK: - GPT 챗봇: 말로 일정·할 일·메모를 등록/수정/삭제
 
@@ -224,8 +226,10 @@ final class ChatModel {
 
 struct ChatScreen: View {
     @Environment(\.modelContext) private var ctx
+    var onClose: () -> Void = {}
     private var chat = ChatModel.shared
     @State private var draft = ""
+    @State private var speech = SpeechInput()
     @FocusState private var focused: Bool
 
     private let examples = ["내일 저녁 7시 회식", "이번 주 할 일 정리해줘", "보고서 제출 완료 처리"]
@@ -260,6 +264,9 @@ struct ChatScreen: View {
             .spaceGray()
             .navigationTitle("GPT 비서")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { speech.stop(); onClose() } label: { Image(systemName: "xmark") }
+                }
                 if !chat.msgs.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("대화 지우기") { chat.clear() }
@@ -317,6 +324,18 @@ struct ChatScreen: View {
 
     private var composer: some View {
         HStack(alignment: .bottom, spacing: 8) {
+            Button {
+                focused = false
+                speech.toggle(base: draft) { draft = $0 }
+            } label: {
+                Image(systemName: speech.listening ? "waveform" : "mic.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(speech.listening ? Color.white : Theme.hi)
+                    .frame(width: 42, height: 42)
+                    .background(Circle().fill(speech.listening ? Color.red : Theme.hiSoft))
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("음성으로 말하기")
             TextField("예) 내일 오후 3시 치과 예약", text: $draft, axis: .vertical)
                 .lineLimit(1...5)
                 .focused($focused)
@@ -334,11 +353,91 @@ struct ChatScreen: View {
         }
         .padding(.horizontal, 12).padding(.vertical, 8)
         .background(.bar)
+        .alert("음성 입력", isPresented: Binding(get: { speech.error != nil }, set: { if !$0 { speech.error = nil } })) {
+            Button("확인", role: .cancel) {}
+        } message: { Text(speech.error ?? "") }
     }
 
     private func send(_ text: String) {
         let t = text
+        speech.stop()
         draft = ""
         Task { await chat.send(t, ctx: ctx) }
+    }
+}
+
+
+// MARK: - 음성 입력 (iOS 음성 인식, 한국어)
+
+@MainActor
+@Observable
+final class SpeechInput {
+    var listening = false
+    var error: String?
+    @ObservationIgnored private let engine = AVAudioEngine()
+    @ObservationIgnored private var request: SFSpeechAudioBufferRecognitionRequest?
+    @ObservationIgnored private var task: SFSpeechRecognitionTask?
+    @ObservationIgnored private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))
+
+    func toggle(base: String, onUpdate: @escaping (String) -> Void) {
+        if listening { stop(); return }
+        SFSpeechRecognizer.requestAuthorization { status in
+            Task { @MainActor in
+                guard status == .authorized else { self.error = "설정 앱에서 이 앱의 ‘음성 인식’을 허용해 주세요."; return }
+                AVAudioApplication.requestRecordPermission { ok in
+                    Task { @MainActor in
+                        guard ok else { self.error = "설정 앱에서 이 앱의 ‘마이크’를 허용해 주세요."; return }
+                        self.start(base: base, onUpdate: onUpdate)
+                    }
+                }
+            }
+        }
+    }
+
+    nonisolated private static func tap(_ input: AVAudioInputNode, _ req: SFSpeechAudioBufferRecognitionRequest) {
+        input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { buf, _ in
+            req.append(buf)
+        }
+    }
+
+    private func start(base: String, onUpdate: @escaping (String) -> Void) {
+        guard let recognizer, recognizer.isAvailable else { error = "지금은 음성 인식을 쓸 수 없습니다."; return }
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement, options: .duckOthers)
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            let req = SFSpeechAudioBufferRecognitionRequest()
+            req.shouldReportPartialResults = true
+            request = req
+            Self.tap(engine.inputNode, req)
+            engine.prepare()
+            try engine.start()
+            listening = true
+            let prefix = base.trimmingCharacters(in: .whitespacesAndNewlines)
+            task = recognizer.recognitionTask(with: req) { [weak self] result, err in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if let r = result {
+                        onUpdate((prefix.isEmpty ? "" : prefix + " ") + r.bestTranscription.formattedString)
+                    }
+                    if err != nil || (result?.isFinal ?? false) { self.stop() }
+                }
+            }
+        } catch {
+            self.error = "마이크를 시작하지 못했습니다."
+            stop()
+        }
+    }
+
+    func stop() {
+        guard listening || request != nil else { return }
+        if engine.isRunning { engine.stop() }
+        engine.inputNode.removeTap(onBus: 0)
+        request?.endAudio()
+        task?.finish()
+        request = nil
+        task = nil
+        listening = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }

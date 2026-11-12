@@ -28,6 +28,8 @@ targets:
         CFBundleDisplayName: ETHAN MEMO
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
+        NSMicrophoneUsageDescription: GPT 비서에게 말로 일정·할 일을 등록하려고 마이크를 사용합니다.
+        NSSpeechRecognitionUsageDescription: 말한 내용을 글로 바꿔 GPT 비서에 입력하려고 음성 인식을 사용합니다.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         CFBundleURLTypes:
           - CFBundleURLName: com.ethanhan.haru

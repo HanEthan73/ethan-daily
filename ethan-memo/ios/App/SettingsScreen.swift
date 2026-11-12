@@ -11,6 +11,7 @@ struct SettingsScreen: View {
     @State private var key = ""
     @State private var hasKey = Keychain.read() != nil
     @AppStorage("gptModel") private var model = GPTModel.mini.rawValue
+    @AppStorage("botEnabled") private var botEnabled = true
     @State private var testState: String?
     @State private var testing = false
     @State private var repo = SyncService.shared.repo
@@ -40,6 +41,13 @@ struct SettingsScreen: View {
                     Text("테마 색")
                 } footer: {
                     Text("강조색은 버튼·오늘·선택 표시에, 지난 일 색은 날짜가 지난 할 일에 쓰입니다. 맨 끝 무지개 동그라미로 원하는 색을 직접 고를 수 있어요.")
+                }
+                Section {
+                    Toggle("GPT 챗봇 버튼", isOn: $botEnabled)
+                } header: {
+                    Text("GPT 챗봇")
+                } footer: {
+                    Text("켜 두면 왼쪽 아래 봇 버튼으로 어느 화면에서나 말하거나 써서 일정·할 일을 등록할 수 있어요. 끄면 버튼이 사라집니다.")
                 }
                 Section {
                     if hasKey {
