@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.34",
-"buildVersion": "34",
-"date": "2026-11-11T13:21:04Z",
-"localizedDescription": "제스처 변경: 두 번 탭=고정, 꾹 누르기=복사",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=34",
-"size": 1158171,
+"version": "1.0.35",
+"buildVersion": "35",
+"date": "2026-11-12T00:41:20Z",
+"localizedDescription": "GPT 챗봇 탭(말로 일정·할 일·메모 등록/수정/삭제) + 메모 오른쪽 밀기 삭제",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=35",
+"size": 1234778,
 "minOSVersion": "17.0"
         }
       ],
