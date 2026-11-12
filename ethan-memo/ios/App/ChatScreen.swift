@@ -325,6 +325,7 @@ struct ChatScreen: View {
             ForEach(GPTModel.allCases) { m in
                 Button {
                     modelRaw = m.rawValue
+                    UserDefaults.standard.removeObject(forKey: "gemok." + m.rawValue)
                 } label: {
                     if m == cur { Label(m.title, systemImage: "checkmark") } else { Text(m.title) }
                     Text(m.desc + (m.hasKey ? "" : " · 🔑 키 필요"))

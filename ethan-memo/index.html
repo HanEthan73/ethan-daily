@@ -1485,6 +1485,19 @@ function aiBody(c,maxTokens,extra){const b={model:c.model,...extra};
   if(c.gem)b.max_tokens=Math.max(2048,maxTokens*3);
   else{b.max_completion_tokens=/^gpt-5|^o\d/.test(c.model)?maxTokens*4:maxTokens;if(/^gpt-5/.test(c.model))b.reasoning_effort='low';}
   return b;}
+const GOK='ethanmemo.gemok.';
+const GEM_CHAINS={'gemini-flash-latest':['gemini-flash-latest','gemini-3.5-flash','gemini-2.5-flash','gemini-flash-lite-latest'],'gemini-flash-lite-latest':['gemini-flash-lite-latest','gemini-3.5-flash-lite','gemini-2.5-flash-lite','gemini-2.5-flash']};
+function gemChain(m){const ok=lsGet(GOK+m),c=GEM_CHAINS[m]||[m];return [...new Set([ok,...c].filter(Boolean))];}
+/* Gemini: 고른 모델이 무료 한도 0·미지원이면 무료로 열리는 다음 모델로 자동 전환 */
+async function aiFetch(c,mk){
+  const chain=c.gem?gemChain(c.model):[c.model];let last=null;
+  for(const m of chain){
+    const res=await fetch(c.url,{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},body:JSON.stringify(mk(m))});
+    if(res.ok){if(c.gem)lsSet(GOK+c.model,m);S.aiUsed=m;return res;}
+    last=await aiErr(res);
+    if(!(c.gem&&(last.status===429||last.status===404||(last.status===400&&/not found|not supported|unknown|invalid model/i.test(last.message)))))throw last;
+  }
+  throw last;}
 async function aiErr(res){let m='';try{const j=await res.json();m=(Array.isArray(j)?j[0]:j).error.message}catch(e){}
   return {code:res.status===401||(res.status===400&&/api key/i.test(m))||res.status===403?'bad_key':res.status===429?'rate_limited':'http',message:m,status:res.status};}
 const modelName=v=>{const m=MODELS.find(x=>x[0]===v)||MODELS[0];return m[1].replace(/\s*\(.*\)/,'');};
@@ -1492,9 +1505,7 @@ function lsGet(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
 function lsSet(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}
 async function callGPT(prompt,{onText,maxTokens}={}){
   const c=aiCfg();if(!c)throw {code:'no_key'};
-  const res=await fetch(c.url,{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},
-    body:JSON.stringify(aiBody(c,maxTokens||1200,{stream:true,messages:[{role:'user',content:prompt}]}))});
-  if(!res.ok)throw await aiErr(res);
+  const res=await aiFetch(c,m=>aiBody({...c,model:m},maxTokens||1200,{stream:true,messages:[{role:'user',content:prompt}]}));
   const rd=res.body.getReader(),dec=new TextDecoder();let buf='',text='';
   for(;;){const{done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
     let i;while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
@@ -2783,8 +2794,7 @@ function chatActText(name,a,r){
   if(name==='delete_item')return [`🗑 삭제 · ${r.deleted}`];return null;}
 async function gptRaw(body){
   const c=aiCfg();if(!c)throw {code:'no_key'};
-  const res=await fetch(c.url,{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},body:JSON.stringify(aiBody(c,1500,body))});
-  if(!res.ok)throw await aiErr(res);
+  const res=await aiFetch(c,m=>aiBody({...c,model:m},1500,body));
   return res.json();}
 /* ---------- 무료 모드(API 키 없이): 한국어 문장을 앱 안에서 바로 해석해 등록 ---------- */
 const p2=n=>String(n).padStart(2,'0');
@@ -2864,7 +2874,7 @@ async function chatSend(text){
     if(!final)final='답을 받지 못했습니다. 다시 말씀해 주세요.';
     S.chat.push({role:'assistant',content:final,acts});
   }catch(e){
-    if(e&&e.status===429){const g=(aiCfg()||{}).gem;const r=freeChat(text);S.chat.push({role:'assistant',...r});S.chatErr=g?'Gemini 무료 한도(분당·하루)를 잠시 넘어 기본 모드로 처리했어요. 조금 뒤 다시 하면 Gemini가 답합니다.':'OpenAI 크레딧이 없어 기본 모드로 처리했어요. 위의 모델 선택에서 무료 Gemini로 바꾸면 충전 없이 쓸 수 있어요.';S.chatBusy=false;saveChat();render();renderChat();return;}
+    if(e&&e.status===429){const g=(aiCfg()||{}).gem;const r=freeChat(text);S.chat.push({role:'assistant',...r});S.chatErr=g?'Gemini 무료 모델이 모두 한도에 걸려 기본 모드로 처리했어요. 조금 뒤 다시 하면 Gemini가 답합니다.'+(e.message?' · 원문: '+e.message.slice(0,160):''):'OpenAI 크레딧이 없어 기본 모드로 처리했어요. 위의 모델 선택에서 무료 Gemini로 바꾸면 충전 없이 쓸 수 있어요.';S.chatBusy=false;saveChat();render();renderChat();return;}
     S.chatErr=e&&e.code==='no_key'?'설정에서 무료 Gemini 키(또는 OpenAI 키)를 넣어 주세요.':e&&e.code==='bad_key'?'API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.':('요청 실패'+(e&&e.status?` (${e.status})`:'')+(e&&e.message?' · '+e.message:''));
   }
   S.chatBusy=false;saveChat();render();renderChat();}
@@ -2873,11 +2883,12 @@ function modelPicker(){
   const c0=aiCfg(),cur=c0?c0.model:(lsGet(MODEL_LS)||MODELS[0][0]);
   const btn=h('button',{type:'button',class:'model-pill','aria-haspopup':'listbox','aria-expanded':S.modelOpen?'true':'false',onclick:e=>{e.stopPropagation();S.modelOpen=!S.modelOpen;renderChat();}},
     h('span',{text:modelName(cur)}),h('span',{class:'chev',text:'⌄'}));
+  const used=c0&&c0.gem?lsGet(GOK+c0.model):'';if(used&&used!==cur)btn.title='실제 사용: '+used;
   const wrap=h('div',{class:'model-wrap'},btn);
   if(S.modelOpen){wrap.append(h('div',{class:'model-menu',role:'listbox'},
     h('div',{class:'mm-h',text:'모델'}),
     ...MODELS.map(([v])=>h('button',{type:'button',class:'mm-it'+(v===cur?' on':''),role:'option','aria-selected':v===cur?'true':'false',
-      onclick:e=>{e.stopPropagation();lsSet(MODEL_LS,v);S.modelOpen=false;renderChat();if(!(isGem(v)?lsGet(GKEY_LS):lsGet(KEY_LS))){closeBot();openSettings(isGem(v)?'Gemini 무료 키를 넣어 주세요: 링크에서 구글 로그인 → API 키 만들기 → 붙여넣기':'OpenAI 키를 넣어 주세요 (크레딧 충전 필요)');}}},
+      onclick:e=>{e.stopPropagation();lsSet(MODEL_LS,v);lsSet(GOK+v,'');S.modelOpen=false;renderChat();if(!(isGem(v)?lsGet(GKEY_LS):lsGet(KEY_LS))){closeBot();openSettings(isGem(v)?'Gemini 무료 키를 넣어 주세요: 링크에서 구글 로그인 → API 키 만들기 → 붙여넣기':'OpenAI 키를 넣어 주세요 (크레딧 충전 필요)');}}},
       h('span',{class:'mm-t'},h('b',{text:modelName(v)}),h('small',{text:(MODEL_DESC[v]||'')+((isGem(v)?lsGet(GKEY_LS):lsGet(KEY_LS))?'':' · 🔑 키 필요')})),h('span',{class:'mm-c',text:v===cur?'✓':''})))));}
   return wrap;}
 function renderChat(){

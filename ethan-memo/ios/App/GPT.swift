@@ -108,6 +108,8 @@ enum GPTModel: String, CaseIterable, Identifiable {
 struct GPTError: Error {
     let message: String
     var noCredits = false
+    var status = 0
+    var detail = ""
 }
 
 struct AIConfig {
@@ -131,13 +133,45 @@ enum GPTClient {
         return AIConfig(model: m, key: key)
     }
 
-    private static func request(_ c: AIConfig, _ extra: [String: Any], maxTokens: Int) throws -> URLRequest {
+    /// Gemini: 고른 모델이 무료 한도 0·미지원이면 무료로 열리는 다음 모델로 자동 전환
+    private static let gemChains: [String: [String]] = [
+        "gemini-flash-latest": ["gemini-flash-latest", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-flash-lite-latest"],
+        "gemini-flash-lite-latest": ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-2.5-flash"]
+    ]
+    private static func chain(_ c: AIConfig) -> [String] {
+        let m = c.model.rawValue
+        guard c.model.isGemini else { return [m] }
+        var out: [String] = []
+        if let ok = UserDefaults.standard.string(forKey: "gemok." + m) { out.append(ok) }
+        for x in gemChains[m] ?? [m] where !out.contains(x) { out.append(x) }
+        return out
+    }
+    private static func send(_ c: AIConfig, _ extra: [String: Any], maxTokens: Int) async throws -> Data {
+        var last: GPTError?
+        for id in chain(c) {
+            let req = try request(c, extra, maxTokens: maxTokens, modelID: id)
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            do {
+                try check(data, resp, gemini: c.model.isGemini)
+                if c.model.isGemini { UserDefaults.standard.set(id, forKey: "gemok." + c.model.rawValue) }
+                return data
+            } catch let e as GPTError {
+                last = e
+                let retry = c.model.isGemini && (e.status == 429 || e.status == 404 ||
+                    (e.status == 400 && e.detail.range(of: "not found|not supported|unknown|invalid model", options: [.regularExpression, .caseInsensitive]) != nil))
+                if !retry { throw e }
+            }
+        }
+        throw last ?? GPTError(message: "요청 실패")
+    }
+
+    private static func request(_ c: AIConfig, _ extra: [String: Any], maxTokens: Int, modelID: String) throws -> URLRequest {
         var req = URLRequest(url: c.url)
         req.httpMethod = "POST"
         req.timeoutInterval = 120
         req.setValue("Bearer " + c.key, forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        var body: [String: Any] = ["model": c.model.rawValue]
+        var body: [String: Any] = ["model": modelID]
         if c.model.isGemini {
             body["max_tokens"] = max(2048, maxTokens * 3)
         } else {
@@ -159,25 +193,23 @@ enum GPTClient {
             detail = ((obj?["error"] as? [String: Any])?["message"] as? String) ?? ""
         }
         if code == 401 || code == 403 || (code == 400 && detail.range(of: "api key", options: .caseInsensitive) != nil) {
-            throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
+            throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.", status: code, detail: detail)
         }
         if code == 429 {
             throw GPTError(message: gemini
-                ? "Gemini 무료 한도(분당·하루)를 잠시 넘어 기본 모드로 처리했어요. 조금 뒤 다시 하면 Gemini가 답합니다."
+                ? "Gemini 무료 모델이 모두 한도에 걸려 기본 모드로 처리했어요. 조금 뒤 다시 하면 Gemini가 답합니다." + (detail.isEmpty ? "" : " · 원문: " + String(detail.prefix(160)))
                 : "OpenAI 크레딧이 없거나 한도를 넘어 기본 모드로 처리했어요. 위 모델 선택에서 무료 Gemini로 바꾸면 충전 없이 쓸 수 있어요.",
-                noCredits: true)
+                noCredits: true, status: code, detail: detail)
         }
-        if code >= 500 { throw GPTError(message: "AI 서버가 혼잡합니다. 잠시 후 다시 시도하세요.") }
-        throw GPTError(message: "요청 실패 (\(code)) \(detail)")
+        if code >= 500 { throw GPTError(message: "AI 서버가 혼잡합니다. 잠시 후 다시 시도하세요.", status: code, detail: detail) }
+        throw GPTError(message: "요청 실패 (\(code)) \(detail)", status: code, detail: detail)
     }
 
     static func ask(_ prompt: String, maxTokens: Int = 1200) async throws -> String {
         guard let c = config() else {
             throw GPTError(message: "설정에서 무료 Gemini 키(또는 OpenAI 키)를 넣어 주세요.")
         }
-        let req = try request(c, ["messages": [["role": "user", "content": prompt]]], maxTokens: maxTokens)
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        try check(data, resp, gemini: c.model.isGemini)
+        let data = try await send(c, ["messages": [["role": "user", "content": prompt]]], maxTokens: maxTokens)
         let r = (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
         let msg = ((r["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any]) ?? [:]
         return (msg["content"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -188,9 +220,7 @@ enum GPTClient {
         guard let c = config() else {
             throw GPTError(message: "설정에서 무료 Gemini 키(또는 OpenAI 키)를 넣어 주세요.")
         }
-        let req = try request(c, extra, maxTokens: 1500)
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        try check(data, resp, gemini: c.model.isGemini)
+        let data = try await send(c, extra, maxTokens: 1500)
         return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 }
