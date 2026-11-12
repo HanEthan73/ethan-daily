@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.43",
-"buildVersion": "43",
-"date": "2026-11-12T13:31:09Z",
-"localizedDescription": "iOS: 구글 캘린더 연동(아이폰 캘린더 계정·EventKit) — 구글 일정 표시 + 앱 일정 추가·수정·삭제",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=43",
-"size": 1329506,
+"version": "1.0.44",
+"buildVersion": "44",
+"date": "2026-11-12T14:46:59Z",
+"localizedDescription": "iOS: 챗봇 사진·파일 첨부, 설정에 AI·구글 캘린더 하위 화면",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=44",
+"size": 1377692,
 "minOSVersion": "17.0"
         }
       ],
