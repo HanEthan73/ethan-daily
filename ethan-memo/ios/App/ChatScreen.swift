@@ -261,7 +261,8 @@ final class ChatModel {
 
 struct ChatScreen: View {
     @Environment(\.modelContext) private var ctx
-    var onClose: () -> Void = {}
+    var onClose: () -> Void
+    init(onClose: @escaping () -> Void = {}) { self.onClose = onClose }
     private var chat = ChatModel.shared
     @State private var draft = ""
     @State private var speech = SpeechInput()

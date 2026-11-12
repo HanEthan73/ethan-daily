@@ -110,6 +110,7 @@ struct RootView: View {
 /// GPT 봇 버튼: 기본은 오른쪽 아래. 꾹 눌렀다가 끌면 옮길 수 있고, 놓으면 가장 가까운 모서리에 붙음
 struct BotOverlay: View {
     var onTap: () -> Void
+    init(onTap: @escaping () -> Void) { self.onTap = onTap }
     @AppStorage("botEdge") private var edge = "r"      // l r t b
     @AppStorage("botFrac") private var frac = 1.0      // 붙은 모서리를 따라 0...1
     @State private var dragPoint: CGPoint?
