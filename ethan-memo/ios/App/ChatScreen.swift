@@ -3,6 +3,8 @@ import SwiftData
 import Observation
 import Speech
 import AVFoundation
+import PhotosUI
+import UniformTypeIdentifiers
 
 // MARK: - GPT 챗봇: 말로 일정·할 일·메모를 등록/수정/삭제
 
@@ -13,6 +15,18 @@ struct ChatMsg: Codable, Identifiable {
     var acts: [String] = []
     /// 무료 모드에서 GPT가 필요한 질문이면 ChatGPT로 열 문장
     var gpt: String? = nil
+    /// 첨부한 사진(PhotoStore ID)과 파일 이름
+    var photos: [String]? = nil
+    var files: [String]? = nil
+}
+
+/// 챗봇에 첨부한 파일 (보낼 때만 메모리에 둠)
+struct ChatFile: Identifiable {
+    let id = UUID()
+    let name: String
+    let kind: String      // text | pdf
+    var text: String? = nil
+    var data: Data? = nil
 }
 
 @MainActor
@@ -22,6 +36,10 @@ final class ChatModel {
     var msgs: [ChatMsg] = []
     var busy = false
     var error: String?
+    var pendingPhotos: [String] = []
+    var pendingFiles: [ChatFile] = []
+    @ObservationIgnored private var curPhotos: [String] = []
+    @ObservationIgnored private var curFiles: [ChatFile] = []
     private let storeKey = "chat.v1"
 
     init() {
@@ -75,6 +93,7 @@ final class ChatModel {
         - 날짜·시간이 정해진 약속/만남/방문은 event, 해야 할 일은 todo(날짜 없으면 오늘), 단순 기록·아이디어는 memo.
         - 시간을 말하지 않았으면 time은 비우세요. 오전/오후 표현이 애매하면 상식적으로 판단하세요.
         - 수정·완료·삭제 요청은 아래 목록의 id로 update_item / delete_item을 쓰세요. 대상이 불분명하면 그때만 한 번 되물으세요.
+        - 사용자가 사진·파일을 첨부하면 내용을 읽고 답하세요. 청첩장·예약 문자·티켓·시간표·공지처럼 일정이나 할 일이 보이면 날짜·시간을 뽑아 바로 등록하고, 그 사진을 항목에 남기려면 attach_photos=true.
         - 일정 조회·추천 질문에는 아래 목록을 보고 답하세요. 등록이 끝나면 무엇을 언제로 등록했는지 한두 줄로 알려 주세요.
         현재 항목 (id|종류|날짜|시간|제목):
         \(rows.isEmpty ? "(없음)" : rows.joined(separator: "\n"))
@@ -96,7 +115,8 @@ final class ChatModel {
                         "date": ["type": "string", "description": "YYYY-MM-DD. 기간 일정이면 시작일. 말하지 않았으면 오늘"],
                         "endDate": ["type": "string", "description": "기간 일정의 종료일 YYYY-MM-DD (선택)"],
                         "time": ["type": "string", "description": "HH:MM 24시간제 (선택, 모르면 비움)"],
-                        "note": ["type": "string", "description": "세부 내용 (선택)"]
+                        "note": ["type": "string", "description": "세부 내용 (선택)"],
+                        "attach_photos": ["type": "boolean", "description": "사용자가 이번 메시지에 첨부한 사진을 이 항목에 붙일지. 사진이 있고 관련된 항목이면 true"]
                     ],
                     "required": ["type", "text", "date"]
                 ]]],
@@ -140,6 +160,7 @@ final class ChatModel {
                 let time = kind == .memo ? nil : Self.parseTime(raw["time"] as? String, on: day)
                 let item = Item(kind: kind, day: day, endDay: end, time: time, text: text)
                 item.note = (raw["note"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                if (raw["attach_photos"] as? Bool) == true && !curPhotos.isEmpty { item.photoIDs = curPhotos }
                 ctx.insert(item)
                 created.append(["id": item.uid, "type": kind.rawValue, "date": Self.ymd(day), "text": text])
                 acts.append("\(icon[kind.rawValue] ?? "") \(Fmt.short(day))\(time.map { " " + Fmt.time($0) } ?? "") · \(text)")
@@ -183,6 +204,11 @@ final class ChatModel {
     // MARK: 무료 모드 (API 키 없음)
     private func freeReply(_ t: String, ctx: ModelContext) {
         defer { persist() }
+        if t.isEmpty && !curPhotos.isEmpty {
+            let r = run("add_items", ["items": [["type": "memo", "text": "사진 메모", "date": "", "attach_photos": true]]], ctx: ctx)
+            msgs.append(ChatMsg(role: "assistant", content: "사진을 오늘 메모로 저장했어요 📷 (기본 모드는 사진 내용을 읽지 못해요 · Gemini 키를 넣으면 사진 속 일정도 자동 등록)", acts: r.acts))
+            return
+        }
         if let r = QuickChat.listRange(t) {
             let all = ((try? ctx.fetch(FetchDescriptor<Item>())) ?? [])
                 .filter { $0.day <= r.to && $0.lastDay >= r.from && !($0.kind == .todo && $0.done) }
@@ -206,18 +232,66 @@ final class ChatModel {
             msgs.append(ChatMsg(role: "assistant", content: "이해하지 못했어요. “내일 오후 3시 치과”, “금요일까지 보고서 제출”처럼 말해 보세요."))
             return
         }
-        let items: [[String: Any]] = parsed.map { ["type": $0.type, "text": $0.text, "date": $0.date, "time": $0.time] }
+        var items: [[String: Any]] = parsed.map { ["type": $0.type, "text": $0.text, "date": $0.date, "time": $0.time] }
+        if !curPhotos.isEmpty { items[0]["attach_photos"] = true }
         let r = run("add_items", ["items": items], ctx: ctx)
         msgs.append(ChatMsg(role: "assistant", content: "등록했어요 ✅ (무료 모드 · 잘못 알아들었으면 카드를 눌러 고치세요)", acts: r.acts))
+    }
+
+    /// 이번 메시지의 사진·파일을 AI가 읽을 수 있는 형태로
+    private func parts(_ t: String) -> [[String: Any]] {
+        var txt = t.isEmpty ? "첨부한 내용을 보고 정리해 주세요. 일정이나 할 일이 있으면 등록해 주세요." : t
+        for f in curFiles where f.kind == "text" { txt += "\n\n[첨부 파일: \(f.name)]\n" + (f.text ?? "") }
+        var out: [[String: Any]] = [["type": "text", "text": txt]]
+        for id in curPhotos {
+            if let d = try? Data(contentsOf: PhotoStore.url(id)) {
+                out.append(["type": "image_url", "image_url": ["url": "data:image/jpeg;base64," + d.base64EncodedString()]])
+            }
+        }
+        let gem = GPTClient.config()?.model.isGemini ?? true
+        for f in curFiles where f.kind == "pdf" {
+            guard let d = f.data else { continue }
+            let url = "data:application/pdf;base64," + d.base64EncodedString()
+            out.append(gem ? ["type": "image_url", "image_url": ["url": url]]
+                           : ["type": "file", "file": ["filename": f.name, "file_data": url]])
+        }
+        return out
+    }
+
+    /// 파일 앱에서 고른 파일 읽기
+    func addFile(_ url: URL) {
+        let ok = url.startAccessingSecurityScopedResource()
+        defer { if ok { url.stopAccessingSecurityScopedResource() } }
+        guard let d = try? Data(contentsOf: url) else { error = "파일을 읽지 못했습니다: \(url.lastPathComponent)"; return }
+        let name = url.lastPathComponent
+        let type = UTType(filenameExtension: url.pathExtension)
+        if type?.conforms(to: .image) == true {
+            if let id = PhotoStore.add(d) { pendingPhotos.append(id) }
+        } else if type?.conforms(to: .pdf) == true || url.pathExtension.lowercased() == "pdf" {
+            guard d.count < 15_000_000 else { error = "PDF가 너무 커요 (15MB 이하)"; return }
+            pendingFiles.append(ChatFile(name: name, kind: "pdf", data: d))
+        } else if let s = String(data: d, encoding: .utf8) {
+            pendingFiles.append(ChatFile(name: name, kind: "text", text: String(s.prefix(60000))))
+        } else {
+            error = "이 형식은 아직 못 읽어요. 사진·PDF·텍스트(txt·md·csv·json)를 넣어 주세요."
+        }
     }
 
     // MARK: 대화
     func send(_ text: String, ctx: ModelContext) async {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty, !busy else { return }
-        msgs.append(ChatMsg(role: "user", content: t))
+        guard !t.isEmpty || !pendingPhotos.isEmpty || !pendingFiles.isEmpty, !busy else { return }
+        curPhotos = pendingPhotos; curFiles = pendingFiles
+        pendingPhotos = []; pendingFiles = []
+        msgs.append(ChatMsg(role: "user", content: t,
+                            photos: curPhotos.isEmpty ? nil : curPhotos,
+                            files: curFiles.isEmpty ? nil : curFiles.map(\.name)))
         error = nil
-        if GPTClient.config() == nil { freeReply(t, ctx: ctx); return }
+        defer { curPhotos = []; curFiles = [] }
+        if GPTClient.config() == nil {
+            if !curFiles.isEmpty { error = "파일 내용 읽기는 AI 키(무료 Gemini)가 필요해요. 설정 → AI · 챗봇에서 넣어 주세요." }
+            freeReply(t, ctx: ctx); return
+        }
         busy = true; persist()
         var acts: [String] = []
         var final = ""
@@ -225,8 +299,14 @@ final class ChatModel {
             var api: [[String: Any]] = [["role": "system", "content": system(ctx: ctx)]]
             for m in msgs.suffix(16) {
                 var c = m.content
+                if let p = m.photos, !p.isEmpty { c += "\n[사진 \(p.count)장 첨부]" }
+                if let f = m.files, !f.isEmpty { c += "\n[파일: " + f.joined(separator: ", ") + "]" }
                 if !m.acts.isEmpty { c += "\n[앱에 처리됨: " + m.acts.joined(separator: " / ") + "]" }
                 api.append(["role": m.role, "content": c])
+            }
+            if !curPhotos.isEmpty || !curFiles.isEmpty, var last = api.last, (last["role"] as? String) == "user" {
+                last["content"] = parts(t)
+                api[api.count - 1] = last
             }
             for _ in 0..<5 {
                 let r = try await GPTClient.raw(["messages": api, "tools": Self.tools])
@@ -272,6 +352,9 @@ struct ChatScreen: View {
     @State private var speech = SpeechInput()
     @AppStorage("gptModel") private var modelRaw = GPTModel.gemFlash.rawValue
     @FocusState private var focused: Bool
+    @State private var pickingPhotos = false
+    @State private var pickingFiles = false
+    @State private var photoItems: [PhotosPickerItem] = []
 
     private let examples = ["내일 저녁 7시 회식", "이번 주 할 일 정리해줘", "보고서 제출 완료 처리"]
 
@@ -368,12 +451,18 @@ struct ChatScreen: View {
 
     @ViewBuilder private func bubble(_ m: ChatMsg) -> some View {
         if m.role == "user" {
-            Text(m.content)
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .foregroundStyle(Theme.ctaInk)
-                .background(RoundedRectangle(cornerRadius: 20).fill(Theme.hi))
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.leading, 40)
+            VStack(alignment: .trailing, spacing: 6) {
+                if let p = m.photos, !p.isEmpty { PhotoStrip(ids: p, size: 84) }
+                if let f = m.files, !f.isEmpty {
+                    ForEach(f, id: \.self) { n in Text("📎 " + n).font(.footnote) }
+                }
+                if !m.content.isEmpty { Text(m.content) }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .foregroundStyle(Theme.ctaInk)
+            .background(RoundedRectangle(cornerRadius: 20).fill(Theme.hi))
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.leading, 40)
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 Text(CardMarkdown.attributed(m.content))
@@ -400,7 +489,66 @@ struct ChatScreen: View {
     }
 
     private var composer: some View {
+        VStack(spacing: 6) {
+            attachStrip
+            composerRow
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.bar)
+        .photosPicker(isPresented: $pickingPhotos, selection: $photoItems, maxSelectionCount: 6, matching: .images)
+        .onChange(of: photoItems) { _, items in
+            guard !items.isEmpty else { return }
+            Task {
+                for it in items {
+                    if let d = try? await it.loadTransferable(type: Data.self), let id = PhotoStore.add(d) { chat.pendingPhotos.append(id) }
+                }
+                photoItems = []
+            }
+        }
+        .fileImporter(isPresented: $pickingFiles, allowedContentTypes: [.pdf, .plainText, .text, .commaSeparatedText, .json, .image], allowsMultipleSelection: true) { r in
+            if case .success(let urls) = r { for u in urls { chat.addFile(u) } }
+        }
+    }
+
+    @ViewBuilder private var attachStrip: some View {
+        if !chat.pendingPhotos.isEmpty || !chat.pendingFiles.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(chat.pendingPhotos, id: \.self) { id in
+                        ZStack(alignment: .topTrailing) {
+                            PhotoThumb(id: id, size: 58)
+                            Button { chat.pendingPhotos.removeAll { $0 == id } } label: {
+                                Image(systemName: "xmark.circle.fill").font(.system(size: 18)).foregroundStyle(.white, .black.opacity(0.6))
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                    }
+                    ForEach(chat.pendingFiles) { f in
+                        HStack(spacing: 6) {
+                            Text((f.kind == "pdf" ? "📄 " : "📝 ") + f.name).font(.footnote).lineLimit(1)
+                            Button { chat.pendingFiles.removeAll { $0.id == f.id } } label: { Image(systemName: "xmark.circle.fill") }
+                                .buttonStyle(.borderless).foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 10).frame(height: 44)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Theme.pill))
+                    }
+                }
+            }
+        }
+    }
+
+    private var composerRow: some View {
         HStack(alignment: .bottom, spacing: 8) {
+            Menu {
+                Button { pickingPhotos = true } label: { Label("사진", systemImage: "photo.on.rectangle") }
+                Button { pickingFiles = true } label: { Label("파일 (PDF·텍스트)", systemImage: "doc") }
+            } label: {
+                Image(systemName: "paperclip")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.hi)
+                    .frame(width: 34, height: 42)
+            }
+            .accessibilityLabel("사진·파일 첨부")
             Button {
                 focused = false
                 speech.toggle(base: draft) { draft = $0 }
@@ -425,14 +573,16 @@ struct ChatScreen: View {
                     .background(Capsule().fill(Theme.hi))
             }
             .buttonStyle(.borderless)
-            .disabled(chat.busy || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .opacity(chat.busy || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
+            .disabled(chat.busy || !canSend)
+            .opacity(chat.busy || !canSend ? 0.5 : 1)
         }
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(.bar)
         .alert("음성 입력", isPresented: Binding(get: { speech.error != nil }, set: { if !$0 { speech.error = nil } })) {
             Button("확인", role: .cancel) {}
         } message: { Text(speech.error ?? "") }
+    }
+
+    private var canSend: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !chat.pendingPhotos.isEmpty || !chat.pendingFiles.isEmpty
     }
 
     private func send(_ text: String) {

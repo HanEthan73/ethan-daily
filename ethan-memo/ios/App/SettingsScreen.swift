@@ -33,6 +33,10 @@ struct SettingsScreen: View {
         NavigationStack {
             Form {
                 Section {
+                    NavigationLink { aiPage } label: { navRow("AI · 챗봇", "sparkles", aiSummary) }
+                    NavigationLink { gcalPage } label: { navRow("구글 캘린더", "calendar", gcalSummary) }
+                }
+                Section {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("강조색").font(.system(size: 14.5, weight: .semibold))
                         SwatchRow(presets: ThemePrefs.accents, selection: $accent)
@@ -48,133 +52,6 @@ struct SettingsScreen: View {
                 } footer: {
                     Text("강조색은 버튼·오늘·선택 표시에, 지난 일 색은 날짜가 지난 할 일에 쓰입니다. 맨 끝 무지개 동그라미로 원하는 색을 직접 고를 수 있어요.")
                 }
-                Section {
-                    Toggle("구글 캘린더 연동", isOn: $gcalShow)
-                        .onChange(of: gcalShow) { _, on in
-                            guard on else { bridge.reload(); return }
-                            Task {
-                                if await bridge.requestAccess() { bridge.reload(); bridge.schedulePush(ctx) }
-                                else { gcalShow = false }
-                            }
-                        }
-                    if gcalShow && bridge.authorized {
-                        Toggle("앱 일정을 구글 캘린더에도 추가", isOn: $gcalPush)
-                            .onChange(of: gcalPush) { _, on in if on { bridge.schedulePush(ctx) } }
-                        if gcalPush {
-                            Picker("추가할 캘린더", selection: Binding(get: { bridge.target?.calendarIdentifier ?? "" }, set: { gcalTarget = $0; bridge.schedulePush(ctx) })) {
-                                ForEach(bridge.writableCalendars, id: \.calendarIdentifier) { c in
-                                    Text("\(c.title) · \(c.source.title)").tag(c.calendarIdentifier)
-                                }
-                            }
-                        }
-                        HStack {
-                            Text(bridge.googleAccountFound ? "구글 계정 연결됨" : "구글 계정이 아직 없음")
-                                .foregroundStyle(bridge.googleAccountFound ? Theme.todo : Theme.warn)
-                            Spacer()
-                            Text("일정 \(bridge.ext.count)개").foregroundStyle(.secondary)
-                        }
-                        .font(.footnote)
-                        Button("지금 동기화") { bridge.reload(); bridge.pushAll(ctx) }
-                    }
-                } header: {
-                    Text("구글 캘린더")
-                } footer: {
-                    Text("처음 한 번: 아이폰 설정 → 캘린더 → 계정 → 계정 추가 → Google 로그인 → ‘캘린더’ 켜기. 그다음 여기서 연동을 켜면 구글 일정이 달력에 ‘G’로 보이고, 앱에서 만든 일정은 고른 구글 캘린더에도 추가·수정·삭제됩니다. 키·충전 필요 없음.")
-                }
-                Section {
-                    Toggle("GPT 챗봇 버튼", isOn: $botEnabled)
-                } header: {
-                    Text("GPT 챗봇")
-                } footer: {
-                    Text("켜 두면 왼쪽 아래 봇 버튼으로 어느 화면에서나 말하거나 써서 일정·할 일을 등록할 수 있어요. 끄면 버튼이 사라집니다.")
-                }
-                Section {
-                    if hasGKey {
-                        Label("Gemini 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
-                    }
-                    SecureField(hasGKey ? "새 키로 바꾸기" : "AIza로 시작하는 키", text: $gkey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    HStack {
-                        Button("저장") {
-                            Keychain.save(gkey.trimmingCharacters(in: .whitespacesAndNewlines), account: Keychain.gemini)
-                            gkey = ""
-                            hasGKey = Keychain.read(account: Keychain.gemini) != nil
-                            if hasGKey && !hasKey { model = GPTModel.gemFlash.rawValue }
-                        }
-                        .disabled(gkey.isEmpty)
-                        Spacer()
-                        if hasGKey {
-                            Button("키 삭제", role: .destructive) {
-                                Keychain.save("", account: Keychain.gemini)
-                                hasGKey = false
-                            }
-                        }
-                    }
-                    .buttonStyle(.borderless)
-                    Link("구글 로그인하고 무료 키 받기 ↗", destination: URL(string: "https://aistudio.google.com/apikey")!)
-                } header: {
-                    Text("Gemini API 키 (무료 · 추천)")
-                } footer: {
-                    Text("충전·카드 없이 무료입니다. 링크에서 구글 계정으로 로그인 → ‘API 키 만들기’ → 복사해서 붙여넣기. 키는 이 아이폰의 Keychain에만 저장됩니다. 무료 사용분 대화는 구글 서비스 개선에 쓰일 수 있어요.")
-                }
-                Section {
-                    if hasKey {
-                        Label("API 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
-                    }
-                    SecureField(hasKey ? "새 키로 바꾸기" : "sk-로 시작하는 키", text: $key)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    HStack {
-                        Button("저장") {
-                            Keychain.save(key.trimmingCharacters(in: .whitespacesAndNewlines))
-                            key = ""
-                            hasKey = Keychain.read() != nil
-                        }
-                        .disabled(key.isEmpty)
-                        Spacer()
-                        if hasKey {
-                            Button("키 삭제", role: .destructive) {
-                                Keychain.save("")
-                                hasKey = false
-                            }
-                        }
-                    }
-                    .buttonStyle(.borderless)
-                } header: {
-                    Text("OpenAI API 키 (유료 · 선택)")
-                } footer: {
-                    Text("platform.openai.com에서 발급합니다. 키는 이 아이폰의 Keychain에만 저장됩니다. API 사용료는 ChatGPT 구독과 별도로 청구됩니다.")
-                }
-
-                Section("답변 모델") {
-                    Picker("모델", selection: $model) {
-                        ForEach(GPTModel.allCases) { Text($0.label).tag($0.rawValue) }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                }
-
-                Section {
-                    Button {
-                        testing = true
-                        testState = nil
-                        Task {
-                            do {
-                                let a = try await GPTClient.ask("연결 확인입니다. '연결됨' 한 단어로만 답하세요.")
-                                testState = "성공: \(a)"
-                            } catch {
-                                testState = (error as? GPTError)?.message ?? error.localizedDescription
-                            }
-                            testing = false
-                        }
-                    } label: {
-                        HStack { Text("연결 테스트"); Spacer(); if testing { ProgressView() } }
-                    }
-                    .disabled(!hasKey || testing)
-                    if let s = testState { Text(s).font(.footnote).foregroundStyle(.secondary) }
-                }
-
                 Section {
                     HStack {
                         Circle().fill(syncColor).frame(width: 7, height: 7)
@@ -284,6 +161,171 @@ struct SettingsScreen: View {
         } catch {
             backupMsg = "가져오기 코드를 읽지 못했습니다. 링크 전체를 복사했는지 확인하세요."
         }
+    }
+
+    // MARK: 하위 화면 (AI · 구글 캘린더)
+    private var aiPage: some View {
+        Form {
+                Section {
+                    Toggle("GPT 챗봇 버튼", isOn: $botEnabled)
+                } header: {
+                    Text("GPT 챗봇")
+                } footer: {
+                    Text("켜 두면 봇 버튼(기본 오른쪽 아래)으로 어느 화면에서나 말하거나 써서 일정·할 일을 등록할 수 있어요. 끄면 버튼이 사라집니다.")
+                }
+                Section {
+                    if hasGKey {
+                        Label("Gemini 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
+                    }
+                    SecureField(hasGKey ? "새 키로 바꾸기" : "AIza로 시작하는 키", text: $gkey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    HStack {
+                        Button("저장") {
+                            Keychain.save(gkey.trimmingCharacters(in: .whitespacesAndNewlines), account: Keychain.gemini)
+                            gkey = ""
+                            hasGKey = Keychain.read(account: Keychain.gemini) != nil
+                            if hasGKey && !hasKey { model = GPTModel.gemFlash.rawValue }
+                        }
+                        .disabled(gkey.isEmpty)
+                        Spacer()
+                        if hasGKey {
+                            Button("키 삭제", role: .destructive) {
+                                Keychain.save("", account: Keychain.gemini)
+                                hasGKey = false
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    Link("구글 로그인하고 무료 키 받기 ↗", destination: URL(string: "https://aistudio.google.com/apikey")!)
+                } header: {
+                    Text("Gemini API 키 (무료 · 추천)")
+                } footer: {
+                    Text("충전·카드 없이 무료입니다. 링크에서 구글 계정으로 로그인 → ‘API 키 만들기’ → 복사해서 붙여넣기. 키는 이 아이폰의 Keychain에만 저장됩니다. 무료 사용분 대화는 구글 서비스 개선에 쓰일 수 있어요.")
+                }
+                Section {
+                    if hasKey {
+                        Label("API 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
+                    }
+                    SecureField(hasKey ? "새 키로 바꾸기" : "sk-로 시작하는 키", text: $key)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    HStack {
+                        Button("저장") {
+                            Keychain.save(key.trimmingCharacters(in: .whitespacesAndNewlines))
+                            key = ""
+                            hasKey = Keychain.read() != nil
+                        }
+                        .disabled(key.isEmpty)
+                        Spacer()
+                        if hasKey {
+                            Button("키 삭제", role: .destructive) {
+                                Keychain.save("")
+                                hasKey = false
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                } header: {
+                    Text("OpenAI API 키 (유료 · 선택)")
+                } footer: {
+                    Text("platform.openai.com에서 발급합니다. 키는 이 아이폰의 Keychain에만 저장됩니다. API 사용료는 ChatGPT 구독과 별도로 청구됩니다.")
+                }
+
+                Section("답변 모델") {
+                    Picker("모델", selection: $model) {
+                        ForEach(GPTModel.allCases) { Text($0.label).tag($0.rawValue) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+
+                Section {
+                    Button {
+                        testing = true
+                        testState = nil
+                        Task {
+                            do {
+                                let a = try await GPTClient.ask("연결 확인입니다. '연결됨' 한 단어로만 답하세요.")
+                                testState = "성공: \(a)"
+                            } catch {
+                                testState = (error as? GPTError)?.message ?? error.localizedDescription
+                            }
+                            testing = false
+                        }
+                    } label: {
+                        HStack { Text("연결 테스트"); Spacer(); if testing { ProgressView() } }
+                    }
+                    .disabled(GPTClient.config() == nil || testing)
+                    if let s = testState { Text(s).font(.footnote).foregroundStyle(.secondary) }
+                }
+
+        }
+        .navigationTitle("AI · 챗봇")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var gcalPage: some View {
+        Form {
+                Section {
+                    Toggle("구글 캘린더 연동", isOn: $gcalShow)
+                        .onChange(of: gcalShow) { _, on in
+                            guard on else { bridge.reload(); return }
+                            Task {
+                                if await bridge.requestAccess() { bridge.reload(); bridge.schedulePush(ctx) }
+                                else { gcalShow = false }
+                            }
+                        }
+                    if gcalShow && bridge.authorized {
+                        Toggle("앱 일정을 구글 캘린더에도 추가", isOn: $gcalPush)
+                            .onChange(of: gcalPush) { _, on in if on { bridge.schedulePush(ctx) } }
+                        if gcalPush {
+                            Picker("추가할 캘린더", selection: Binding(get: { bridge.target?.calendarIdentifier ?? "" }, set: { gcalTarget = $0; bridge.schedulePush(ctx) })) {
+                                ForEach(bridge.writableCalendars, id: \.calendarIdentifier) { c in
+                                    Text("\(c.title) · \(c.source.title)").tag(c.calendarIdentifier)
+                                }
+                            }
+                        }
+                        HStack {
+                            Text(bridge.googleAccountFound ? "구글 계정 연결됨" : "구글 계정이 아직 없음")
+                                .foregroundStyle(bridge.googleAccountFound ? Theme.todo : Theme.warn)
+                            Spacer()
+                            Text("일정 \(bridge.ext.count)개").foregroundStyle(.secondary)
+                        }
+                        .font(.footnote)
+                        Button("지금 동기화") { bridge.reload(); bridge.pushAll(ctx) }
+                    }
+                } header: {
+                    Text("구글 캘린더")
+                } footer: {
+                    Text("처음 한 번: 아이폰 설정 → 캘린더 → 계정 → 계정 추가 → Google 로그인 → ‘캘린더’ 켜기. 그다음 여기서 연동을 켜면 구글 일정이 달력에 ‘G’로 보이고, 앱에서 만든 일정은 고른 구글 캘린더에도 추가·수정·삭제됩니다. 키·충전 필요 없음.")
+                }
+        }
+        .navigationTitle("구글 캘린더")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var aiSummary: String {
+        let m = GPTClient.config()?.model.title ?? "키 없음 · 기본 모드"
+        return m + " · 챗봇 " + (botEnabled ? "켜짐" : "꺼짐")
+    }
+    private var gcalSummary: String {
+        guard gcalShow else { return "꺼짐" }
+        guard bridge.authorized else { return "캘린더 접근 허용 필요" }
+        return bridge.googleAccountFound ? "연결됨 · 일정 \(bridge.ext.count)개" : "구글 계정 추가 필요"
+    }
+    private func navRow(_ title: String, _ icon: String, _ sub: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon).font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.ctaInk)
+                .frame(width: 32, height: 32)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Theme.hi))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 16, weight: .semibold))
+                Text(sub).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private var syncColor: Color {
