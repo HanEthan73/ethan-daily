@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.41",
-"buildVersion": "41",
-"date": "2026-11-12T06:36:59Z",
-"localizedDescription": "위키 GPT 정리도 Gemini 키로 동작",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=41",
-"size": 1281567,
+"version": "1.0.42",
+"buildVersion": "42",
+"date": "2026-11-12T08:43:27Z",
+"localizedDescription": "Gemini Flash 안 될 때 무료로 열리는 다음 모델(3.5→2.5 Flash)로 자동 전환, 오류 원문 표시",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=42",
+"size": 1282721,
 "minOSVersion": "17.0"
         }
       ],
