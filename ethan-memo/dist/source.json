@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.42",
-"buildVersion": "42",
-"date": "2026-11-12T08:43:27Z",
-"localizedDescription": "Gemini Flash 안 될 때 무료로 열리는 다음 모델(3.5→2.5 Flash)로 자동 전환, 오류 원문 표시",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=42",
-"size": 1282721,
+"version": "1.0.43",
+"buildVersion": "43",
+"date": "2026-11-12T13:31:09Z",
+"localizedDescription": "iOS: 구글 캘린더 연동(아이폰 캘린더 계정·EventKit) — 구글 일정 표시 + 앱 일정 추가·수정·삭제",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=43",
+"size": 1329506,
 "minOSVersion": "17.0"
         }
       ],
