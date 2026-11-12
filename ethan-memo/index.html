@@ -1285,6 +1285,9 @@ main.grid{padding-bottom:88px}
 .sp-title{margin:2px 0 10px;font-size:24px;font-weight:800;letter-spacing:-.02em}
 .subpage .gcbox{border-top:0;margin-top:0;padding-top:0}
 .sheet-bg:not([hidden]) ~ .bot-fab{display:none}
+
+.gbtn{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;border-radius:999px;border:0;background:#fff;color:#1f1f1f;font:inherit;font-size:15.5px;font-weight:700;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.gbtn:active{opacity:.85}
 </style>
 </head>
 <body>
@@ -1417,19 +1420,20 @@ main.grid{padding-bottom:88px}
       <h4 class="sp-title">구글 캘린더</h4>
     <div class="gcbox">
       <div class="tb-h"><small id="gcState">연결 안 됨</small></div>
-      <div class="gc-btns"><button class="primary" id="gcConnect" type="button">구글 캘린더 연결</button><button class="ghost" id="gcOff" type="button" hidden>연결 해제</button></div>
+      <div class="gc-btns"><button class="gbtn" id="gcConnect" type="button"><svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.4 5.7c4.3-4 6.9-9.9 6.9-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.4-5.7c-2.1 1.4-4.8 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg><span id="gcBtnT">Google 계정으로 로그인</span></button><button class="ghost" id="gcOff" type="button" hidden>연결 해제</button></div>
       <label class="gc-chk"><input type="checkbox" id="gcPush" checked> 앱에서 만든 일정을 구글 캘린더에도 추가·수정·삭제</label>
-      <details class="gc-help"><summary>처음 한 번 설정 (5분 · 무료)</summary>
+      <details class="gc-help" id="gcSetup"><summary>최초 1회: 앱 등록 (구글 정책상 필요 · 5분 · 무료)</summary>
+        <p class="hint">구글은 내 일정에 접근하는 앱마다 ‘클라이언트 ID’ 등록을 요구해요. 한 번만 만들면 그다음부터는 모든 기기에서 위의 ‘Google 계정으로 로그인’만 누르면 됩니다. <b>이메일이 아니라</b> …apps.googleusercontent.com 으로 끝나는 ID를 넣어야 해요.</p>
         <ol>
           <li><a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud 콘솔</a>에서 구글 로그인 → 새 프로젝트 만들기</li>
           <li><a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener">Google Calendar API</a> → ‘사용’</li>
           <li><a href="https://console.cloud.google.com/auth/overview" target="_blank" rel="noopener">OAuth 동의 화면</a> → 외부 → 앱 이름 아무거나 → ‘대상’의 테스트 사용자에 내 Gmail 추가</li>
           <li><a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">사용자 인증 정보</a> → OAuth 클라이언트 ID → 웹 애플리케이션 → 아래 주소를 <b>승인된 JavaScript 원본</b>(끝의 경로 빼고)과 <b>승인된 리디렉션 URI</b>(그대로)에 넣기</li>
-          <li>만들어진 <b>클라이언트 ID</b>를 아래 칸에 붙여넣고 ‘구글 캘린더 연결’</li>
+          <li>만들어진 <b>클라이언트 ID</b>를 아래 칸에 붙여넣고 위의 ‘Google 계정으로 로그인’</li>
         </ol>
         <div class="gc-uri"><code id="gcUri"></code><button class="ghost" id="gcCopy" type="button">복사</button></div>
+        <label class="f-col">OAuth 클라이언트 ID<input id="gcCid" placeholder="123…-abc….apps.googleusercontent.com" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
       </details>
-      <label class="f-col">OAuth 클라이언트 ID<input id="gcCid" placeholder="…apps.googleusercontent.com" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
     </div>
     </div>
   </div>
@@ -3085,6 +3089,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.botOpen)closeBot(
 /* ---------- 구글 캘린더 연동: 내 구글 계정 로그인(OAuth) → 구글 일정 보기 + 앱 일정 구글에 추가·수정·삭제 ---------- */
 const GC={cid:'ethanmemo.gcal.cid',on:'ethanmemo.gcal.on',cache:'ethanmemo.gcal.cache',push:'ethanmemo.gcal.push',at:'ethanmemo.gcal.at',tok:'ethanmemo.gcal.tok',delq:'ethanmemo.gcal.delq',first:'ethanmemo.gcal.first'};
 const GSCOPE='https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+const GC_BUILTIN_CID='';
+const CID_RE=/^[\w.-]+\.apps\.googleusercontent\.com$/;
+const gCid=()=>{const v=(lsGet(GC.cid)||'').trim();return CID_RE.test(v)?v:GC_BUILTIN_CID;};
+if(/@/.test(lsGet(GC.cid)||''))lsSet(GC.cid,'');
 const gRedirect=()=>location.origin+location.pathname.replace(/index\.html$/,'');
 S.gcal=(()=>{try{return JSON.parse(lsGet(GC.cache)||'[]')}catch(_){return []}})();
 function gTok(){try{const t=JSON.parse(lsGet(GC.tok)||'null');return t&&Date.now()<t.exp-60e3?t.t:null}catch(_){return null}}
@@ -3092,7 +3100,7 @@ const gOn=()=>lsGet(GC.on)==='1';
 const gPushOn=()=>gOn()&&lsGet(GC.push)!=='0';
 /* 구글 로그인 화면으로 이동 → 돌아오면 주소의 #access_token 으로 연결 (홈 화면 앱에서도 동작) */
 function gAuth(silent){
-  const cid=lsGet(GC.cid);if(!cid){openSettings('구글 캘린더: 먼저 OAuth 클라이언트 ID를 넣어 주세요 (아래 안내)');return;}
+  const cid=gCid();if(!cid){openSettings('구글 캘린더: 최초 1회 앱 등록이 필요해요 (아래 안내 → 클라이언트 ID)');setTimeout(()=>{const d=$('gcSetup');if(d)d.open=true;},50);return;}
   const u='https://accounts.google.com/o/oauth2/v2/auth?'+new URLSearchParams({client_id:cid,redirect_uri:gRedirect(),response_type:'token',scope:GSCOPE,include_granted_scopes:'true',state:'gcal',prompt:silent?'none':'consent'});
   location.href=u;}
 (function gFromHash(){
@@ -3125,6 +3133,7 @@ async function gcalPull(){
   for(const cal of (cl.items||[]).filter(c=>c.selected!==false&&!/#holiday@group|#contacts@group|#weeknum@group/.test(c.id))){
     let pt='';do{const r=await gApi(`/calendars/${encodeURIComponent(cal.id)}/events?singleEvents=true&maxResults=2500&timeMin=${encodeURIComponent(lo)}&timeMax=${encodeURIComponent(hi)}`+(pt?'&pageToken='+encodeURIComponent(pt):''));
       for(const ev of r.items||[]){const x=gMap(ev,cal);if(x)out.push(x);}pt=r.nextPageToken||'';}while(pt);}
+  const pri=(cl.items||[]).find(c=>c.primary);if(pri)lsSet('ethanmemo.gcal.who',pri.id);
   S.gcal=out;lsSet(GC.cache,JSON.stringify(out));lsSet(GC.at,String(Date.now()));render();paintGcal();return out.length;}
 /* 앱 일정과 같은 건(앱이 올린 사본)은 한 번만 보이게 */
 function gcalVisible(a){if(!gOn()||!S.gcal||!S.gcal.length)return [];
@@ -3160,10 +3169,10 @@ async function gcalRefresh(userGesture){if(!gOn())return;
 function gcalDisconnect(){const t=gTok();if(t)fetch('https://oauth2.googleapis.com/revoke?token='+encodeURIComponent(t),{method:'POST'}).catch(()=>{});
   [GC.on,GC.tok,GC.cache,GC.at,GC.first].forEach(k=>lsSet(k,''));S.gcal=[];render();paintGcal();toast('구글 캘린더 연결을 해제했습니다');}
 function paintGcal(){const st=$('gcState');if(!st)return;const at=+lsGet(GC.at)||0;
-  st.textContent=!gOn()?'연결 안 됨':gTok()?`연결됨 · 구글 일정 ${S.gcal.length}개${at?' · '+clock(at)+' 동기화':''}`:'연결 만료 · ‘지금 동기화’를 누르면 다시 연결';
-  $('gcConnect').textContent=gOn()?'지금 동기화':'구글 캘린더 연결';$('gcOff').hidden=!gOn();$('gcPush').checked=lsGet(GC.push)!=='0';
+  st.textContent=!gOn()?'로그인 안 됨':gTok()?`${lsGet('ethanmemo.gcal.who')||'연결됨'} · 구글 일정 ${S.gcal.length}개${at?' · '+clock(at)+' 동기화':''}`:'연결 만료 · ‘지금 동기화’를 누르면 다시 연결';
+  $('gcBtnT').textContent=gOn()?(gTok()?'지금 동기화':'Google 로그인 다시 하기'):'Google 계정으로 로그인';const su=$('gcSetup');if(su&&GC_BUILTIN_CID)su.hidden=true;$('gcOff').hidden=!gOn();$('gcPush').checked=lsGet(GC.push)!=='0';
   $('gcUri').textContent=gRedirect();}
-$('gcConnect').onclick=()=>{lsSet(GC.cid,$('gcCid').value.trim());if(!gOn()||!gTok())gAuth(gOn());else gcalRefresh(true).then(()=>toast('📅 구글 캘린더 동기화 완료'));};
+$('gcConnect').onclick=()=>{const v=$('gcCid').value.trim();if(v&&!CID_RE.test(v)){toast(/@/.test(v)?'이메일이 아니라 ‘클라이언트 ID’를 넣어야 해요\n…apps.googleusercontent.com 으로 끝나는 값':'클라이언트 ID 형식이 아니에요\n…apps.googleusercontent.com 으로 끝나야 해요');$('gcSetup').open=true;$('gcCid').focus();return;}if(v)lsSet(GC.cid,v);if(!gOn()||!gTok())gAuth(gOn());else gcalRefresh(true).then(()=>toast('📅 구글 캘린더 동기화 완료'));};
 $('gcOff').onclick=gcalDisconnect;
 $('gcPush').onchange=e=>{lsSet(GC.push,e.target.checked?'1':'0');if(e.target.checked)gcalFlush().catch(()=>{});};
 $('gcCopy').onclick=()=>copyText(gRedirect());
