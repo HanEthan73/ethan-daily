@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.44",
-"buildVersion": "44",
-"date": "2026-11-12T14:46:59Z",
-"localizedDescription": "iOS: 챗봇 사진·파일 첨부, 설정에 AI·구글 캘린더 하위 화면",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=44",
-"size": 1377692,
+"version": "1.0.46",
+"buildVersion": "46",
+"date": "2026-11-12T15:42:12Z",
+"localizedDescription": "다 끝낸 날짜는 할 일 목록에서 숨김, 구글 캘린더 '웹 로그인 방식'(내용 채워진 구글 캘린더 추가 화면) 기본화, 편집 시트 버튼 스타일 충돌 수정",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=46",
+"size": 1383082,
 "minOSVersion": "17.0"
         }
       ],
