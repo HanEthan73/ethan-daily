@@ -250,7 +250,9 @@ final class ChatModel {
             if final.isEmpty { final = acts.isEmpty ? "답을 받지 못했습니다. 다시 말씀해 주세요." : "처리했습니다." }
             msgs.append(ChatMsg(role: "assistant", content: final, acts: acts))
         } catch {
-            self.error = (error as? GPTError)?.message ?? error.localizedDescription
+            let ge = error as? GPTError
+            self.error = ge?.message ?? error.localizedDescription
+            if ge?.noCredits == true { freeReply(t, ctx: ctx) }
             if !acts.isEmpty { msgs.append(ChatMsg(role: "assistant", content: "여기까지 처리했습니다.", acts: acts)) }
         }
         busy = false; persist()
@@ -266,6 +268,7 @@ struct ChatScreen: View {
     private var chat = ChatModel.shared
     @State private var draft = ""
     @State private var speech = SpeechInput()
+    @AppStorage("gptModel") private var modelRaw = GPTModel.mini.rawValue
     @FocusState private var focused: Bool
 
     private let examples = ["내일 저녁 7시 회식", "이번 주 할 일 정리해줘", "보고서 제출 완료 처리"]
@@ -298,8 +301,9 @@ struct ChatScreen: View {
             }
             .safeAreaInset(edge: .bottom) { composer }
             .spaceGray()
-            .navigationTitle("GPT 비서")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) { modelMenu }
                 ToolbarItem(placement: .topBarLeading) {
                     Button { speech.stop(); onClose() } label: { Image(systemName: "xmark") }
                 }
@@ -309,6 +313,27 @@ struct ChatScreen: View {
                     }
                 }
             }
+        }
+    }
+
+    /// ChatGPT 앱처럼 위쪽 모델 이름 + ⌄ 를 누르면 모델 목록
+    private var modelMenu: some View {
+        let cur = GPTModel(rawValue: modelRaw) ?? .mini
+        return Menu {
+            ForEach(GPTModel.allCases) { m in
+                Button {
+                    modelRaw = m.rawValue
+                } label: {
+                    if m == cur { Label(m.title, systemImage: "checkmark") } else { Text(m.title) }
+                    Text(m.desc)
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(cur.title).font(.system(size: 17, weight: .bold))
+                Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold)).foregroundStyle(.secondary)
+            }
+            .foregroundStyle(.primary)
         }
     }
 

@@ -83,6 +83,22 @@ enum GPTModel: String, CaseIterable, Identifiable {
         case .four: return "GPT-4o"
         }
     }
+    var title: String {
+        switch self {
+        case .mini: return "GPT-5 mini"
+        case .full: return "GPT-5"
+        case .fast: return "GPT-4o mini"
+        case .four: return "GPT-4o"
+        }
+    }
+    var desc: String {
+        switch self {
+        case .mini: return "빠르고 저렴한 기본 모델"
+        case .full: return "더 깊게 생각해 정확도↑ · 느리고 비쌈"
+        case .fast: return "가장 빠르고 저렴"
+        case .four: return "균형 잡힌 범용 모델"
+        }
+    }
     static var current: GPTModel {
         GPTModel(rawValue: UserDefaults.standard.string(forKey: "gptModel") ?? "") ?? .mini
     }
@@ -90,6 +106,7 @@ enum GPTModel: String, CaseIterable, Identifiable {
 
 struct GPTError: Error {
     let message: String
+    var noCredits = false
 }
 
 enum GPTClient {
@@ -161,7 +178,9 @@ extension GPTClient {
             let detail = (try? JSONDecoder().decode(E.self, from: data))?.error.message ?? ""
             switch code {
             case 401: throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
-            case 429: throw GPTError(message: "요청이 많거나 사용 한도를 넘었습니다. 잠시 후 다시 시도하세요.")
+            case 429:
+                let out = detail.range(of: "credit|quota|billing", options: [.regularExpression, .caseInsensitive]) != nil
+                throw GPTError(message: out ? "OpenAI 크레딧이 없어 무료 모드로 처리했어요. platform.openai.com → Billing에서 충전하면 GPT가 직접 답합니다 (ChatGPT 구독과는 별개)." : "요청이 많거나 사용 한도를 넘었습니다. 잠시 후 다시 시도하세요.", noCredits: out)
             default: throw GPTError(message: "요청 실패 (\(code)) \(detail)")
             }
         }
