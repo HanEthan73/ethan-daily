@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.38",
-"buildVersion": "38",
-"date": "2026-11-12T00:54:30Z",
-"localizedDescription": "iOS 빌드 오류 수정: 명시적 init",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=38",
-"size": 1281211,
+"version": "1.0.39",
+"buildVersion": "39",
+"date": "2026-11-12T04:09:16Z",
+"localizedDescription": "ChatGPT식 모델 선택 메뉴, 크레딧 없음(429) 시 무료 모드로 자동 처리",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=39",
+"size": 1288866,
 "minOSVersion": "17.0"
         }
       ],
