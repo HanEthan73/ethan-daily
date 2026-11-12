@@ -10,7 +10,9 @@ struct SettingsScreen: View {
     @State private var backupMsg: String?
     @State private var key = ""
     @State private var hasKey = Keychain.read() != nil
-    @AppStorage("gptModel") private var model = GPTModel.mini.rawValue
+    @AppStorage("gptModel") private var model = GPTModel.gemFlash.rawValue
+    @State private var gkey = ""
+    @State private var hasGKey = Keychain.read(account: Keychain.gemini) != nil
     @AppStorage("botEnabled") private var botEnabled = true
     @State private var testState: String?
     @State private var testing = false
@@ -50,10 +52,40 @@ struct SettingsScreen: View {
                     Text("켜 두면 왼쪽 아래 봇 버튼으로 어느 화면에서나 말하거나 써서 일정·할 일을 등록할 수 있어요. 끄면 버튼이 사라집니다.")
                 }
                 Section {
+                    if hasGKey {
+                        Label("Gemini 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
+                    }
+                    SecureField(hasGKey ? "새 키로 바꾸기" : "AIza로 시작하는 키", text: $gkey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    HStack {
+                        Button("저장") {
+                            Keychain.save(gkey.trimmingCharacters(in: .whitespacesAndNewlines), account: Keychain.gemini)
+                            gkey = ""
+                            hasGKey = Keychain.read(account: Keychain.gemini) != nil
+                            if hasGKey && !hasKey { model = GPTModel.gemFlash.rawValue }
+                        }
+                        .disabled(gkey.isEmpty)
+                        Spacer()
+                        if hasGKey {
+                            Button("키 삭제", role: .destructive) {
+                                Keychain.save("", account: Keychain.gemini)
+                                hasGKey = false
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    Link("구글 로그인하고 무료 키 받기 ↗", destination: URL(string: "https://aistudio.google.com/apikey")!)
+                } header: {
+                    Text("Gemini API 키 (무료 · 추천)")
+                } footer: {
+                    Text("충전·카드 없이 무료입니다. 링크에서 구글 계정으로 로그인 → ‘API 키 만들기’ → 복사해서 붙여넣기. 키는 이 아이폰의 Keychain에만 저장됩니다. 무료 사용분 대화는 구글 서비스 개선에 쓰일 수 있어요.")
+                }
+                Section {
                     if hasKey {
                         Label("API 키 저장됨", systemImage: "checkmark.seal.fill").foregroundStyle(Theme.todo)
                     }
-                    SecureField(hasKey ? "새 키로 바꾸기" : "sk-ant-로 시작하는 키", text: $key)
+                    SecureField(hasKey ? "새 키로 바꾸기" : "sk-로 시작하는 키", text: $key)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     HStack {
@@ -73,7 +105,7 @@ struct SettingsScreen: View {
                     }
                     .buttonStyle(.borderless)
                 } header: {
-                    Text("OpenAI API 키")
+                    Text("OpenAI API 키 (유료 · 선택)")
                 } footer: {
                     Text("platform.openai.com에서 발급합니다. 키는 이 아이폰의 Keychain에만 저장됩니다. API 사용료는 ChatGPT 구독과 별도로 청구됩니다.")
                 }

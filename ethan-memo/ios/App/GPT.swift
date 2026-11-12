@@ -15,7 +15,7 @@ final class Asker {
 
     func ask(_ item: Item, ctx: ModelContext) {
         guard !busy.contains(item.uid) else { return }
-        guard Keychain.read() != nil else {
+        guard GPTClient.config() != nil else {
             // API 키 없이: ChatGPT 앱(구독)으로 질문을 열고, 답은 복사해 와서 붙여넣기
             GPTLink.open(Prompt.make(item))
             return
@@ -67,40 +67,41 @@ enum Prompt {
     }
 }
 
-// MARK: - OpenAI API
+// MARK: - AI 모델 (무료 Gemini + 유료 OpenAI, 둘 다 OpenAI 호환 API)
 
 enum GPTModel: String, CaseIterable, Identifiable {
+    case gemFlash = "gemini-flash-latest"
+    case gemLite = "gemini-flash-lite-latest"
     case mini = "gpt-5-mini"
     case full = "gpt-5"
     case fast = "gpt-4o-mini"
     case four = "gpt-4o"
     var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .mini: return "GPT-5 mini (기본)"
-        case .full: return "GPT-5 (깊이)"
-        case .fast: return "GPT-4o mini (빠름·저렴)"
-        case .four: return "GPT-4o"
-        }
-    }
+    var isGemini: Bool { rawValue.hasPrefix("gemini") }
     var title: String {
         switch self {
+        case .gemFlash: return "Gemini Flash"
+        case .gemLite: return "Gemini Flash-Lite"
         case .mini: return "GPT-5 mini"
         case .full: return "GPT-5"
         case .fast: return "GPT-4o mini"
         case .four: return "GPT-4o"
         }
     }
+    var label: String { title + (isGemini ? " (무료)" : " (유료)") }
     var desc: String {
         switch self {
-        case .mini: return "빠르고 저렴한 기본 모델"
-        case .full: return "더 깊게 생각해 정확도↑ · 느리고 비쌈"
-        case .fast: return "가장 빠르고 저렴"
-        case .four: return "균형 잡힌 범용 모델"
+        case .gemFlash: return "무료 · 구글 로그인 키 · 똑똑하고 빠름"
+        case .gemLite: return "무료 · 더 빠르고 하루 한도 넉넉"
+        case .mini: return "OpenAI · 크레딧 충전 필요"
+        case .full: return "OpenAI · 더 깊게 생각 · 비쌈"
+        case .fast: return "OpenAI · 가장 저렴"
+        case .four: return "OpenAI · 균형 잡힌 범용"
         }
     }
+    var hasKey: Bool { isGemini ? Keychain.read(account: Keychain.gemini) != nil : Keychain.read() != nil }
     static var current: GPTModel {
-        GPTModel(rawValue: UserDefaults.standard.string(forKey: "gptModel") ?? "") ?? .mini
+        GPTModel(rawValue: UserDefaults.standard.string(forKey: "gptModel") ?? "") ?? .gemFlash
     }
 }
 
@@ -109,81 +110,87 @@ struct GPTError: Error {
     var noCredits = false
 }
 
-enum GPTClient {
-    static func ask(_ prompt: String, maxTokens: Int = 1200) async throws -> String {
-        guard let key = Keychain.read(), !key.isEmpty else {
-            throw GPTError(message: "API 키가 없습니다. 설정 탭에서 입력하세요.")
-        }
-        var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
-        req.httpMethod = "POST"
-        req.timeoutInterval = 120
-        req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let model = GPTModel.current.rawValue
-        let reasoning = model.hasPrefix("gpt-5")
-        var body: [String: Any] = [
-            "model": model,
-            "max_completion_tokens": reasoning ? maxTokens * 4 : maxTokens,
-            "messages": [["role": "user", "content": prompt]]
-        ]
-        if reasoning { body["reasoning_effort"] = "low" }
-        req.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, resp) = try await URLSession.shared.data(for: req)
-        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        guard code == 200 else {
-            struct E: Decodable { struct Inner: Decodable { let message: String }; let error: Inner }
-            let detail = (try? JSONDecoder().decode(E.self, from: data))?.error.message ?? ""
-            switch code {
-            case 401: throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
-            case 429: throw GPTError(message: "요청이 많거나 사용 한도를 넘었습니다. 잠시 후 다시 시도하세요.")
-            case 500, 503: throw GPTError(message: "OpenAI 서버가 혼잡합니다. 잠시 후 다시 시도하세요.")
-            default: throw GPTError(message: "요청 실패 (\(code)) \(detail)")
-            }
-        }
-        struct R: Decodable {
-            struct Choice: Decodable {
-                struct Msg: Decodable { let content: String? }
-                let message: Msg
-            }
-            let choices: [Choice]
-        }
-        let r = try JSONDecoder().decode(R.self, from: data)
-        let text = r.choices.first?.message.content ?? ""
-        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+struct AIConfig {
+    let model: GPTModel
+    let key: String
+    var url: URL {
+        URL(string: model.isGemini
+            ? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+            : "https://api.openai.com/v1/chat/completions")!
     }
 }
 
-extension GPTClient {
-    /// 도구 호출(챗봇)용: 임의의 body 조각을 합쳐 보내고 응답 JSON을 그대로 돌려줌
-    static func raw(_ extra: [String: Any]) async throws -> [String: Any] {
-        guard let key = Keychain.read(), !key.isEmpty else {
-            throw GPTError(message: "설정 탭에서 OpenAI API 키를 먼저 입력하세요.")
-        }
-        var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
+enum GPTClient {
+    /// 고른 모델의 키가 없으면 다른 쪽(무료 Gemini ↔ OpenAI) 키로 자동 전환, 둘 다 없으면 nil
+    static func config() -> AIConfig? {
+        let g = Keychain.read(account: Keychain.gemini), o = Keychain.read()
+        var m = GPTModel.current
+        if m.isGemini && g == nil { guard o != nil else { return nil }; m = .mini }
+        if !m.isGemini && o == nil { guard g != nil else { return nil }; m = .gemFlash }
+        guard let key = m.isGemini ? g : o else { return nil }
+        return AIConfig(model: m, key: key)
+    }
+
+    private static func request(_ c: AIConfig, _ extra: [String: Any], maxTokens: Int) throws -> URLRequest {
+        var req = URLRequest(url: c.url)
         req.httpMethod = "POST"
         req.timeoutInterval = 120
-        req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer " + c.key, forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let model = GPTModel.current.rawValue
-        let reasoning = model.hasPrefix("gpt-5")
-        var body: [String: Any] = ["model": model, "max_completion_tokens": reasoning ? 4000 : 1500]
-        if reasoning { body["reasoning_effort"] = "low" }
+        var body: [String: Any] = ["model": c.model.rawValue]
+        if c.model.isGemini {
+            body["max_tokens"] = max(2048, maxTokens * 3)
+        } else {
+            let reasoning = c.model.rawValue.hasPrefix("gpt-5")
+            body["max_completion_tokens"] = reasoning ? maxTokens * 4 : maxTokens
+            if reasoning { body["reasoning_effort"] = "low" }
+        }
         for (k, v) in extra { body[k] = v }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
-        let (data, resp) = try await URLSession.shared.data(for: req)
+        return req
+    }
+
+    private static func check(_ data: Data, _ resp: URLResponse, gemini: Bool) throws {
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-        guard code == 200 else {
-            struct E: Decodable { struct Inner: Decodable { let message: String }; let error: Inner }
-            let detail = (try? JSONDecoder().decode(E.self, from: data))?.error.message ?? ""
-            switch code {
-            case 401: throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
-            case 429:
-                let out = detail.range(of: "credit|quota|billing", options: [.regularExpression, .caseInsensitive]) != nil
-                throw GPTError(message: out ? "OpenAI 크레딧이 없어 무료 모드로 처리했어요. platform.openai.com → Billing에서 충전하면 GPT가 직접 답합니다 (ChatGPT 구독과는 별개)." : "요청이 많거나 사용 한도를 넘었습니다. 잠시 후 다시 시도하세요.", noCredits: out)
-            default: throw GPTError(message: "요청 실패 (\(code)) \(detail)")
-            }
+        guard code != 200 else { return }
+        var detail = ""
+        if let j = try? JSONSerialization.jsonObject(with: data) {
+            let obj = (j as? [[String: Any]])?.first ?? (j as? [String: Any])
+            detail = ((obj?["error"] as? [String: Any])?["message"] as? String) ?? ""
         }
+        if code == 401 || code == 403 || (code == 400 && detail.range(of: "api key", options: .caseInsensitive) != nil) {
+            throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
+        }
+        if code == 429 {
+            throw GPTError(message: gemini
+                ? "Gemini 무료 한도(분당·하루)를 잠시 넘어 기본 모드로 처리했어요. 조금 뒤 다시 하면 Gemini가 답합니다."
+                : "OpenAI 크레딧이 없거나 한도를 넘어 기본 모드로 처리했어요. 위 모델 선택에서 무료 Gemini로 바꾸면 충전 없이 쓸 수 있어요.",
+                noCredits: true)
+        }
+        if code >= 500 { throw GPTError(message: "AI 서버가 혼잡합니다. 잠시 후 다시 시도하세요.") }
+        throw GPTError(message: "요청 실패 (\(code)) \(detail)")
+    }
+
+    static func ask(_ prompt: String, maxTokens: Int = 1200) async throws -> String {
+        guard let c = config() else {
+            throw GPTError(message: "설정에서 무료 Gemini 키(또는 OpenAI 키)를 넣어 주세요.")
+        }
+        let req = try request(c, ["messages": [["role": "user", "content": prompt]]], maxTokens: maxTokens)
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        try check(data, resp, gemini: c.model.isGemini)
+        let r = (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        let msg = ((r["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any]) ?? [:]
+        return (msg["content"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// 도구 호출(챗봇)용: 임의의 body 조각을 합쳐 보내고 응답 JSON을 그대로 돌려줌
+    static func raw(_ extra: [String: Any]) async throws -> [String: Any] {
+        guard let c = config() else {
+            throw GPTError(message: "설정에서 무료 Gemini 키(또는 OpenAI 키)를 넣어 주세요.")
+        }
+        let req = try request(c, extra, maxTokens: 1500)
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        try check(data, resp, gemini: c.model.isGemini)
         return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 }
@@ -191,6 +198,7 @@ extension GPTClient {
 // MARK: - API 키 보관 (기기 Keychain)
 
 enum Keychain {
+    static let gemini = "geminiKey"
     private static func base(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: "haru.openai",

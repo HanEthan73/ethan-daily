@@ -217,7 +217,7 @@ final class ChatModel {
         guard !t.isEmpty, !busy else { return }
         msgs.append(ChatMsg(role: "user", content: t))
         error = nil
-        if (Keychain.read() ?? "").isEmpty { freeReply(t, ctx: ctx); return }
+        if GPTClient.config() == nil { freeReply(t, ctx: ctx); return }
         busy = true; persist()
         var acts: [String] = []
         var final = ""
@@ -233,7 +233,9 @@ final class ChatModel {
                 guard let choice = (r["choices"] as? [[String: Any]])?.first,
                       let m = choice["message"] as? [String: Any] else { break }
                 if let calls = m["tool_calls"] as? [[String: Any]], !calls.isEmpty {
-                    api.append(m)
+                    var am = m
+                    am["content"] = (m["content"] as? String) ?? ""
+                    api.append(am)
                     for c in calls {
                         let fn = c["function"] as? [String: Any] ?? [:]
                         let args = (try? JSONSerialization.jsonObject(with: Data((fn["arguments"] as? String ?? "{}").utf8))) as? [String: Any] ?? [:]
@@ -268,7 +270,7 @@ struct ChatScreen: View {
     private var chat = ChatModel.shared
     @State private var draft = ""
     @State private var speech = SpeechInput()
-    @AppStorage("gptModel") private var modelRaw = GPTModel.mini.rawValue
+    @AppStorage("gptModel") private var modelRaw = GPTModel.gemFlash.rawValue
     @FocusState private var focused: Bool
 
     private let examples = ["내일 저녁 7시 회식", "이번 주 할 일 정리해줘", "보고서 제출 완료 처리"]
@@ -318,14 +320,14 @@ struct ChatScreen: View {
 
     /// ChatGPT 앱처럼 위쪽 모델 이름 + ⌄ 를 누르면 모델 목록
     private var modelMenu: some View {
-        let cur = GPTModel(rawValue: modelRaw) ?? .mini
+        let cur = GPTClient.config()?.model ?? (GPTModel(rawValue: modelRaw) ?? .gemFlash)
         return Menu {
             ForEach(GPTModel.allCases) { m in
                 Button {
                     modelRaw = m.rawValue
                 } label: {
                     if m == cur { Label(m.title, systemImage: "checkmark") } else { Text(m.title) }
-                    Text(m.desc)
+                    Text(m.desc + (m.hasKey ? "" : " · 🔑 키 필요"))
                 }
             }
         } label: {
@@ -340,8 +342,8 @@ struct ChatScreen: View {
     private var intro: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("말로 등록하세요").font(.headline)
-            if (Keychain.read() ?? "").isEmpty {
-                Text("🆓 무료 모드: API 키 없이도 “내일 오후 3시 치과”처럼 말하면 바로 등록돼요. 질문 답변이나 말로 수정·삭제는 OpenAI 키를 넣으면 됩니다.")
+            if GPTClient.config() == nil {
+                Text("🆓 지금은 기본 모드: “내일 오후 3시 치과”처럼 말하면 바로 등록돼요.\n구글 로그인으로 무료 Gemini 키를 넣으면 질문 답변·말로 수정·삭제까지 돼요 (충전·카드 없음). ⚙ 설정 → Gemini API 키")
                     .font(.footnote).foregroundStyle(Theme.hi)
             }
             Text("“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장”처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.")

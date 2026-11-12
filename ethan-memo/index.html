@@ -1241,6 +1241,7 @@ main.grid{padding-bottom:88px}
 .mm-it:hover,.mm-it.on{background:var(--sunk)}
 .mm-t{display:flex;flex-direction:column;gap:2px}.mm-t b{font-size:15px}.mm-t small{font-size:12.5px;color:var(--muted)}
 .mm-c{font-weight:800;color:var(--hi)}
+.free-note{display:flex;flex-direction:column;gap:6px;align-items:flex-start}.free-note p{margin:0;font-size:13.5px;color:var(--hi)}
 </style>
 </head>
 <body>
@@ -1336,7 +1337,11 @@ main.grid{padding-bottom:88px}
       <div class="sw-row" id="lateSw"></div>
     </div>
     <div class="lockrow"><span>GPT 챗봇 버튼<small id="botState">왼쪽 아래 봇 버튼으로 말하면 일정·할 일을 등록</small></span><button class="ghost" id="botToggle" type="button">끄기</button></div>
-    <label class="f-col">OpenAI API 키 (선택)
+    <label class="f-col">Gemini API 키 (무료 · 추천)
+      <input type="password" id="sGKey" placeholder="AIza로 시작하는 키" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </label>
+    <p class="hint"><b>충전·카드 없이 무료.</b> <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>에서 구글 계정으로 로그인 → ‘API 키 만들기’ → 복사해서 붙여넣기. 무료 사용분 대화는 구글 서비스 개선에 쓰일 수 있어요.</p>
+    <label class="f-col">OpenAI API 키 (유료 · 선택)
       <input type="password" id="sKey" placeholder="sk-로 시작하는 OpenAI 키" autocomplete="off" autocapitalize="off" spellcheck="false">
     </label>
     <p class="hint"><b>비워 둬도 됩니다.</b> 키가 없으면 ‘GPT에게 묻기’가 ChatGPT(구독)로 열리고, 답을 복사해 오면 붙여넣을 수 있습니다. 키를 넣으면 앱 안에서 바로 답이 옵니다(사용료 별도).</p>
@@ -1417,7 +1422,7 @@ function askPrompt(x){
 ${x.text}`;}
 async function ask(id){
   const x=S.items.get(id);if(!x||!S.sample||S.asking.has(id))return;
-  if(!lsGet(KEY_LS)){openGPT(askPrompt(x),{label:'GPT 답변을 이 기록에 붙여넣기',apply:t=>{const y=S.items.get(id);if(y)put({...y,answer:t,answeredAt:Date.now()});}});return;}
+  if(!hasAI()){openGPT(askPrompt(x),{label:'GPT 답변을 이 기록에 붙여넣기',apply:t=>{const y=S.items.get(id);if(y)put({...y,answer:t,answeredAt:Date.now()});}});return;}
   S.asking.set(id,'');render();
   try{
     const r=await S.sample(askPrompt(x),{cache:false,onText:({text})=>{S.asking.set(id,text);if(S.edit&&S.edit.id===id){$('eAns').hidden=false;$('eAnsText').textContent=text||'생각하는 중…';}}});
@@ -1456,20 +1461,32 @@ function remove(id){S.items.delete(id);S.dead[id]=Date.now();saveDead();render()
 
 /* ---------- OpenAI API (키는 이 기기 localStorage에만) ---------- */
 const KEY_LS='ethanmemo.openaikey',MODEL_LS='ethanmemo.gptmodel';
-const MODELS=[['gpt-5-mini','GPT-5 mini (기본)'],['gpt-5','GPT-5 (깊이)'],['gpt-4o-mini','GPT-4o mini (빠름·저렴)'],['gpt-4o','GPT-4o']];
-const MODEL_DESC={'gpt-5-mini':'빠르고 저렴한 기본 모델','gpt-5':'더 깊게 생각해 정확도↑ · 느리고 비쌈','gpt-4o-mini':'가장 빠르고 저렴','gpt-4o':'균형 잡힌 범용 모델'};
+const GKEY_LS='ethanmemo.geminikey';
+const MODELS=[['gemini-flash-latest','Gemini Flash (무료)'],['gemini-flash-lite-latest','Gemini Flash-Lite (무료)'],['gpt-5-mini','GPT-5 mini (유료)'],['gpt-5','GPT-5 (유료)'],['gpt-4o-mini','GPT-4o mini (유료)'],['gpt-4o','GPT-4o (유료)']];
+const MODEL_DESC={'gemini-flash-latest':'무료 · 구글 로그인 키 · 똑똑하고 빠름','gemini-flash-lite-latest':'무료 · 더 빠르고 하루 한도 넉넉','gpt-5-mini':'OpenAI · 크레딧 충전 필요','gpt-5':'OpenAI · 더 깊게 생각 · 비쌈','gpt-4o-mini':'OpenAI · 가장 저렴','gpt-4o':'OpenAI · 균형 잡힌 범용'};
+const isGem=m=>/^(gemini|gemma)/.test(m||'');
+function aiCfg(){
+  const gk=lsGet(GKEY_LS),ok=lsGet(KEY_LS);let m=lsGet(MODEL_LS)||'';
+  if(!MODELS.some(x=>x[0]===m))m=gk?MODELS[0][0]:ok?'gpt-5-mini':MODELS[0][0];
+  if(isGem(m)&&!gk){if(!ok)return null;m='gpt-5-mini';}
+  if(!isGem(m)&&!ok){if(!gk)return null;m=MODELS[0][0];}
+  return isGem(m)?{model:m,key:gk,gem:true,url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'}
+                 :{model:m,key:ok,gem:false,url:'https://api.openai.com/v1/chat/completions'};}
+const hasAI=()=>!!aiCfg();
+function aiBody(c,maxTokens,extra){const b={model:c.model,...extra};
+  if(c.gem)b.max_tokens=Math.max(2048,maxTokens*3);
+  else{b.max_completion_tokens=/^gpt-5|^o\d/.test(c.model)?maxTokens*4:maxTokens;if(/^gpt-5/.test(c.model))b.reasoning_effort='low';}
+  return b;}
+async function aiErr(res){let m='';try{const j=await res.json();m=(Array.isArray(j)?j[0]:j).error.message}catch(e){}
+  return {code:res.status===401||(res.status===400&&/api key/i.test(m))||res.status===403?'bad_key':res.status===429?'rate_limited':'http',message:m,status:res.status};}
 const modelName=v=>{const m=MODELS.find(x=>x[0]===v)||MODELS[0];return m[1].replace(/\s*\(.*\)/,'');};
 function lsGet(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
 function lsSet(k,v){try{v?localStorage.setItem(k,v):localStorage.removeItem(k)}catch(e){}}
 async function callGPT(prompt,{onText,maxTokens}={}){
-  const key=lsGet(KEY_LS);if(!key)throw {code:'no_key'};
-  const model=lsGet(MODEL_LS)||MODELS[0][0];
-  const body={model,max_completion_tokens:(maxTokens||1200)*(/^gpt-5|^o\d/.test(model)?4:1),stream:true,messages:[{role:'user',content:prompt}]};
-  if(/^gpt-5/.test(model))body.reasoning_effort='low';
-  const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{
-    'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!res.ok){let m='';try{m=(await res.json()).error.message}catch(e){}
-    throw {code:res.status===401?'bad_key':res.status===429?'rate_limited':'http',message:m,status:res.status};}
+  const c=aiCfg();if(!c)throw {code:'no_key'};
+  const res=await fetch(c.url,{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},
+    body:JSON.stringify(aiBody(c,maxTokens||1200,{stream:true,messages:[{role:'user',content:prompt}]}))});
+  if(!res.ok)throw await aiErr(res);
   const rd=res.body.getReader(),dec=new TextDecoder();let buf='',text='';
   for(;;){const{done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
     let i;while((i=buf.indexOf('\n'))>=0){const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
@@ -1937,16 +1954,17 @@ $('tab-todo').onclick=()=>{S.view='todo';render();};
 
 $('wgBtn').onclick=()=>{location.hash='widget';};
 function openSettings(msg){
-  $('sKey').value=lsGet(KEY_LS);
+  if(S.botOpen)closeBot();
+  $('sKey').value=lsGet(KEY_LS);$('sGKey').value=lsGet(GKEY_LS);
   const sel=$('sModel');sel.replaceChildren(...MODELS.map(([v,l])=>h('option',{value:v,text:l})));sel.value=lsGet(MODEL_LS)||MODELS[0][0];
   const m=$('setMsg');m.hidden=!msg;m.textContent=msg||'';
   $('ghRepo').value=lsGet(GH_REPO);$('ghTok').value=lsGet(GH_TOKEN);paintSync();
-  paintThemeSw();$('setBg').hidden=false;if(msg)setTimeout(()=>$('sKey').focus(),0);
+  paintThemeSw();$('setBg').hidden=false;if(msg)setTimeout(()=>$(/OpenAI/.test(msg)?'sKey':'sGKey').focus(),0);
 }
 function closeSettings(){$('setBg').hidden=true;}
 $('setBtn').onclick=()=>openSettings();
 $('sCancel').onclick=closeSettings;
-$('sSave').onclick=()=>{lsSet(KEY_LS,$('sKey').value.trim());lsSet(MODEL_LS,$('sModel').value);closeSettings();render();toast(lsGet(KEY_LS)?'저장했습니다. 메모에서 GPT에게 물어보세요.':'저장했습니다');};
+$('sSave').onclick=()=>{lsSet(KEY_LS,$('sKey').value.trim());lsSet(GKEY_LS,$('sGKey').value.trim());if($('sGKey').value.trim()&&!lsGet(KEY_LS))$('sModel').value=isGem($('sModel').value)?$('sModel').value:MODELS[0][0];lsSet(MODEL_LS,$('sModel').value);closeSettings();render();toast(hasAI()?'저장했습니다. 봇 버튼으로 말해 보세요.':'저장했습니다');};
 /* ---------- Face ID 잠금 (패스키, 이 기기 안에서만) ---------- */
 const LOCK_LS='ethanmemo.lock';
 const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -2031,7 +2049,7 @@ $('lockToggle').onclick=()=>{if(lockOn()){lsSet(LOCK_LS,'');paintLockRow();toast
 $('unlockBtn').onclick=unlock;
 document.addEventListener('visibilitychange',()=>{if(document.hidden)hiddenAt=Date.now();else if(lockOn()&&hiddenAt&&Date.now()-hiddenAt>60000)showLock();});
 paintLockRow();showLock();
-$('sClear').onclick=()=>{lsSet(KEY_LS,'');$('sKey').value='';render();toast('키를 삭제했습니다');};
+$('sClear').onclick=()=>{lsSet(KEY_LS,'');lsSet(GKEY_LS,'');$('sKey').value='';$('sGKey').value='';render();toast('키를 삭제했습니다');};
 $('setBg').addEventListener('click',e=>{if(e.target===$('setBg'))closeSettings();});
 /* ---------- 할 일 밀기: ← 완료, → 일정 등록 ---------- */
 (function(){
@@ -2250,7 +2268,7 @@ async function decorate(id){
 
 내용:
 ${pg.body||'(비어 있음)'}`;
-  if(!lsGet(KEY_LS)){openGPT(prompt,{label:`GPT 답변을 ‘${pg.title}’에 붙여넣기`,apply:t=>{const q=S.pages.get(id);if(q){S.wikiUndo[id]=q.body;q.body=t;q.updatedAt=Date.now();savePages();}}});return;}
+  if(!hasAI()){openGPT(prompt,{label:`GPT 답변을 ‘${pg.title}’에 붙여넣기`,apply:t=>{const q=S.pages.get(id);if(q){S.wikiUndo[id]=q.body;q.body=t;q.updatedAt=Date.now();savePages();}}});return;}
   S.wikiBusy=id;S.wikiStream='';render();
   try{
     const r=await callGPT(prompt,{maxTokens:4000,onText:({text})=>{S.wikiStream=text;const el=$('wbody');if(el&&S.view==='wiki'&&S.wikiId===id&&!S.wikiEdit)el.innerHTML=renderMd(text);}});
@@ -2556,7 +2574,7 @@ async function summarizeDay(d){
 기록:
 ${ctx||'(기록 없음)'}
 ${dn&&dn.body.trim()?'\n기존 노트:\n'+dn.body:''}`;
-  if(!lsGet(KEY_LS)){openGPT(prompt,{label:`GPT 정리를 ${fmtDay(d)} 노트에 붙여넣기`,apply:t=>{const p=pageByTitle(d)||newPage(d);p.body=t;p.updatedAt=Date.now();savePages();}});return;}
+  if(!hasAI()){openGPT(prompt,{label:`GPT 정리를 ${fmtDay(d)} 노트에 붙여넣기`,apply:t=>{const p=pageByTitle(d)||newPage(d);p.body=t;p.updatedAt=Date.now();savePages();}});return;}
   const key='day:'+d;S.wikiBusy=key;S.wikiStream='';render();
   try{
     const r=await callGPT(prompt,{maxTokens:3000,onText:({text})=>{S.wikiStream=text;const el=$('wbody');if(el&&S.view==='wiki'&&S.wikiDay===d)el.innerHTML=renderMd(text);}});
@@ -2756,12 +2774,9 @@ function chatActText(name,a,r){
   if(name==='update_item')return [`✏️ 수정 · ${r.text} (${fmtDay(r.date)})`];
   if(name==='delete_item')return [`🗑 삭제 · ${r.deleted}`];return null;}
 async function gptRaw(body){
-  const key=lsGet(KEY_LS);if(!key)throw {code:'no_key'};
-  const model=lsGet(MODEL_LS)||MODELS[0][0];
-  const b={model,max_completion_tokens:/^gpt-5|^o\d/.test(model)?4000:1500,...body};
-  if(/^gpt-5/.test(model))b.reasoning_effort='low';
-  const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(b)});
-  if(!res.ok){let m='';try{m=(await res.json()).error.message}catch(e){}throw {code:res.status===401?'bad_key':'http',message:m,status:res.status};}
+  const c=aiCfg();if(!c)throw {code:'no_key'};
+  const res=await fetch(c.url,{method:'POST',headers:{'Authorization':'Bearer '+c.key,'Content-Type':'application/json'},body:JSON.stringify(aiBody(c,1500,body))});
+  if(!res.ok)throw await aiErr(res);
   return res.json();}
 /* ---------- 무료 모드(API 키 없이): 한국어 문장을 앱 안에서 바로 해석해 등록 ---------- */
 const p2=n=>String(n).padStart(2,'0');
@@ -2823,7 +2838,7 @@ function freeChat(text){
 async function chatSend(text){
   text=text.trim();if(!text||S.chatBusy)return;
   S.chat.push({role:'user',content:text});S.chatDraft='';S.chatErr='';S.chatFocus=true;
-  if(!lsGet(KEY_LS)){const r=freeChat(text);S.chat.push({role:'assistant',...r});saveChat();render();renderChat();return;}
+  if(!hasAI()){const r=freeChat(text);S.chat.push({role:'assistant',...r});saveChat();render();renderChat();return;}
   S.chatBusy=true;saveChat();renderChat();
   const acts=[];let final='';
   try{
@@ -2831,7 +2846,7 @@ async function chatSend(text){
     for(let round=0;round<5;round++){
       const r=await gptRaw({messages:msgs,tools:CHAT_TOOLS});const m=r.choices&&r.choices[0]&&r.choices[0].message;if(!m)break;
       if(m.tool_calls&&m.tool_calls.length){
-        msgs.push({role:'assistant',content:m.content||null,tool_calls:m.tool_calls});
+        m.tool_calls.forEach((tc,i)=>{if(!tc.id)tc.id='call_'+i;});msgs.push({role:'assistant',content:m.content||'',tool_calls:m.tool_calls});
         for(const tc of m.tool_calls){let a={};try{a=JSON.parse(tc.function.arguments||'{}')}catch(_){}
           const res=chatRun(tc.function.name,a);const lines=chatActText(tc.function.name,a,res);if(lines)acts.push(...lines);
           msgs.push({role:'tool',tool_call_id:tc.id,content:JSON.stringify(res)});}
@@ -2841,26 +2856,26 @@ async function chatSend(text){
     if(!final)final='답을 받지 못했습니다. 다시 말씀해 주세요.';
     S.chat.push({role:'assistant',content:final,acts});
   }catch(e){
-    if(e&&e.status===429&&/credit|quota|billing/i.test(e.message||'')){const r=freeChat(text);S.chat.push({role:'assistant',...r});S.chatErr='OpenAI 크레딧이 없어 무료 모드로 처리했어요. platform.openai.com → Billing에서 충전하면 GPT가 직접 답합니다 (ChatGPT 구독과는 별개).';S.chatBusy=false;saveChat();render();renderChat();return;}
-    S.chatErr=e&&e.code==='no_key'?'설정에서 OpenAI API 키를 먼저 넣어 주세요.':e&&e.code==='bad_key'?'API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.':('요청 실패'+(e&&e.status?` (${e.status})`:'')+(e&&e.message?' · '+e.message:''));
+    if(e&&e.status===429){const g=(aiCfg()||{}).gem;const r=freeChat(text);S.chat.push({role:'assistant',...r});S.chatErr=g?'Gemini 무료 한도(분당·하루)를 잠시 넘어 기본 모드로 처리했어요. 조금 뒤 다시 하면 Gemini가 답합니다.':'OpenAI 크레딧이 없어 기본 모드로 처리했어요. 위의 모델 선택에서 무료 Gemini로 바꾸면 충전 없이 쓸 수 있어요.';S.chatBusy=false;saveChat();render();renderChat();return;}
+    S.chatErr=e&&e.code==='no_key'?'설정에서 무료 Gemini 키(또는 OpenAI 키)를 넣어 주세요.':e&&e.code==='bad_key'?'API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.':('요청 실패'+(e&&e.status?` (${e.status})`:'')+(e&&e.message?' · '+e.message:''));
   }
   S.chatBusy=false;saveChat();render();renderChat();}
 S.modelOpen=false;
 function modelPicker(){
-  const cur=lsGet(MODEL_LS)||MODELS[0][0];
+  const c0=aiCfg(),cur=c0?c0.model:(lsGet(MODEL_LS)||MODELS[0][0]);
   const btn=h('button',{type:'button',class:'model-pill','aria-haspopup':'listbox','aria-expanded':S.modelOpen?'true':'false',onclick:e=>{e.stopPropagation();S.modelOpen=!S.modelOpen;renderChat();}},
     h('span',{text:modelName(cur)}),h('span',{class:'chev',text:'⌄'}));
   const wrap=h('div',{class:'model-wrap'},btn);
   if(S.modelOpen){wrap.append(h('div',{class:'model-menu',role:'listbox'},
     h('div',{class:'mm-h',text:'모델'}),
     ...MODELS.map(([v])=>h('button',{type:'button',class:'mm-it'+(v===cur?' on':''),role:'option','aria-selected':v===cur?'true':'false',
-      onclick:e=>{e.stopPropagation();lsSet(MODEL_LS,v);S.modelOpen=false;renderChat();}},
-      h('span',{class:'mm-t'},h('b',{text:modelName(v)}),h('small',{text:MODEL_DESC[v]||''})),h('span',{class:'mm-c',text:v===cur?'✓':''})))));}
+      onclick:e=>{e.stopPropagation();lsSet(MODEL_LS,v);S.modelOpen=false;renderChat();if(!(isGem(v)?lsGet(GKEY_LS):lsGet(KEY_LS))){closeBot();openSettings(isGem(v)?'Gemini 무료 키를 넣어 주세요: 링크에서 구글 로그인 → API 키 만들기 → 붙여넣기':'OpenAI 키를 넣어 주세요 (크레딧 충전 필요)');}}},
+      h('span',{class:'mm-t'},h('b',{text:modelName(v)}),h('small',{text:(MODEL_DESC[v]||'')+((isGem(v)?lsGet(GKEY_LS):lsGet(KEY_LS))?'':' · 🔑 키 필요')})),h('span',{class:'mm-c',text:v===cur?'✓':''})))));}
   return wrap;}
 function renderChat(){
   const p=$('botBox');if(!p)return;const had=!!(document.activeElement&&document.activeElement.id==='chatIn');
   const log=h('div',{class:'chat-log',id:'chatLog'});
-  if(!S.chat.length)log.append(h('div',{class:'chat-empty card'},h('b',{text:'말로 등록하세요'}),!lsGet(KEY_LS)?h('p',{class:'free-note',text:'🆓 무료 모드: API 키 없이도 “내일 오후 3시 치과”처럼 말하면 바로 등록돼요. 질문 답변이나 말로 수정·삭제는 OpenAI 키를 넣으면 됩니다.'}):null,h('p',{text:'“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장” 처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.'}),
+  if(!S.chat.length)log.append(h('div',{class:'chat-empty card'},h('b',{text:'말로 등록하세요'}),!hasAI()?h('div',{class:'free-note'},h('p',{text:'🆓 지금은 기본 모드: “내일 오후 3시 치과”처럼 말하면 바로 등록돼요.'}),h('p',{text:'구글 로그인으로 무료 Gemini 키를 넣으면 질문 답변·말로 수정·삭제까지 돼요 (충전·카드 없음).'}),h('button',{type:'button',class:'primary',text:'무료 키 넣기',onclick:()=>openSettings('Gemini 무료 키: 아래 링크에서 구글 로그인 → API 키 만들기 → 붙여넣기')})):null,h('p',{text:'“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장” 처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.'}),
     h('div',{class:'chat-ex'},...['내일 저녁 7시 회식','이번 주 할 일 정리해줘','보고서 제출 완료 처리'].map(t=>h('button',{type:'button',class:'chip',text:t,onclick:()=>chatSend(t)})))));
   for(const m of S.chat){
     const b=h('div',{class:'bub '+(m.role==='user'?'me':'bot')});
@@ -2869,7 +2884,7 @@ function renderChat(){
     if(m.gpt)log.append(h('button',{type:'button',class:'primary gptopen',text:'ChatGPT로 물어보기 ↗',onclick:()=>openGPT(m.gpt)}));
     if(m.acts&&m.acts.length)log.append(h('div',{class:'acts'},...m.acts.map(a=>h('div',{class:'act',text:a}))));}
   if(S.chatBusy)log.append(h('div',{class:'bub bot typing',text:'생각하는 중…'}));
-  if(S.chatErr)log.append(h('div',{class:'bub err'},S.chatErr,!lsGet(KEY_LS)?h('button',{type:'button',class:'ghost',text:'설정 열기',onclick:()=>openSettings()}):null));
+  if(S.chatErr)log.append(h('div',{class:'bub err'},S.chatErr,!hasAI()?h('button',{type:'button',class:'ghost',text:'설정 열기',onclick:()=>openSettings()}):null));
   const ta=h('textarea',{id:'chatIn',rows:'1',placeholder:'예) 내일 오후 3시 치과 예약',enterkeyhint:'send','aria-label':'GPT에게 말하기',disabled:S.chatBusy?'':null});
   ta.value=S.chatDraft;ta.addEventListener('input',()=>{S.chatDraft=ta.value;autoGrow(ta);});
   ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();chatSend(ta.value);}});
