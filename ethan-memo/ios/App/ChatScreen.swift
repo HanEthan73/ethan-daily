@@ -11,6 +11,8 @@ struct ChatMsg: Codable, Identifiable {
     var role: String          // "user" | "assistant"
     var content: String
     var acts: [String] = []
+    /// 무료 모드에서 GPT가 필요한 질문이면 ChatGPT로 열 문장
+    var gpt: String? = nil
 }
 
 @MainActor
@@ -178,12 +180,45 @@ final class ChatModel {
         return try? ctx.fetch(d).first
     }
 
+    // MARK: 무료 모드 (API 키 없음)
+    private func freeReply(_ t: String, ctx: ModelContext) {
+        defer { persist() }
+        if let r = QuickChat.listRange(t) {
+            let all = ((try? ctx.fetch(FetchDescriptor<Item>())) ?? [])
+                .filter { $0.day <= r.to && $0.lastDay >= r.from && !($0.kind == .todo && $0.done) }
+                .sorted { ($0.day, Fmt.minutes($0.time)) < ($1.day, Fmt.minutes($1.time)) }
+            if all.isEmpty { msgs.append(ChatMsg(role: "assistant", content: "\(r.label)에 등록된 일정·할 일·메모가 없습니다.")); return }
+            let ic: [Kind: String] = [.event: "📅", .todo: "☑️", .memo: "📝"]
+            let lines = all.prefix(40).map { "- \(Fmt.short($0.day))\($0.time.map { " " + Fmt.time($0) } ?? "") · \(ic[$0.kind] ?? "") \(WikiText.plain($0.text).replacingOccurrences(of: "\n", with: " ").prefix(50))" }
+            msgs.append(ChatMsg(role: "assistant", content: "**\(r.label)** 일정·할 일 \(all.count)건\n\n" + lines.joined(separator: "\n")))
+            return
+        }
+        if QuickChat.isEditCommand(t) {
+            msgs.append(ChatMsg(role: "assistant", content: "무료 모드에서는 **등록**만 말로 할 수 있어요. 수정·삭제·완료는 카드를 밀거나 눌러서 하세요. (OpenAI 키를 넣으면 말로도 가능합니다)"))
+            return
+        }
+        if QuickChat.isQuestion(t) {
+            msgs.append(ChatMsg(role: "assistant", content: "질문 답변은 GPT가 필요해요. 아래 버튼으로 **ChatGPT 앱·웹(무료 계정)**에서 바로 물어볼 수 있어요.", gpt: t))
+            return
+        }
+        let parsed = QuickChat.parse(t)
+        if parsed.isEmpty {
+            msgs.append(ChatMsg(role: "assistant", content: "이해하지 못했어요. “내일 오후 3시 치과”, “금요일까지 보고서 제출”처럼 말해 보세요."))
+            return
+        }
+        let items: [[String: Any]] = parsed.map { ["type": $0.type, "text": $0.text, "date": $0.date, "time": $0.time] }
+        let r = run("add_items", ["items": items], ctx: ctx)
+        msgs.append(ChatMsg(role: "assistant", content: "등록했어요 ✅ (무료 모드 · 잘못 알아들었으면 카드를 눌러 고치세요)", acts: r.acts))
+    }
+
     // MARK: 대화
     func send(_ text: String, ctx: ModelContext) async {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty, !busy else { return }
         msgs.append(ChatMsg(role: "user", content: t))
-        busy = true; error = nil; persist()
+        error = nil
+        if (Keychain.read() ?? "").isEmpty { freeReply(t, ctx: ctx); return }
+        busy = true; persist()
         var acts: [String] = []
         var final = ""
         do {
@@ -279,6 +314,10 @@ struct ChatScreen: View {
     private var intro: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("말로 등록하세요").font(.headline)
+            if (Keychain.read() ?? "").isEmpty {
+                Text("🆓 무료 모드: API 키 없이도 “내일 오후 3시 치과”처럼 말하면 바로 등록돼요. 질문 답변이나 말로 수정·삭제는 OpenAI 키를 넣으면 됩니다.")
+                    .font(.footnote).foregroundStyle(Theme.hi)
+            }
             Text("“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장”처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.")
                 .font(.subheadline).foregroundStyle(.secondary)
             HStack(spacing: 6) {
@@ -311,6 +350,15 @@ struct ChatScreen: View {
                 Text(CardMarkdown.attributed(m.content))
                     .padding(.horizontal, 14).padding(.vertical, 10)
                     .background(RoundedRectangle(cornerRadius: 20).fill(Theme.pill))
+                if let q = m.gpt {
+                    Button { GPTLink.open(q) } label: {
+                        Text("ChatGPT로 물어보기 ↗").font(.system(size: 14, weight: .bold))
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .foregroundStyle(Theme.ctaInk)
+                            .background(Capsule().fill(Theme.hi))
+                    }
+                    .buttonStyle(.borderless)
+                }
                 ForEach(m.acts, id: \.self) { a in
                     Text(a).font(.footnote)
                         .padding(.horizontal, 12).padding(.vertical, 6)

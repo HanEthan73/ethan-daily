@@ -1208,9 +1208,11 @@ main.grid.go-r{animation:tabInR .22s ease-out}
 .sw.memo[data-dir="r"] .sw-fg{box-shadow:none !important}
 
 /* GPT 봇: 왼쪽 아래 버튼 → 팝업 */
-.bot-fab{position:fixed;left:16px;bottom:calc(18px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;display:grid;place-items:center;
+.bot-fab{position:fixed;right:10px;bottom:calc(14px + env(safe-area-inset-bottom));touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;width:56px;height:56px;border-radius:50%;border:0;display:grid;place-items:center;
   background:var(--hi);color:var(--hi-ink,#fff);box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 1px rgba(255,255,255,.12) inset;z-index:40;cursor:pointer;transition:transform .15s}
 .bot-fab:active{transform:scale(.93)}
+.bot-fab.lift{transform:scale(1.14);box-shadow:0 12px 30px rgba(0,0,0,.4);transition:none}
+.bot-bg.r{justify-content:flex-end}
 .bot-fab[hidden]{display:none}
 .app[data-view="widget"] ~ .bot-fab{display:none}
 .lock:not([hidden]) ~ .bot-fab{display:none}
@@ -2746,9 +2748,68 @@ async function gptRaw(body){
   const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(b)});
   if(!res.ok){let m='';try{m=(await res.json()).error.message}catch(e){}throw {code:res.status===401?'bad_key':'http',message:m,status:res.status};}
   return res.json();}
+/* ---------- 무료 모드(API 키 없이): 한국어 문장을 앱 안에서 바로 해석해 등록 ---------- */
+const p2=n=>String(n).padStart(2,'0');
+const addDays=(k,n)=>{const d=pd(k);d.setDate(d.getDate()+n);return ymd(d);};
+const WD='일월화수목금토';
+const TODO_KW=/(제출|사야|사기|사오|구매|보내|챙기|확인|정리|마무리|신청|결제|연락|전화|해야|끝내|준비|작성|검토|수정|청소|빨래|운동|납부|가져|챙겨)/;
+const EVT_KW=/(미팅|약속|회식|만나|출장|면접|병원|치과|수업|회의|세미나|공연|여행|예약|식사|모임|파티|결혼|콘서트|시험|방문|진료|상담)/;
+function quickParse(text){
+  const t0=today(),dow=pd(t0).getDay(),out=[];
+  for(let c of String(text).split(/[,，.。\n]|\s그리고\s|\s및\s/)){
+    c=c.trim();if(!c)continue;let s=c,date=null,time='',m;const until=/까지/.test(c);
+    const cut=x=>{s=s.replace(x,' ');};
+    if(m=s.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/)||s.match(/(?<!\d)(\d{1,2})\/(\d{1,2})(?!\d)/)){const y=pd(t0).getFullYear();let k=`${y}-${p2(m[1])}-${p2(m[2])}`;if(k<t0)k=`${y+1}-${p2(m[1])}-${p2(m[2])}`;date=k;cut(m[0]);}
+    else if(m=s.match(/(\d{1,3})\s*일\s*(?:후|뒤)/)){date=addDays(t0,+m[1]);cut(m[0]);}
+    else if(m=s.match(/(\d)\s*주\s*(?:후|뒤)/)){date=addDays(t0,7*+m[1]);cut(m[0]);}
+    else if(m=s.match(/(다다음|다음|이번|담)\s*주\s*([월화수목금토일])(?:요일)?/)){const w=WD.indexOf(m[2]),add=m[1]==='이번'?0:m[1]==='다다음'?14:7;date=addDays(t0,w-dow+add);cut(m[0]);}
+    else if(m=s.match(/(오늘|내일|모레|글피|어제)/)){date=addDays(t0,{오늘:0,내일:1,모레:2,글피:3,어제:-1}[m[1]]);cut(m[0]);}
+    else if(m=s.match(/([월화수목금토일])요일/)){const w=WD.indexOf(m[1]);date=addDays(t0,(w-dow+7)%7);cut(m[0]);}
+    else if(m=s.match(/(?<![\d월])(\d{1,2})\s*일(?!\s*(?:후|뒤|간))/)){const y=pd(t0).getFullYear(),mo=pd(t0).getMonth()+1;let k=`${y}-${p2(mo)}-${p2(m[1])}`;if(k<t0){const n=new Date(y,mo,1);k=`${n.getFullYear()}-${p2(n.getMonth()+1)}-${p2(m[1])}`;}date=k;cut(m[0]);}
+    if(m=s.match(/(오전|오후|아침|저녁|밤|새벽|점심)?\s*(\d{1,2})\s*시\s*(?:(\d{1,2})\s*분|(반))?/)){let h=+m[2],mi=m[3]?+m[3]:m[4]?30:0;const ap=m[1]||'';
+      if(/오후|저녁|밤/.test(ap)){if(h<12)h+=12;}else if(/오전|아침|새벽/.test(ap)){if(h===12)h=0;}else if(/점심/.test(ap)){if(h<11)h+=12;}else if(h>=1&&h<=6)h+=12;
+      if(h<24&&mi<60){time=`${p2(h)}:${p2(mi)}`;cut(m[0]);}}
+    else if(m=s.match(/(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)/)){time=`${p2(m[1])}:${m[2]}`;cut(m[0]);}
+    const isMemo=/^\s*(메모|기록)/.test(c)||/메모\s*(해|로)/.test(c);
+    s=s.replace(/(메모|기록)\s*(해\s*줘|해줘|해|로|:)?/,' ').replace(/(일정|약속|할\s*일)?\s*(등록|추가|잡아|넣어|저장)\s*(해\s*줘|해줘|해|줘|주세요)?/g,' ').replace(/(해\s*줘|해줘|줘|주세요)\s*$/,' ').replace(/(오늘|내일|모레)/g,' ');
+    s=s.replace(/\s+/g,' ').trim().replace(/^(에|에는|까지|부터|은|는|도|이|가)\s+/,'').replace(/\s+(에|까지|부터)$/,'').replace(/(에|까지)$/,'').trim();
+    const text2=s||c;
+    let type;
+    if(isMemo)type='memo';
+    else if(until)type='todo';
+    else if(time)type=TODO_KW.test(text2)&&!EVT_KW.test(text2)?'todo':'event';
+    else if(EVT_KW.test(text2)&&date)type='event';
+    else type='todo';
+    out.push({type,text:text2,date:date||t0,time});
+  }
+  return out.filter(x=>x.text);
+}
+function quickList(text){
+  if(!/(일정|할\s*일|할일|메모)/.test(text)||!/(알려|보여|뭐|있어|있나|확인)/.test(text))return null;
+  const t0=today();let a=t0,b=t0,label='오늘';
+  if(/내일/.test(text)){a=b=addDays(t0,1);label='내일';}else if(/모레/.test(text)){a=b=addDays(t0,2);label='모레';}
+  else if(/이번\s*주|금주/.test(text)){const dow=pd(t0).getDay();a=addDays(t0,-dow);b=addDays(t0,6-dow);label='이번 주';}
+  else if(/다음\s*주/.test(text)){const dow=pd(t0).getDay();a=addDays(t0,7-dow);b=addDays(t0,13-dow);label='다음 주';}
+  const rows=all().filter(x=>!x.example&&x.date>=a&&x.date<=b&&!(x.type==='todo'&&x.done)).sort((x,y)=>x.date.localeCompare(y.date)||byTime(x,y));
+  if(!rows.length)return `${label}에 등록된 일정·할 일·메모가 없습니다.`;
+  return `**${label}** 일정·할 일 ${rows.length}건\n\n`+rows.map(x=>`- ${fmtDay(x.date)}${x.time?' '+x.time:''} · ${{event:'📅',todo:'☑️',memo:'📝'}[x.type]} ${plainLinks(x.text).replace(/\n/g,' ').slice(0,50)}`).join('\n');
+}
+function freeChat(text){
+  const list=quickList(text);if(list)return {content:list,acts:[]};
+  if(/(삭제|지워|지우|취소|완료\s*(처리|해)|수정|바꿔|변경)/.test(text)&&!/(등록|추가)/.test(text))
+    return {content:'무료 모드에서는 **등록**만 말로 할 수 있어요. 수정·삭제·완료는 카드를 밀거나 눌러서 하세요. (OpenAI 키를 넣으면 말로도 가능합니다)',acts:[]};
+  if(/[?？]\s*$|왜|어떻게|추천|설명|뭐야|뭔가요|알려\s*줘|알려줘|비교|차이/.test(text)&&!/(등록|추가)/.test(text))
+    return {content:'질문 답변은 GPT가 필요해요. 아래 버튼으로 **ChatGPT 앱·웹(무료 계정)**에서 바로 물어볼 수 있어요.',acts:[],gpt:text};
+  const items=quickParse(text);
+  if(!items.length)return {content:'이해하지 못했어요. “내일 오후 3시 치과”, “금요일까지 보고서 제출”처럼 말해 보세요.',acts:[]};
+  const r=chatRun('add_items',{items});const acts=chatActText('add_items',{},r)||[];
+  return {content:'등록했어요 ✅ (무료 모드 · 잘못 알아들었으면 카드를 눌러 고치세요)',acts};
+}
 async function chatSend(text){
   text=text.trim();if(!text||S.chatBusy)return;
-  S.chat.push({role:'user',content:text});S.chatDraft='';S.chatBusy=true;S.chatErr='';S.chatFocus=true;saveChat();renderChat();
+  S.chat.push({role:'user',content:text});S.chatDraft='';S.chatErr='';S.chatFocus=true;
+  if(!lsGet(KEY_LS)){const r=freeChat(text);S.chat.push({role:'assistant',...r});saveChat();render();renderChat();return;}
+  S.chatBusy=true;saveChat();renderChat();
   const acts=[];let final='';
   try{
     const msgs=[{role:'system',content:chatSys()},...S.chat.slice(-16).map(m=>({role:m.role,content:m.content+(m.acts&&m.acts.length?'\n[앱에 처리됨: '+m.acts.join(' / ')+']':'')}))];
@@ -2771,12 +2832,13 @@ async function chatSend(text){
 function renderChat(){
   const p=$('botBox');if(!p)return;const had=!!(document.activeElement&&document.activeElement.id==='chatIn');
   const log=h('div',{class:'chat-log',id:'chatLog'});
-  if(!S.chat.length)log.append(h('div',{class:'chat-empty card'},h('b',{text:'말로 등록하세요'}),h('p',{text:'“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장” 처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.'}),
+  if(!S.chat.length)log.append(h('div',{class:'chat-empty card'},h('b',{text:'말로 등록하세요'}),!lsGet(KEY_LS)?h('p',{class:'free-note',text:'🆓 무료 모드: API 키 없이도 “내일 오후 3시 치과”처럼 말하면 바로 등록돼요. 질문 답변이나 말로 수정·삭제는 OpenAI 키를 넣으면 됩니다.'}):null,h('p',{text:'“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장” 처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.'}),
     h('div',{class:'chat-ex'},...['내일 저녁 7시 회식','이번 주 할 일 정리해줘','보고서 제출 완료 처리'].map(t=>h('button',{type:'button',class:'chip',text:t,onclick:()=>chatSend(t)})))));
   for(const m of S.chat){
     const b=h('div',{class:'bub '+(m.role==='user'?'me':'bot')});
     if(m.role==='user')b.textContent=m.content;else{const t=h('div',{class:'wiki-body'});t.innerHTML=renderMd(m.content);b.append(t);}
     log.append(b);
+    if(m.gpt)log.append(h('button',{type:'button',class:'primary gptopen',text:'ChatGPT로 물어보기 ↗',onclick:()=>openGPT(m.gpt)}));
     if(m.acts&&m.acts.length)log.append(h('div',{class:'acts'},...m.acts.map(a=>h('div',{class:'act',text:a}))));}
   if(S.chatBusy)log.append(h('div',{class:'bub bot typing',text:'생각하는 중…'}));
   if(S.chatErr)log.append(h('div',{class:'bub err'},S.chatErr,!lsGet(KEY_LS)?h('button',{type:'button',class:'ghost',text:'설정 열기',onclick:()=>openSettings()}):null));
@@ -2805,12 +2867,44 @@ function micToggle(){
   }catch(e){S.listening=false;paintMic();toast('음성 인식을 시작하지 못했습니다');}}
 function openBot(){S.botOpen=true;$('botBg').hidden=false;renderChat();}
 function closeBot(){try{rec&&S.listening&&rec.stop()}catch(_){}S.botOpen=false;$('botBg').hidden=true;}
+
+/* 봇 버튼: 기본은 오른쪽 아래 · 꾹 누른 채 끌어서 옮김(좌우 가장자리에 붙음) */
+const BOTPOS_LS='ethanmemo.botpos';let fabMoved=false;
+function botPos(){try{return JSON.parse(lsGet(BOTPOS_LS)||'null')}catch(_){return null}}
+const FAB=56,FM=10;
+function placeFab(){const f=$('botFab'),p=botPos();
+  if(!p){f.style.left=f.style.top='';f.style.right='';f.style.bottom='';$('botBg').classList.add('r');return;}
+  const W=window.innerWidth,H=window.innerHeight,k=Math.max(0,Math.min(1,p.f));
+  let l,t;
+  if(p.edge==='l'||p.edge==='r'){l=p.edge==='l'?FM:W-FAB-FM;t=FM+k*(H-FAB-2*FM);}
+  else{t=p.edge==='t'?FM:H-FAB-FM;l=FM+k*(W-FAB-2*FM);}
+  f.style.left=l+'px';f.style.top=t+'px';f.style.right='auto';f.style.bottom='auto';
+  $('botBg').classList.toggle('r',l+FAB/2>=W/2);}
+(function(){
+  const f=$('botFab');let t=null,drag=false,st=null,off=null;
+  f.addEventListener('contextmenu',e=>e.preventDefault());
+  f.addEventListener('pointerdown',e=>{if(e.button>0)return;const r=f.getBoundingClientRect();st={x:e.clientX,y:e.clientY};off={x:e.clientX-r.left,y:e.clientY-r.top};drag=false;fabMoved=false;
+    clearTimeout(t);t=setTimeout(()=>{drag=true;f.classList.add('lift');try{f.setPointerCapture(e.pointerId)}catch(_){}try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}},380);});
+  f.addEventListener('pointermove',e=>{if(!st)return;
+    if(!drag){if(Math.abs(e.clientX-st.x)>10||Math.abs(e.clientY-st.y)>10){clearTimeout(t);st=null;}return;}
+    e.preventDefault();const W=window.innerWidth,H=window.innerHeight;
+    f.style.left=Math.max(0,Math.min(W-FAB,e.clientX-off.x))+'px';f.style.right='auto';f.style.top=Math.max(0,Math.min(H-FAB,e.clientY-off.y))+'px';f.style.bottom='auto';});
+  const end=()=>{clearTimeout(t);if(drag){const r=f.getBoundingClientRect(),W=window.innerWidth,H=window.innerHeight;
+      /* 가장 가까운 모서리(왼·오른·위·아래)에 딱 붙임 */
+      const d={l:r.left,r:W-r.right,t:r.top,b:H-r.bottom};const edge=Object.keys(d).reduce((a,c)=>d[c]<d[a]?c:a,'r');
+      const f0=(edge==='l'||edge==='r')?(r.top-FM)/(H-FAB-2*FM):(r.left-FM)/(W-FAB-2*FM);
+      lsSet(BOTPOS_LS,JSON.stringify({edge,f:Math.max(0,Math.min(1,f0))}));fabMoved=true;setTimeout(()=>fabMoved=false,400);}
+    f.classList.remove('lift');drag=false;st=null;placeFab();};
+  f.addEventListener('pointerup',end);f.addEventListener('pointercancel',end);
+  window.addEventListener('resize',placeFab);
+  placeFab();
+})();
 const BOT_LS='ethanmemo.botoff';
 const botOn=()=>lsGet(BOT_LS)!=='1';
 function paintBot(){const on=botOn();$('botFab').hidden=!on;if(!on&&S.botOpen)closeBot();$('botToggle').textContent=on?'끄기':'켜기';$('botState').textContent=on?'왼쪽 아래 봇 버튼으로 말하면 일정·할 일을 등록':'꺼짐 · 화면에서 봇 버튼을 숨겼습니다';}
 $('botToggle').onclick=()=>{lsSet(BOT_LS,botOn()?'1':'');paintBot();toast(botOn()?'GPT 챗봇 버튼을 켰습니다':'GPT 챗봇 버튼을 껐습니다');};
 paintBot();
-$('botFab').onclick=()=>S.botOpen?closeBot():openBot();
+$('botFab').onclick=()=>{if(fabMoved){fabMoved=false;return;}S.botOpen?closeBot():openBot();};
 $('botBg').addEventListener('click',e=>{if(e.target===$('botBg'))closeBot();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.botOpen)closeBot();});
 if(location.hash.startsWith('#import=')){const c=location.hash;history.replaceState(null,'',location.pathname+location.search);importCode(c);}
