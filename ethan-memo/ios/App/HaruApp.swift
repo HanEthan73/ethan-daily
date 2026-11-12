@@ -16,6 +16,7 @@ enum Tab: Hashable { case todo, calendar, wiki, settings }
 struct RootView: View {
     private var router = Router.shared
     @Environment(\.scenePhase) private var phase
+    @Environment(\.modelContext) private var mctx
     private var asker = Asker.shared
     @AppStorage(ThemePrefs.accentKey, store: Store.defaults) private var accentKey = "orange"
     @AppStorage(ThemePrefs.lateKey, store: Store.defaults) private var lateKey = "coral"
@@ -83,13 +84,17 @@ struct RootView: View {
             if p == .background { Store.refreshWidgets() }
             if p == .active {
                 SyncService.shared.schedule(0.3)
+                CalendarBridge.shared.reload()
+                CalendarBridge.shared.schedulePush(mctx)
                 Task { await Holidays.shared.refresh() }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: Store.changed)) { _ in
             SyncService.shared.schedule()
+            CalendarBridge.shared.schedulePush(mctx)
         }
         .task {
+            CalendarBridge.shared.reload()
             await Holidays.shared.refresh()
             // 열려 있는 동안 1분마다 다른 기기 변경 사항 받기
             while !Task.isCancelled {

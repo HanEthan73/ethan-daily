@@ -17,14 +17,17 @@ struct CalendarScreen: View {
     @State private var rangeDraft: RangeDraft?
     @State private var memoBoard = false
     private var router = Router.shared
+    private var bridge = CalendarBridge.shared
 
-    private var dayItems: [Item] { items.filter { $0.covers(selected) } }
+    /// 앱 항목 + 구글·아이폰 캘린더 일정
+    private var merged: [Item] { bridge.ext.isEmpty ? items : items + bridge.ext }
+    private var dayItems: [Item] { merged.filter { $0.covers(selected) } }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // 달력은 위에 고정: 드래그가 스크롤과 겹치지 않게
-                MonthGrid(month: $month, selected: $selected, items: items) { s, e in
+                MonthGrid(month: $month, selected: $selected, items: merged) { s, e in
                     rangeDraft = RangeDraft(start: s, end: e)
                 }
                 .padding(.horizontal, 12)

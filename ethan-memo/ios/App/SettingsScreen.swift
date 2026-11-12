@@ -14,6 +14,10 @@ struct SettingsScreen: View {
     @State private var gkey = ""
     @State private var hasGKey = Keychain.read(account: Keychain.gemini) != nil
     @AppStorage("botEnabled") private var botEnabled = true
+    @AppStorage(CalendarBridge.showKey) private var gcalShow = false
+    @AppStorage(CalendarBridge.pushKey) private var gcalPush = true
+    @AppStorage(CalendarBridge.targetKey) private var gcalTarget = ""
+    private var bridge = CalendarBridge.shared
     @State private var testState: String?
     @State private var testing = false
     @State private var repo = SyncService.shared.repo
@@ -43,6 +47,39 @@ struct SettingsScreen: View {
                     Text("테마 색")
                 } footer: {
                     Text("강조색은 버튼·오늘·선택 표시에, 지난 일 색은 날짜가 지난 할 일에 쓰입니다. 맨 끝 무지개 동그라미로 원하는 색을 직접 고를 수 있어요.")
+                }
+                Section {
+                    Toggle("구글 캘린더 연동", isOn: $gcalShow)
+                        .onChange(of: gcalShow) { _, on in
+                            guard on else { bridge.reload(); return }
+                            Task {
+                                if await bridge.requestAccess() { bridge.reload(); bridge.schedulePush(ctx) }
+                                else { gcalShow = false }
+                            }
+                        }
+                    if gcalShow && bridge.authorized {
+                        Toggle("앱 일정을 구글 캘린더에도 추가", isOn: $gcalPush)
+                            .onChange(of: gcalPush) { _, on in if on { bridge.schedulePush(ctx) } }
+                        if gcalPush {
+                            Picker("추가할 캘린더", selection: Binding(get: { bridge.target?.calendarIdentifier ?? "" }, set: { gcalTarget = $0; bridge.schedulePush(ctx) })) {
+                                ForEach(bridge.writableCalendars, id: \.calendarIdentifier) { c in
+                                    Text("\(c.title) · \(c.source.title)").tag(c.calendarIdentifier)
+                                }
+                            }
+                        }
+                        HStack {
+                            Text(bridge.googleAccountFound ? "구글 계정 연결됨" : "구글 계정이 아직 없음")
+                                .foregroundStyle(bridge.googleAccountFound ? Theme.todo : Theme.warn)
+                            Spacer()
+                            Text("일정 \(bridge.ext.count)개").foregroundStyle(.secondary)
+                        }
+                        .font(.footnote)
+                        Button("지금 동기화") { bridge.reload(); bridge.pushAll(ctx) }
+                    }
+                } header: {
+                    Text("구글 캘린더")
+                } footer: {
+                    Text("처음 한 번: 아이폰 설정 → 캘린더 → 계정 → 계정 추가 → Google 로그인 → ‘캘린더’ 켜기. 그다음 여기서 연동을 켜면 구글 일정이 달력에 ‘G’로 보이고, 앱에서 만든 일정은 고른 구글 캘린더에도 추가·수정·삭제됩니다. 키·충전 필요 없음.")
                 }
                 Section {
                     Toggle("GPT 챗봇 버튼", isOn: $botEnabled)

@@ -16,6 +16,9 @@ enum Kind: String, Codable, CaseIterable, Identifiable {
 @Model
 final class Item {
     @Attribute(.unique) var uid: String
+    /// 아이폰 캘린더(구글 등)에서 읽어 온 일정이면 그 일정 ID (저장 안 함 · 화면 표시용)
+    @Transient var extID: String? = nil
+    @Transient var extCal: String? = nil
     var kindRaw: String
     /// 시작일(자정 기준)
     var day: Date

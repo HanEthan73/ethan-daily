@@ -54,7 +54,11 @@ struct ItemRow: View {
 
     private var isLate: Bool { item.kind == .todo && !item.done && Fmt.daysBetween(item.day, .now) > 0 }
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if item.extID != nil { ExtRow(item: item) } else { normalBody }
+    }
+
+    private var normalBody: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             leading
             VStack(alignment: .leading, spacing: 3) {

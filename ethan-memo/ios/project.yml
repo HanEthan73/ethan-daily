@@ -28,6 +28,8 @@ targets:
         CFBundleDisplayName: ETHAN MEMO
         UILaunchScreen: {}
         ITSAppUsesNonExemptEncryption: false
+        NSCalendarsFullAccessUsageDescription: 구글 캘린더(아이폰 캘린더에 추가한 계정) 일정을 ETHAN MEMO 달력에 보여 주고, 앱에서 만든 일정을 캘린더에도 추가하려고 사용합니다.
+        NSCalendarsUsageDescription: 구글 캘린더 일정을 ETHAN MEMO 달력에 보여 주고, 앱 일정을 캘린더에 추가하려고 사용합니다.
         NSMicrophoneUsageDescription: GPT 비서에게 말로 일정·할 일을 등록하려고 마이크를 사용합니다.
         NSSpeechRecognitionUsageDescription: 말한 내용을 글로 바꿔 GPT 비서에 입력하려고 음성 인식을 사용합니다.
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
