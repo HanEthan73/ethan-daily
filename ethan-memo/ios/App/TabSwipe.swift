@@ -4,7 +4,7 @@ import UIKit
 /// 좌우로 쓸어 탭 이동. 카드(← 완료 / → 일정 등록)와 달력 칸(좌우 = 달 이동)은 자기 밀기가 따로 있으니
 /// 그 위에서 시작한 동작은 탭 이동으로 치지 않음.
 enum TabSwipe {
-    static let order: [Tab] = [.todo, .calendar, .wiki]
+    static let order: [Tab] = [.todo, .calendar, .wiki, .chat]
     fileprivate static let blocks = NSHashTable<UIView>.weakObjects()
 
     /// 손가락이 닿은 자리(창 기준 좌표)가 탭 이동을 하면 안 되는 곳인가

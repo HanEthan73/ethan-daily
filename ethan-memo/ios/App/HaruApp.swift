@@ -11,7 +11,7 @@ struct HaruApp: App {
     }
 }
 
-enum Tab: Hashable { case todo, calendar, wiki, settings }
+enum Tab: Hashable { case todo, calendar, wiki, chat, settings }
 
 struct RootView: View {
     private var router = Router.shared
@@ -32,13 +32,16 @@ struct RootView: View {
             WikiScreen().id(themeID)
                 .tabItem { Label("위키", systemImage: "book.closed") }
                 .tag(Tab.wiki)
+            ChatScreen().id(themeID)
+                .tabItem { Label("GPT", systemImage: "bubble.left.and.text.bubble.right") }
+                .tag(Tab.chat)
             SettingsScreen()
                 .tabItem { Label("설정", systemImage: "gearshape") }
                 .tag(Tab.settings)
         }
         .tint(Theme.hi)
         .onChange(of: themeID) { _, _ in Store.refreshWidgets() }
-        // 좌우로 쓸어서 할 일 ↔ 캘린더 ↔ 위키
+        // 좌우로 쓸어서 할 일 ↔ 캘린더 ↔ 위키 ↔ GPT
         .simultaneousGesture(
             DragGesture(minimumDistance: 40, coordinateSpace: .global)
                 .onEnded { v in

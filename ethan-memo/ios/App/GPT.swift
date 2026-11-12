@@ -137,6 +137,38 @@ enum GPTClient {
     }
 }
 
+extension GPTClient {
+    /// 도구 호출(챗봇)용: 임의의 body 조각을 합쳐 보내고 응답 JSON을 그대로 돌려줌
+    static func raw(_ extra: [String: Any]) async throws -> [String: Any] {
+        guard let key = Keychain.read(), !key.isEmpty else {
+            throw GPTError(message: "설정 탭에서 OpenAI API 키를 먼저 입력하세요.")
+        }
+        var req = URLRequest(url: URL(string: "https://api.openai.com/v1/chat/completions")!)
+        req.httpMethod = "POST"
+        req.timeoutInterval = 120
+        req.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let model = GPTModel.current.rawValue
+        let reasoning = model.hasPrefix("gpt-5")
+        var body: [String: Any] = ["model": model, "max_completion_tokens": reasoning ? 4000 : 1500]
+        if reasoning { body["reasoning_effort"] = "low" }
+        for (k, v) in extra { body[k] = v }
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        guard code == 200 else {
+            struct E: Decodable { struct Inner: Decodable { let message: String }; let error: Inner }
+            let detail = (try? JSONDecoder().decode(E.self, from: data))?.error.message ?? ""
+            switch code {
+            case 401: throw GPTError(message: "API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.")
+            case 429: throw GPTError(message: "요청이 많거나 사용 한도를 넘었습니다. 잠시 후 다시 시도하세요.")
+            default: throw GPTError(message: "요청 실패 (\(code)) \(detail)")
+            }
+        }
+        return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+    }
+}
+
 // MARK: - API 키 보관 (기기 Keychain)
 
 enum Keychain {

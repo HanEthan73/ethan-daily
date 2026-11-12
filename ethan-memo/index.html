@@ -1180,6 +1180,35 @@ html{overscroll-behavior-y:contain}
 @keyframes tabInR{from{opacity:.0;transform:translateX(-26px)}to{opacity:1;transform:none}}
 main.grid.go-l{animation:tabInL .22s ease-out}
 main.grid.go-r{animation:tabInR .22s ease-out}
+
+/* GPT 챗봇 탭 */
+.app[data-view="chat"] .cal-col{display:none}
+.app[data-view="chat"] .grid{grid-template-columns:minmax(0,1fr);max-width:720px;margin:0 auto;width:100%}
+.chat-top{display:flex;align-items:center;justify-content:space-between;padding:2px 4px}
+.chat-top b{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.chat-log{display:flex;flex-direction:column;gap:8px;min-height:40vh;padding-bottom:6px}
+.chat-empty{padding:18px;display:flex;flex-direction:column;gap:8px}
+.chat-empty p{color:var(--muted);font-size:14px;line-height:1.6;margin:0}
+.chat-ex{display:flex;flex-wrap:wrap;gap:6px}
+.bub{max-width:88%;padding:10px 14px;border-radius:20px;font-size:15px;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
+.bub.me{align-self:flex-end;background:var(--hi);color:var(--hi-ink,#fff);border-bottom-right-radius:6px}
+.bub.bot{align-self:flex-start;background:var(--pill,var(--surface));color:var(--ink);border-bottom-left-radius:6px;white-space:normal}
+.bub.bot .wiki-body{padding:0;font-size:15px;line-height:1.6}
+.bub.bot .wiki-body>:first-child{margin-top:0}.bub.bot .wiki-body>:last-child{margin-bottom:0}
+.bub.typing{color:var(--muted)}
+.bub.err{align-self:stretch;max-width:none;background:color-mix(in srgb,var(--late) 18%,transparent);color:var(--ink);display:flex;gap:10px;align-items:center;justify-content:space-between}
+.acts{align-self:flex-start;display:flex;flex-direction:column;gap:4px;max-width:92%}
+.act{font-size:13px;padding:6px 12px;border-radius:999px;background:color-mix(in srgb,#34C759 16%,transparent);color:var(--ink)}
+.chat-form{position:sticky;bottom:10px;display:flex;flex-direction:row;align-items:flex-end;gap:8px;padding:8px;border-radius:26px;z-index:5}
+.chat-form textarea{flex:1 1 0;min-width:0;resize:none;border:0;background:none;color:var(--ink);font:inherit;font-size:16px;line-height:1.45;padding:8px 10px;max-height:40vh;outline:none}
+.chat-form .primary{flex:none;min-width:70px}
+.chat-form textarea,.chat-form textarea:focus{border:0!important;box-shadow:none!important;outline:none!important;background:none!important;border-radius:0}
+.tabs{grid-template-columns:repeat(4,1fr)}
+
+/* 메모: → 오른쪽으로 밀면 삭제 */
+.sw.memo[data-dir="r"] .sw-bg{background:#E5484D}
+.sw.memo .sw-bg{justify-content:flex-start}
+.sw.memo[data-dir="r"] .sw-fg{box-shadow:none !important}
 </style>
 </head>
 <body>
@@ -1200,6 +1229,7 @@ main.grid.go-r{animation:tabInR .22s ease-out}
       <button role="tab" id="tab-todo" aria-selected="true">할 일 <span class="badge" id="badge"></span></button>
       <button role="tab" id="tab-cal" aria-selected="false">캘린더</button>
       <button role="tab" id="tab-wiki" aria-selected="false">위키</button>
+      <button role="tab" id="tab-chat" aria-selected="false">GPT</button>
     </nav>
   </header>
 
@@ -1435,12 +1465,14 @@ function render(){
   $('tab-cal').setAttribute('aria-selected',S.view==='cal');
   $('tab-todo').setAttribute('aria-selected',S.view==='todo');
   $('tab-wiki').setAttribute('aria-selected',S.view==='wiki');
+  $('tab-chat').setAttribute('aria-selected',S.view==='chat');
   paintSync();
   const t=today();
   const due=all().filter(x=>x.type==='todo'&&!x.done&&x.date<=t).length;
   $('badge').textContent=due?String(due):'';
   if(S.view==='widget'){renderWidget();return;}
   if(S.view==='wiki'){renderWiki();return;}
+  if(S.view==='chat'){renderChat();return;}
   renderCal();
   S.view==='cal'?renderDay():renderTodos();
 }
@@ -1652,7 +1684,9 @@ function itemRow(x,opts={}){
       h('div',{class:'sw-fg'},c,body,memoBadge(x),pinBadge(x)));
   }
   if(x.type==='event')return h('li',{class:'it ev hl-'+hl(x)+(pinHere(x)?' pinned':''),'data-id':x.id},h('span',{class:'time'+(x.time||x.endDate?'':' none'),text:x.endDate?'기간':(x.time||'종일')}),body,memoBadge(x),pinBadge(x));
-  return h('li',{class:'it memo'+(pinHere(x)?' pinned':''),'data-id':x.id},body,pinBadge(x));
+  return h('li',{class:'it memo sw'+(pinHere(x)?' pinned':''),'data-id':x.id,oncontextmenu:e=>e.preventDefault()},
+    h('div',{class:'sw-bg','aria-hidden':'true'},h('span',{class:'sw-l',text:'🗑 삭제'}),h('span',{class:'sw-r',text:''})),
+    h('div',{class:'sw-fg'},body,pinBadge(x)));
 }
 
 /* 완료한 할 일은 접어 두기 */
@@ -1975,13 +2009,14 @@ $('setBg').addEventListener('click',e=>{if(e.target===$('setBg'))closeSettings()
     if(Math.abs(dx)>8||Math.abs(dy)>8)clearTimeout(sw.lp);
     if(!sw.on){if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.3){sw.on=true;sw.fg.style.transition='none';try{sw.fg.setPointerCapture(e.pointerId)}catch(_){}}
       else{if(Math.abs(dy)>10)sw=null;return;}}
-    sw.dx=Math.max(-150,Math.min(150,dx));sw.li.dataset.dir=sw.dx>0?'r':'l';
+    sw.dx=Math.max(sw.li.classList.contains('memo')?0:-150,Math.min(150,dx));sw.li.dataset.dir=sw.dx>0?'r':'l';
     sw.fg.style.transform=`translateX(${sw.dx}px)`;
     const arm=Math.abs(sw.dx)>80;if(arm!==sw.li.classList.contains('arm')){sw.li.classList.toggle('arm',arm);if(arm&&navigator.vibrate)try{navigator.vibrate(8)}catch(_){}}});
   const end=e=>{if(!sw||e.pointerId!==sw.id)return;const s=sw;sw=null;clearTimeout(s.lp);if(!s.on)return;
     s.fg.style.transition='';s.fg.style.transform='';s.li.classList.remove('arm');swJust=true;setTimeout(()=>swJust=false,350);
     if(e.type!=='pointerup'||Math.abs(s.dx)<=80)return;
     const x=S.items.get(s.li.dataset.id);if(!x)return;
+    if(s.li.classList.contains('memo')){if(s.dx>0){try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}remove(x.id);toast('🗑 메모를 삭제했습니다');}return;}
     if(s.dx<0){put({...x,done:!x.done,doneAt:!x.done?Date.now():null});toast(x.done?'되돌렸습니다':'완료했습니다');}
     else openNew({type:'event',date:x.date<today()?today():x.date,endDate:'',time:x.time||'',text:plainLinks(x.text)});};
   panel.addEventListener('pointerup',end);panel.addEventListener('pointercancel',end);
@@ -2638,13 +2673,112 @@ const _sSave=$('sSave').onclick;
 $('sSave').onclick=()=>{const r=$('ghRepo').value.trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/\/$/,''),k=$('ghTok').value.trim();
   lsSet(GH_REPO,r);lsSet(GH_TOKEN,k);_sSave();if(Sync.on()){Sync.state='busy';paintSync();Sync.run();}else paintSync();};
 
+/* ---------- GPT 챗봇: 말로 일정·할 일·메모를 등록/수정/삭제 ---------- */
+const CHAT_LS='ethanmemo.chat.v1';
+S.chat=(()=>{try{return JSON.parse(lsGet(CHAT_LS)||'[]').slice(-40)}catch(_){return []}})();
+S.chatBusy=false;S.chatDraft='';S.chatErr='';
+const saveChat=()=>lsSet(CHAT_LS,JSON.stringify(S.chat.slice(-40)));
+const DATE_RE=/^\d{4}-\d{2}-\d{2}$/,TIME_RE=/^([01]\d|2[0-3]):[0-5]\d$/;
+const CHAT_TOOLS=[
+ {type:'function',function:{name:'add_items',description:'사용자의 일정·할 일·메모를 앱에 등록한다. 여러 개를 한 번에 등록할 수 있다.',parameters:{type:'object',properties:{items:{type:'array',items:{type:'object',properties:{
+  type:{type:'string',enum:['event','todo','memo'],description:'event=특정 날짜(시간)에 있는 약속·일정, todo=해야 할 일, memo=기록·생각'},
+  text:{type:'string',description:'제목(짧게)'},date:{type:'string',description:'YYYY-MM-DD. 기간 일정이면 시작일. 말하지 않았으면 오늘'},
+  endDate:{type:'string',description:'기간 일정의 종료일 YYYY-MM-DD (선택)'},time:{type:'string',description:'HH:MM 24시간제 (선택, 모르면 비움)'},note:{type:'string',description:'세부 내용 (선택)'}},required:['type','text','date']}}},required:['items']}}},
+ {type:'function',function:{name:'update_item',description:'이미 있는 항목을 수정한다(완료 처리 포함). id는 항목 목록에 있는 값.',parameters:{type:'object',properties:{id:{type:'string'},text:{type:'string'},date:{type:'string'},endDate:{type:'string'},time:{type:'string'},note:{type:'string'},type:{type:'string',enum:['event','todo','memo']},done:{type:'boolean'}},required:['id']}}},
+ {type:'function',function:{name:'delete_item',description:'항목을 삭제한다. 사용자가 분명히 지우라고 했을 때만.',parameters:{type:'object',properties:{id:{type:'string'}},required:['id']}}}];
+function chatSys(){
+  const t=today(),d=pd(t),lo=ymd(new Date(d.getTime()-7*864e5)),hi=ymd(new Date(d.getTime()+45*864e5));
+  const rows=all().filter(x=>!x.example&&((x.type==='todo'&&!x.done)||(x.date>=lo&&x.date<=hi))).sort((a,b)=>a.date.localeCompare(b.date)||byTime(a,b)).slice(0,120)
+    .map(x=>`${x.id}|${{event:'일정',todo:'할일',memo:'메모'}[x.type]}|${x.date}${x.endDate?'~'+x.endDate:''}|${x.time||'-'}|${plainLinks(x.text).replace(/\n/g,' ').slice(0,60)}${x.done?'|완료':''}`);
+  return `당신은 ETHAN MEMO의 개인 비서 챗봇입니다. 한국어로 짧고 친근하게 답하세요.
+오늘은 ${t} (${KD[d.getDay()]}요일)입니다. 시간대는 한국(KST).
+사용자가 일정·약속·할 일·메모를 말하면 되묻지 말고 바로 add_items 도구로 등록하세요. 여러 건이면 한 번에 등록하세요.
+- "내일", "다음 주 화요일", "모레 3시" 같은 상대 표현은 오늘 기준으로 정확한 날짜(YYYY-MM-DD)로 바꾸세요.
+- 날짜·시간이 정해진 약속/만남/방문은 event, 해야 할 일은 todo(날짜 없으면 오늘), 단순 기록·아이디어는 memo.
+- 시간을 말하지 않았으면 time은 비우세요. 오전/오후 표현이 애매하면 상식적으로 판단하세요.
+- 수정·완료·삭제 요청은 아래 목록의 id로 update_item / delete_item을 쓰세요. 대상이 불분명하면 그때만 한 번 되물으세요.
+- 일정 조회·추천 질문에는 아래 목록을 보고 답하세요. 등록이 끝나면 무엇을 언제로 등록했는지 한두 줄로 알려 주세요.
+현재 항목 (id|종류|날짜|시간|제목):
+${rows.join('\n')||'(없음)'}`;}
+function chatRun(name,a){
+  try{
+    if(name==='add_items'){const out=[];for(const it of (a.items||[])){
+      const type=['event','todo','memo'].includes(it.type)?it.type:'memo';const text=String(it.text||'').trim();if(!text)continue;
+      const date=DATE_RE.test(it.date||'')?it.date:today();const endDate=type==='event'&&DATE_RE.test(it.endDate||'')&&it.endDate>date?it.endDate:'';
+      const time=type!=='memo'&&TIME_RE.test(it.time||'')?it.time:'';
+      const x={id:uid(),type,text,note:String(it.note||'').trim(),date,endDate,time,done:false,createdAt:Date.now()};
+      put(x);out.push({id:x.id,type,date,time,text});}
+      return {ok:true,created:out};}
+    if(name==='update_item'){const x=S.items.get(a.id);if(!x)return {ok:false,error:'없는 id'};const y={...x};
+      if(a.text)y.text=String(a.text);if(DATE_RE.test(a.date||''))y.date=a.date;if(a.endDate!==undefined)y.endDate=DATE_RE.test(a.endDate||'')&&a.endDate>y.date?a.endDate:'';
+      if(a.time!==undefined)y.time=TIME_RE.test(a.time||'')?a.time:'';if(a.note!==undefined)y.note=String(a.note);if(['event','todo','memo'].includes(a.type))y.type=a.type;
+      if(typeof a.done==='boolean'){y.done=a.done;y.doneAt=a.done?Date.now():null;}put(y);return {ok:true,id:y.id,text:y.text,date:y.date};}
+    if(name==='delete_item'){const x=S.items.get(a.id);if(!x)return {ok:false,error:'없는 id'};const t=x.text;remove(a.id);return {ok:true,deleted:t};}
+  }catch(e){return {ok:false,error:String(e&&e.message||e)};}
+  return {ok:false,error:'알 수 없는 도구'};}
+function chatActText(name,a,r){
+  if(!r.ok)return null;
+  if(name==='add_items')return r.created.map(c=>`${{event:'📅',todo:'☑️',memo:'📝'}[c.type]} ${fmtDay(c.date)}${c.time?' '+c.time:''} · ${c.text}`);
+  if(name==='update_item')return [`✏️ 수정 · ${r.text} (${fmtDay(r.date)})`];
+  if(name==='delete_item')return [`🗑 삭제 · ${r.deleted}`];return null;}
+async function gptRaw(body){
+  const key=lsGet(KEY_LS);if(!key)throw {code:'no_key'};
+  const model=lsGet(MODEL_LS)||MODELS[0][0];
+  const b={model,max_completion_tokens:/^gpt-5|^o\d/.test(model)?4000:1500,...body};
+  if(/^gpt-5/.test(model))b.reasoning_effort='low';
+  const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify(b)});
+  if(!res.ok){let m='';try{m=(await res.json()).error.message}catch(e){}throw {code:res.status===401?'bad_key':'http',message:m,status:res.status};}
+  return res.json();}
+async function chatSend(text){
+  text=text.trim();if(!text||S.chatBusy)return;
+  S.chat.push({role:'user',content:text});S.chatDraft='';S.chatBusy=true;S.chatErr='';S.chatFocus=true;saveChat();renderChat();
+  const acts=[];let final='';
+  try{
+    const msgs=[{role:'system',content:chatSys()},...S.chat.slice(-16).map(m=>({role:m.role,content:m.content+(m.acts&&m.acts.length?'\n[앱에 처리됨: '+m.acts.join(' / ')+']':'')}))];
+    for(let round=0;round<5;round++){
+      const r=await gptRaw({messages:msgs,tools:CHAT_TOOLS});const m=r.choices&&r.choices[0]&&r.choices[0].message;if(!m)break;
+      if(m.tool_calls&&m.tool_calls.length){
+        msgs.push({role:'assistant',content:m.content||null,tool_calls:m.tool_calls});
+        for(const tc of m.tool_calls){let a={};try{a=JSON.parse(tc.function.arguments||'{}')}catch(_){}
+          const res=chatRun(tc.function.name,a);const lines=chatActText(tc.function.name,a,res);if(lines)acts.push(...lines);
+          msgs.push({role:'tool',tool_call_id:tc.id,content:JSON.stringify(res)});}
+        continue;}
+      final=(m.content||'').trim();break;}
+    if(!final&&acts.length)final='처리했습니다.';
+    if(!final)final='답을 받지 못했습니다. 다시 말씀해 주세요.';
+    S.chat.push({role:'assistant',content:final,acts});
+  }catch(e){
+    S.chatErr=e&&e.code==='no_key'?'설정에서 OpenAI API 키를 먼저 넣어 주세요.':e&&e.code==='bad_key'?'API 키가 올바르지 않습니다. 설정에서 다시 확인하세요.':('요청 실패'+(e&&e.status?` (${e.status})`:'')+(e&&e.message?' · '+e.message:''));
+  }
+  S.chatBusy=false;saveChat();render();}
+function renderChat(){
+  const p=$('panel');const had=!!(document.activeElement&&document.activeElement.id==='chatIn');
+  const log=h('div',{class:'chat-log',id:'chatLog'});
+  if(!S.chat.length)log.append(h('div',{class:'chat-empty card'},h('b',{text:'말로 등록하세요'}),h('p',{text:'“내일 오후 3시 남희이태원 미팅”, “금요일까지 보고서 제출”, “다음 주 월~수 부산 출장” 처럼 말하면 일정·할 일·메모로 알아서 등록합니다. 수정·완료·삭제도 말로 하면 됩니다.'}),
+    h('div',{class:'chat-ex'},...['내일 저녁 7시 회식','이번 주 할 일 정리해줘','보고서 제출 완료 처리'].map(t=>h('button',{type:'button',class:'chip',text:t,onclick:()=>chatSend(t)})))));
+  for(const m of S.chat){
+    const b=h('div',{class:'bub '+(m.role==='user'?'me':'bot')});
+    if(m.role==='user')b.textContent=m.content;else{const t=h('div',{class:'wiki-body'});t.innerHTML=renderMd(m.content);b.append(t);}
+    log.append(b);
+    if(m.acts&&m.acts.length)log.append(h('div',{class:'acts'},...m.acts.map(a=>h('div',{class:'act',text:a}))));}
+  if(S.chatBusy)log.append(h('div',{class:'bub bot typing',text:'생각하는 중…'}));
+  if(S.chatErr)log.append(h('div',{class:'bub err'},S.chatErr,!lsGet(KEY_LS)?h('button',{type:'button',class:'ghost',text:'설정 열기',onclick:()=>openSettings()}):null));
+  const ta=h('textarea',{id:'chatIn',rows:'1',placeholder:'예) 내일 오후 3시 치과 예약',enterkeyhint:'send','aria-label':'GPT에게 말하기',disabled:S.chatBusy?'':null});
+  ta.value=S.chatDraft;ta.addEventListener('input',()=>{S.chatDraft=ta.value;autoGrow(ta);});
+  ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();chatSend(ta.value);}});
+  const form=h('form',{class:'chat-form card',onsubmit:e=>{e.preventDefault();chatSend(ta.value);}},ta,h('button',{class:'primary',type:'submit',text:'보내기',disabled:S.chatBusy?'':null}));
+  const top=h('div',{class:'chat-top'},h('b',{text:'GPT 비서'}),S.chat.length?h('button',{type:'button',class:'ghost',text:'대화 지우기',onclick:()=>{if(confirm('대화를 지울까요? (등록된 일정·할 일은 그대로입니다)')){S.chat=[];S.chatErr='';saveChat();renderChat();}}}):null);
+  p.replaceChildren(top,log,form);
+  setTimeout(()=>{log.scrollTop=log.scrollHeight;window.scrollTo(0,document.body.scrollHeight);autoGrow(ta);if((had||S.chatFocus)&&!S.chatBusy&&S.view==='chat'){ta.focus();S.chatFocus=false;}},0);
+}
+$('tab-chat').onclick=()=>{S.view='chat';S.chatFocus=false;render();window.scrollTo({top:0});};
 if(location.hash.startsWith('#import=')){const c=location.hash;history.replaceState(null,'',location.pathname+location.search);importCode(c);}
 fromHash();
 render();
 setTimeout(peek,400);
 /* ---------- 좌우로 쓸어 탭 이동 · 위에서 당겨 새로고침 ---------- */
 (function(){
-  const ORDER=['todo','cal','wiki'];
+  const ORDER=['todo','cal','wiki','chat'];
   const BLOCK='.sw-fg,#days,input,textarea,select,table,pre,.tbl,.wseg,.viewer,.vcap,[contenteditable="true"],.mcal';
   const blocked=t=>{
     if(!t||!t.closest)return true;
@@ -2681,7 +2815,7 @@ setTimeout(peek,400);
     const t0=e.touches[0];
     g={x:t0.clientX,y:t0.clientY,t:Date.now(),mode:'',top:window.scrollY<=0,
        tabOK:ORDER.includes(S.view)&&!t.closest(BLOCK)&&!hScroll(t)&&!(S.view==='wiki'&&S.wikiEdit),
-       pullOK:!(S.view==='wiki'&&S.wikiEdit)&&!t.closest('input,textarea,select,#days,.tbl,pre')};
+       pullOK:S.view!=='chat'&&!(S.view==='wiki'&&S.wikiEdit)&&!t.closest('input,textarea,select,#days,.tbl,pre')};
   },{passive:true});
   document.addEventListener('touchmove',e=>{
     if(!g)return;const t0=e.touches[0],dx=t0.clientX-g.x,dy=t0.clientY-g.y;

@@ -141,11 +141,16 @@ struct ItemRow: View {
                 Store.save(ctx)
             } label: { Label("삭제", systemImage: "trash") }
         }
-        // → 오른쪽으로 밀기: 일정 등록 (주황)
+        // → 오른쪽으로 밀기: 할 일은 일정 등록 (주황), 메모는 삭제
         .swipeActions(edge: .leading, allowsFullSwipe: true) {
             if item.kind == .todo {
                 Button { makeEvent = true } label: { Label("일정 등록", systemImage: "calendar.badge.plus") }
                     .tint(Theme.swipeEvent)
+            } else if item.kind == .memo {
+                Button(role: .destructive) {
+                    ctx.delete(item)
+                    Store.save(ctx)
+                } label: { Label("삭제", systemImage: "trash") }
             }
         }
         .sheet(isPresented: $makeEvent) {
