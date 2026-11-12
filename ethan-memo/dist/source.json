@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.35",
-"buildVersion": "35",
-"date": "2026-11-12T00:41:20Z",
-"localizedDescription": "GPT 챗봇 탭(말로 일정·할 일·메모 등록/수정/삭제) + 메모 오른쪽 밀기 삭제",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=35",
-"size": 1234778,
+"version": "1.0.38",
+"buildVersion": "38",
+"date": "2026-11-12T00:54:30Z",
+"localizedDescription": "iOS 빌드 오류 수정: 명시적 init",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=38",
+"size": 1281211,
 "minOSVersion": "17.0"
         }
       ],
