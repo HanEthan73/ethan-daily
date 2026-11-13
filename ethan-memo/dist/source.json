@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.46",
-"buildVersion": "46",
-"date": "2026-11-12T15:42:12Z",
-"localizedDescription": "다 끝낸 날짜는 할 일 목록에서 숨김, 구글 캘린더 '웹 로그인 방식'(내용 채워진 구글 캘린더 추가 화면) 기본화, 편집 시트 버튼 스타일 충돌 수정",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=46",
-"size": 1383082,
+"version": "1.0.47",
+"buildVersion": "47",
+"date": "2026-11-13T05:09:44Z",
+"localizedDescription": "할 일 탭: 완료한 건 날짜 묶음에 안 띄움(다 끝낸 날짜·완료 접기 줄 제거), 이전 수정이 메모 모아보기에 잘못 들어간 버그 수정",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=47",
+"size": 1378969,
 "minOSVersion": "17.0"
         }
       ],
