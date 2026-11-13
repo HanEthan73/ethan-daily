@@ -18,10 +18,8 @@ struct TodoScreen: View {
         let today = Fmt.cal.startOfDay(for: .now)
         let pins = todos.filter { $0.pinned && !$0.done }.sorted { ($0.pinnedAt ?? .distantPast) > ($1.pinnedAt ?? .distantPast) }
         let groups = Dictionary(grouping: todos.filter { !($0.pinned && !$0.done) }) { $0.day }
-        // 다 끝낸 날짜는 숨김 (오늘은 항상 보임 · 기록은 캘린더·위키에)
-        let dates = groups.keys.filter { d in
-            Fmt.cal.isDateInToday(d) || (groups[d] ?? []).contains { !$0.done }
-        }.sorted(by: >)
+        // 완료한 건 날짜 묶음에 안 띄움 (기록은 캘린더·위키에)
+        let dates = groups.keys.filter { d in (groups[d] ?? []).contains { !$0.done } }.sorted(by: >)
         let openCount = todos.filter { !$0.done }.count
 
         NavigationStack {
@@ -93,11 +91,9 @@ struct TodoScreen: View {
                 ForEach(dates, id: \.self) { d in
                     let list = groups[d] ?? []
                     let open = list.filter { !$0.done }.sorted { $0.createdAt > $1.createdAt }
-                    let done = list.filter(\.done).sorted { ($0.doneAt ?? .distantPast) > ($1.doneAt ?? .distantPast) }
                     let diff = Fmt.daysBetween(today, d)
                     Section {
                         ForEach(open) { item in ItemRow(item: item) { editing = item } }
-                        DoneFold(items: done, editing: $editing)
                     } header: {
                         HStack(spacing: 8) {
                             Text(Fmt.short(d))
@@ -112,7 +108,7 @@ struct TodoScreen: View {
                                 Text(h).font(.system(size: 11)).foregroundStyle(Theme.sun)
                             }
                             Spacer()
-                            Text("\(done.count)/\(list.count) 완료")
+                            Text("\(open.count)개 남음")
                                 .font(.system(size: 11.5).monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }

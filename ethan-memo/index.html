@@ -1907,7 +1907,6 @@ function renderMemoBoard(){
       h('button',{type:'button','aria-pressed':scope==='all',text:'전체',onclick:()=>{S.memoScope='all';render();}}))];
   if(!dates.length)kids.push(h('div',{class:'card empty'},h('b',{text:scope==='all'?'메모가 없습니다':'이 달에는 메모가 없습니다'}),'날짜를 눌러 메모를 추가하거나, 할 일·일정을 열어 ‘메모로 이동’을 눌러 보세요.'));
   for(const d of dates){
-    if(!openL.length&&d!==t)continue; /* 다 끝낸 날짜는 숨김 (기록은 캘린더·위키에) */
     const diff=Math.round((pd(d)-pd(t))/864e5);
     const rel=diff===0?'오늘':diff===-1?'어제':diff===1?'내일':diff<0?`${-diff}일 전`:`${diff}일 후`;
     const list=groups[d].sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).sort(byPin);
@@ -1976,6 +1975,7 @@ function renderTodos(){
     const list=groups[d].filter(x=>!(x.pinned&&!x.done));
     if(!list.length)continue;
     const openL=list.filter(x=>!x.done).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),doneL=list.filter(x=>x.done).sort((a,b)=>(b.doneAt||0)-(a.doneAt||0));
+    if(!openL.length)continue; /* 완료한 건 날짜 묶음에 안 띄움 (기록은 캘린더·위키에) */
     const diff=Math.round((pd(d)-pd(t))/864e5);
     const rel=diff===0?'오늘':diff===-1?'어제':diff===1?'내일':diff<0?`${-diff}일 전`:`${diff}일 후`;
     const openN=list.filter(x=>!x.done).length;
@@ -1984,8 +1984,8 @@ function renderTodos(){
         h('button',{class:'datechip',text:fmtDay(d),title:'캘린더에서 보기',onclick:()=>goDate(d)}),
         h('span',{class:'rel',text:rel}),
         h('span',{class:'sp'}),
-        h('span',{class:'c',text:`${list.length-openN}/${list.length} 완료`})),
-      h('ul',{class:'list'},openL.map(x=>itemRow(x)),foldRow('t:'+d,doneL))));
+        h('span',{class:'c',text:`${openN}개 남음`})),
+      h('ul',{class:'list'},openL.map(x=>itemRow(x)))));
   }
   p.replaceChildren(...kids);
   if(keep){const n=$('tText');n.value=keep.v;if(keep.f)n.focus();}
