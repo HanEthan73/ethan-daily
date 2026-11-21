@@ -1338,7 +1338,7 @@ main.grid{padding-bottom:88px}
         </div>
         <div class="wk" aria-hidden="true"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
         <div class="days" id="days"></div>
-        <div class="legend"><span><i class="d-event"></i>일정</span><span><i class="d-todo"></i>할 일</span><span><i class="d-memo"></i>메모</span><span>· 꾹=일정 · 꾹 끌기=기간 · 좌우=달</span></div>
+        <div class="legend"><span><i class="d-event"></i>일정</span><span><i class="d-todo"></i>할 일</span><span><i class="d-memo"></i>메모</span><span>· 꾹=일정 · 꾹 끌기=기간(끝에 대면 다음 달) · 좌우=달</span></div>
         <button type="button" class="ghost memo-board" id="memoBtn" aria-pressed="false">📝 메모 모아보기</button>
       </div>
     </section>
@@ -1750,14 +1750,17 @@ function renderCal(){
 
 /* 달력 손동작: 탭=날짜 선택 · 꾹=그날 일정 · 꾹 누른 채 끌기=기간 일정 · 좌우로 밀기=달 바꾸기 · 위아래=스크롤 */
 let drag=null,dragJustEnded=false;
-function cellAt(x,y){const el=document.elementFromPoint(x,y);const c=el&&el.closest('#days .day');return c?+c.dataset.i:null;}
+/* 막대(일정) 위를 지나가도 그 아래 날짜 칸을 찾음 */
+function cellAt(x,y){const els=document.elementsFromPoint?document.elementsFromPoint(x,y):[document.elementFromPoint(x,y)];
+  for(const el of els){const c=el&&el.closest&&el.closest('#days .day');if(c)return +c.dataset.i;}return null;}
+/* 범위는 날짜(키)로 기억 → 달이 바뀌어도 이어서 칠함 */
 function paintRange(){
   const cells=[...document.querySelectorAll('#days .day')];
   cells.forEach(c=>c.classList.remove('rng','rng-l','rng-r'));
-  if(!drag||!drag.sel||drag.to==null||drag.to===drag.from)return;
-  const lo=Math.min(drag.from,drag.to),hi=Math.max(drag.from,drag.to);
-  for(let i=lo;i<=hi;i++){const c=cells[i];if(!c)continue;c.classList.add('rng');
-    if(i===lo||i%7===0)c.classList.add('rng-l');if(i===hi||i%7===6)c.classList.add('rng-r');}
+  if(!drag||!drag.sel||!drag.toK||drag.toK===drag.fromK)return;
+  const lo=drag.fromK<drag.toK?drag.fromK:drag.toK,hi=drag.fromK<drag.toK?drag.toK:drag.fromK;
+  cells.forEach((c,i)=>{const k=CAL.days[i];if(!k||k<lo||k>hi)return;c.classList.add('rng');
+    if(k===lo||i%7===0)c.classList.add('rng-l');if(k===hi||i%7===6)c.classList.add('rng-r');});
 }
 function shiftMonth(n){S.month=new Date(S.month.getFullYear(),S.month.getMonth()+n,1);render();
   const b=$('days');b.classList.remove('slide-l','slide-r');void b.offsetWidth;b.classList.add(n>0?'slide-l':'slide-r');}
@@ -1766,19 +1769,40 @@ function shiftMonth(n){S.month=new Date(S.month.getFullYear(),S.month.getMonth()
   const cellEl=i=>document.querySelector(`#days .day[data-i="${i}"]`);
   const unpress=()=>document.querySelectorAll('#days .day.press').forEach(c=>c.classList.remove('press'));
   const quiet=()=>{dragJustEnded=true;setTimeout(()=>dragJustEnded=false,450);};
+  /* 끌면서 달력 위·아래 끝(또는 화면 좌우 끝)에 잠깐 머물면 이전·다음 달로 넘어감 */
+  const EDGE=26,HOLD=550;
+  function edgeDir(x,y){const r=box.getBoundingClientRect();
+    if(y>r.bottom-EDGE||x>window.innerWidth-EDGE)return 1;
+    if(y<r.top+EDGE||x<EDGE)return -1;return 0;}
+  function edgeCheck(){if(!drag||!drag.sel)return;const dir=edgeDir(drag.x,drag.y);
+    if(dir!==drag.edge){drag.edge=dir;clearTimeout(drag.flip);if(dir)drag.flip=setTimeout(flip,HOLD);}}
+  function flip(){if(!drag||!drag.sel||!drag.edge)return;const dir=drag.edge;
+    shiftMonth(dir);try{navigator.vibrate&&navigator.vibrate(15)}catch(_){}
+    /* 넘어간 달에서 손가락 위치의 날짜로 이어감 (끝에 걸쳐 있으면 그 달 첫·마지막 주) */
+    const i=cellAt(drag.x,drag.y);
+    if(i!=null)drag.toK=CAL.days[i];
+    else{const ks=CAL.days;drag.toK=dir>0?ks.find(k=>pd(k).getMonth()===S.month.getMonth()&&pd(k).getDate()===1)||ks[0]:ks[ks.length-1];}
+    paintRange();drag.edge=0;drag.flip=setTimeout(()=>{if(drag&&drag.sel&&edgeDir(drag.x,drag.y)===dir){drag.edge=dir;flip();}},HOLD+250);}
   box.addEventListener('pointerdown',e=>{if(e.button>0)return;const i=cellAt(e.clientX,e.clientY);if(i==null)return;
-    drag={from:i,to:i,id:e.pointerId,x0:e.clientX,y0:e.clientY,sel:false,moved:false};
-    drag.timer=setTimeout(()=>{if(!drag||drag.moved)return;drag.sel=true;const c=cellEl(drag.from);if(c)c.classList.add('press');
+    const k=CAL.days[i];
+    drag={fromK:k,toK:k,id:e.pointerId,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,sel:false,moved:false,edge:0};
+    drag.timer=setTimeout(()=>{if(!drag||drag.moved)return;drag.sel=true;
+      try{box.setPointerCapture(drag.id)}catch(_){}
+      const c=cellEl(CAL.days.indexOf(drag.fromK));if(c)c.classList.add('press');
       if(navigator.vibrate)try{navigator.vibrate(12)}catch(_){}},380);});
-  box.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;
+  box.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;drag.x=e.clientX;drag.y=e.clientY;
     if(!drag.sel){if(Math.abs(e.clientX-drag.x0)>8||Math.abs(e.clientY-drag.y0)>8){drag.moved=true;clearTimeout(drag.timer);}return;}
-    const i=cellAt(e.clientX,e.clientY);if(i!=null&&i!==drag.to){unpress();drag.to=i;paintRange();if(navigator.vibrate)try{navigator.vibrate(5)}catch(_){}}});
+    const i=cellAt(e.clientX,e.clientY);const k=i!=null?CAL.days[i]:null;
+    if(k&&k!==drag.toK){unpress();drag.toK=k;paintRange();if(navigator.vibrate)try{navigator.vibrate(5)}catch(_){}}
+    edgeCheck();});
   box.addEventListener('touchmove',e=>{if(drag&&drag.sel)e.preventDefault();},{passive:false});
   box.addEventListener('contextmenu',e=>{if(drag)e.preventDefault();});
-  const end=e=>{if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(d.timer);unpress();paintRange();
+  const end=e=>{if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;clearTimeout(d.timer);clearTimeout(d.flip);unpress();paintRange();
+    try{box.releasePointerCapture(d.id)}catch(_){}
     if(e.type!=='pointerup')return;
     const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
-    if(d.sel){S.memoAll=false;quiet();const lo=Math.min(d.from,d.to),hi=Math.max(d.from,d.to);S.sel=CAL.days[lo];render();openNew({type:'event',date:CAL.days[lo],endDate:CAL.days[hi]});return;}
+    if(d.sel){S.memoAll=false;quiet();const lo=d.fromK<d.toK?d.fromK:d.toK,hi=d.fromK<d.toK?d.toK:d.fromK;S.sel=lo;
+      const m=pd(lo);S.month=new Date(m.getFullYear(),m.getMonth(),1);render();openNew({type:'event',date:lo,endDate:hi});return;}
     if(d.moved){quiet();if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.3)shiftMonth(dx<0?1:-1);}};
   box.addEventListener('pointerup',end);box.addEventListener('pointercancel',end);
 })();

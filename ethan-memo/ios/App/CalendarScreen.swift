@@ -237,8 +237,12 @@ struct MonthGrid: View {
     let items: [Item]
     var onRange: (Date, Date) -> Void
 
-    @State private var dragFrom: Int?
-    @State private var dragTo: Int?
+    /// 범위는 날짜로 기억 → 끌다가 달이 바뀌어도 이어짐
+    @State private var dragFrom: Date?
+    @State private var dragTo: Date?
+    @State private var edgeDir = 0
+    @State private var edgeTask: DispatchWorkItem?
+    @State private var lastLoc: CGPoint = .zero
     @State private var selecting = false
     @State private var moved = false
     @State private var began = false
@@ -325,7 +329,9 @@ struct MonthGrid: View {
     /// 선택 중인 범위 → 주 단위 하이라이트
     private var dragSegs: [(row: Int, start: Int, end: Int)] {
         guard selecting, let a = dragFrom, let b = dragTo else { return [] }
-        let lo = min(a, b), hi = max(a, b)
+        let all = days
+        let da = min(a, b), db = max(a, b)
+        guard let lo = all.firstIndex(where: { $0 >= da }), let hi = all.lastIndex(where: { $0 <= db }), lo <= hi else { return [] }
         var out: [(row: Int, start: Int, end: Int)] = []
         var i = lo
         while i <= hi {
@@ -430,15 +436,13 @@ struct MonthGrid: View {
                 )
             }
             .frame(height: CGFloat(weeks) * rh)
-            .id(month)
-            .transition(.opacity)
 
             HStack(spacing: 12) {
                 legend(Theme.event, "일정")
                 legend(Theme.todo, "할 일")
                 legend(Theme.memo, "메모")
                 Spacer()
-                Text("꾹 눌러 일정 · 끌어서 기간 · 좌우로 달").font(.system(size: 10.5)).foregroundStyle(.secondary)
+                Text("꾹 눌러 일정 · 끌어서 기간(위·아래 끝에 대면 달 넘김) · 좌우로 달").font(.system(size: 10.5)).foregroundStyle(.secondary)
             }
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
@@ -448,10 +452,11 @@ struct MonthGrid: View {
     // MARK: 손동작
 
     private func changed(_ v: DragGesture.Value, w: CGFloat) {
+        lastLoc = v.location
         if !began {
             began = true
             moved = false
-            let start = index(at: v.startLocation, w: w)
+            let start = days[index(at: v.startLocation, w: w)]
             let task = DispatchWorkItem {
                 guard began, !moved else { return }
                 selecting = true
@@ -463,25 +468,51 @@ struct MonthGrid: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.38, execute: task)
         }
         if selecting {
-            let idx = index(at: v.location, w: w)
-            if dragTo != idx {
-                dragTo = idx
+            let d = days[index(at: v.location, w: w)]
+            if dragTo != d {
+                dragTo = d
                 UISelectionFeedbackGenerator().selectionChanged()
             }
+            edgeCheck(w: w)
         } else if hypot(v.translation.width, v.translation.height) > 10 {
             moved = true
             pressTask?.cancel()
         }
     }
 
+    /// 끌면서 달력 위·아래 끝에 잠깐 머물면 이전·다음 달로 넘어감 (계속 대고 있으면 계속 넘어감)
+    private func edgeCheck(w: CGFloat) {
+        let h = CGFloat(weeks) * rowH
+        let dir = lastLoc.y > h - 26 ? 1 : (lastLoc.y < 26 ? -1 : 0)
+        guard dir != edgeDir else { return }
+        edgeDir = dir
+        edgeTask?.cancel()
+        if dir != 0 { scheduleFlip(dir, w: w, after: 0.55) }
+    }
+
+    private func scheduleFlip(_ dir: Int, w: CGFloat, after: Double) {
+        let task = DispatchWorkItem {
+            guard selecting, edgeDir == dir else { return }
+            month = Fmt.cal.date(byAdding: .month, value: dir, to: month) ?? month
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            dragTo = days[index(at: lastLoc, w: w)]
+            scheduleFlip(dir, w: w, after: 0.8)
+        }
+        edgeTask = task
+        DispatchQueue.main.asyncAfter(deadline: .now() + after, execute: task)
+    }
+
     private func ended(_ v: DragGesture.Value, w: CGFloat) {
         pressTask?.cancel()
         pressTask = nil
-        defer { began = false; moved = false; selecting = false; dragFrom = nil; dragTo = nil }
+        edgeTask?.cancel()
+        edgeTask = nil
+        defer { began = false; moved = false; selecting = false; dragFrom = nil; dragTo = nil; edgeDir = 0 }
         let all = days
         if selecting, let a = dragFrom, let b = dragTo {
-            let s = all[min(a, b)], e = all[max(a, b)]
+            let s = min(a, b), e = max(a, b)
             selected = s
+            if !Fmt.cal.isDate(s, equalTo: month, toGranularity: .month) { month = Fmt.startOfMonth(s) }
             onRange(s, e)
             return
         }
