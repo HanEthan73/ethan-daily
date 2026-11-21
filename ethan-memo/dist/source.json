@@ -16,12 +16,12 @@
       "category": "productivity",
       "versions": [
         {
-"version": "1.0.47",
-"buildVersion": "47",
-"date": "2026-11-13T05:09:44Z",
-"localizedDescription": "할 일 탭: 완료한 건 날짜 묶음에 안 띄움(다 끝낸 날짜·완료 접기 줄 제거), 이전 수정이 메모 모아보기에 잘못 들어간 버그 수정",
-"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=47",
-"size": 1378969,
+"version": "1.0.48",
+"buildVersion": "48",
+"date": "2026-11-21T13:42:45Z",
+"localizedDescription": "캘린더 기간 드래그: 달을 넘어 이어서 선택(위·아래 끝에 머물면 다음·이전 달로 넘어감), 일정 막대 위를 지나가도 끊기지 않게",
+"downloadURL": "https://hanethan73.github.io/ethan-daily/ethan-memo/dist/ETHAN-MEMO.ipa?v=48",
+"size": 1382760,
 "minOSVersion": "17.0"
         }
       ],
